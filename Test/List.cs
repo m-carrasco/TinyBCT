@@ -8,7 +8,7 @@ namespace Test
 {
     class List
     {
-        /*public void foo()
+        public void foo()
         {
             var l = new LinkedList<int>();
 
@@ -22,7 +22,7 @@ namespace Test
             {
                 acum = acum + item;
             }
-        }*/
+        }
 
     }
 }
