@@ -18,11 +18,18 @@ namespace Test
             l.AddFirst(4);
 
             int acum = 0;
-            foreach (var item in l)
+            foreach (var item in Elems(l))
             {
                 acum = acum + item;
             }
         }
-
-    }
+		static IEnumerable<int> Elems(ICollection<int> list)
+		{
+			foreach (var elem in list)
+			{
+				yield return elem;
+					 
+			}
+		}
+	}
 }
