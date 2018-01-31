@@ -107,6 +107,7 @@
     <Content Include="Dependencies\Microsoft.Cci.PdbReader.dll" />
     <Content Include="Dependencies\Microsoft.Cci.PeReader.dll" />
     <Content Include="Dependencies\Microsoft.Cci.SourceModel.dll" />
+    <Content Include="info.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

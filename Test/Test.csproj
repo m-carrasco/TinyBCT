@@ -45,7 +45,9 @@
   <ItemGroup>
     <Compile Include="Examples.cs" />
     <Compile Include="ExamplesPointsTo.cs" />
+    <Compile Include="GenericIterator.cs" />
     <Compile Include="Heap.cs" />
+    <Compile Include="List.cs" />
     <Compile Include="NoHeap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
