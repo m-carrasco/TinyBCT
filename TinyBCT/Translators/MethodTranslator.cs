@@ -26,7 +26,7 @@ namespace TinyBCT
             sb.AppendLine("{");
 
             // local variables declaration - arguments are already declared
-            methodBody.Variables.Except(methodBody.Parameters)
+            methodBody.Variables.Except(methodBody.Parameters).Where(v => v.Type!=null)
                 .Select(v =>
                         String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
                 ).ToList().ForEach(str => sb.AppendLine(str));
