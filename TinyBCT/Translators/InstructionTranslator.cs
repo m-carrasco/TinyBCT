@@ -75,9 +75,9 @@ namespace TinyBCT
                         var leftFixed = Helpers.GetBoogieType(left.Type).Equals("int") ? String.Format("Int2Bool({0})", left.ToString()) : left.ToString();
                         var rightFixed = Helpers.GetBoogieType(right.Type).Equals("int") ? String.Format("Int2Bool({0})", right.ToString()) : right.ToString();
                         sb.Append(String.Format("\t\t{0} {1} {2} {3} {4};", instruction.Result, ":=", leftFixed, operation, rightFixed));
-                    } 
-                    return;
-
+						return;
+					}
+					break;
             }
 
             sb.Append(String.Format("\t\t{0} {1} {2} {3} {4};", instruction.Result, ":=", left, operation, right));
