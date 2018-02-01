@@ -68,7 +68,8 @@ namespace TinyBCT
         private void transformBody(MethodBody methodBody)
         {
             var cfAnalysis = new ControlFlowAnalysis(methodBody);
-            var cfg = cfAnalysis.GenerateNormalControlFlow();
+            //var cfg = cfAnalysis.GenerateNormalControlFlow();
+            var cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
             var splitter = new WebAnalysis(cfg);
             splitter.Analyze();
