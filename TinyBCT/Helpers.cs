@@ -22,7 +22,9 @@ namespace TinyBCT
                 inst is ReturnInstruction ||
                 inst is ConditionalBranchInstruction ||
                 inst is CreateObjectInstruction ||
-                inst is StoreInstruction)
+                inst is StoreInstruction ||
+                inst is FinallyInstruction ||
+                inst is TryInstruction)
                 return true;
 
             return false;
@@ -35,7 +37,7 @@ namespace TinyBCT
             if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
                 return "bool";
             // hack 
-            if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
+            if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive) || type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                 return "Ref";
 
             return null;

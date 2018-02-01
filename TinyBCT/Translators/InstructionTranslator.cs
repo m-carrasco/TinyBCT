@@ -112,6 +112,16 @@ namespace TinyBCT
                 sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
         }
 
+        public override void Visit(TryInstruction instruction)
+        {
+            sb.Append("// TryInstruction not implemented yet.");
+        }
+
+        public override void Visit(FinallyInstruction instruction)
+        {
+            sb.Append("// FinallyInstruction not implemented yet.");
+        }
+
         public override void Visit(MethodCallInstruction instruction)
         {
             addLabel(instruction);
