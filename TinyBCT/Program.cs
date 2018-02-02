@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.Cci;
 using Backend;
 using System.IO;
+using TinyBCT.Translators;
 
 namespace TinyBCT
 {
@@ -53,9 +54,6 @@ namespace TinyBCT
                 streamWriter.WriteLine(streamReader.ReadToEnd());
                 streamReader.Close();
                 
-                var tVisitor = new TypeVisitor(host, assembly.PdbReader);
-                tVisitor.Traverse(assembly.Module);
-
                 var visitor = new MethodTranslationVisitor(host, assembly.PdbReader);
 				visitor.Traverse(assembly.Module);
 
@@ -65,6 +63,10 @@ namespace TinyBCT
                     var head = Helpers.GetMethodDefinition(methodRef, true);
                     streamWriter.WriteLine(head);
                 }
+
+                // we declare read or written fields
+                foreach (var field in FieldTranslator.GetFieldDefinitions())
+                    streamWriter.WriteLine(field);
 
                 streamWriter.Close();
 			}

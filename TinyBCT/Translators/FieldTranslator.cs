@@ -9,27 +9,39 @@ namespace TinyBCT.Translators
 {
     class FieldTranslator
     {
-        ITypeDefinition typeDef;
-        public static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
+        IFieldReference fieldRef;
+        private static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
 
-        public FieldTranslator(ITypeDefinition t)
+        public static IList<String> GetFieldDefinitions()
         {
-            typeDef = t;
+            IList<String> values = new List<String>();
+
+            foreach (var name in fieldNames.Values)
+                values.Add(String.Format("const unique {0} : Field;", name));
+
+            return values;
+        }
+
+        public static String GetFieldName(IFieldReference fieldRef)
+        {
+            if (fieldNames.ContainsKey(fieldRef))
+                return fieldNames[fieldRef];
+
+            FieldTranslator ft = new FieldTranslator(fieldRef);
+
+            return ft.Translate();
+        }
+
+        public FieldTranslator(IFieldReference f)
+        {
+            fieldRef = f;
         }
 
         public String Translate()
         {
-            StringBuilder sb = new StringBuilder();
-
-            foreach (var field in typeDef.Fields)
-            {
-                var name = String.Format("F${0}", field.ToString());
-                sb.AppendLine(String.Format("const unique {0} : Field;", name));
-
-                fieldNames.Add(field, name);
-            }
-
-            return sb.ToString();
+            var name = String.Format("F${0}", fieldRef.ToString());
+            fieldNames.Add(fieldRef, name);
+            return name;
         }
 
     }

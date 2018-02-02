@@ -102,11 +102,12 @@ namespace TinyBCT
             InstanceFieldAccess op = instruction.Operand as InstanceFieldAccess;
             if (op != null)
             {
+                String fieldName = FieldTranslator.GetFieldName(op.Field);
                 if (Helpers.GetBoogieType(op.Type).Equals("int"))
-                    sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, op.Instance, FieldTranslator.fieldNames[op.Field]));
+                    sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, op.Instance, fieldName));
                 else if (Helpers.GetBoogieType(op.Type).Equals("Ref"))
                     // Union and Ref are alias. There is no need of Union2Ref
-                    sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, op.Instance, FieldTranslator.fieldNames[op.Field]));
+                    sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, op.Instance, fieldName));
 
             } else
                 sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
@@ -179,15 +180,17 @@ namespace TinyBCT
 
             if (instanceFieldAccess != null)
             {
+                String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
+
                 if (Helpers.GetBoogieType(op.Type).Equals("int"))
                 {
                     sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", op));
-                    sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, FieldTranslator.fieldNames[instanceFieldAccess.Field], String.Format("Int2Union({0})",op)));
+                    sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})",op)));
                 } else if (Helpers.GetBoogieType(op.Type).Equals("Ref"))
                 {
                     //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", op));
                     // Union y Ref son el mismo type, forman un alias.
-                    sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, FieldTranslator.fieldNames[instanceFieldAccess.Field], /*String.Format("Int2Union({0})", op)*/op));
+                    sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", op)*/op));
                 }
             }
         }
