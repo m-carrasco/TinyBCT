@@ -58,6 +58,7 @@ namespace TinyBCT
                 case BinaryOperation.Le: operation = "<="; break;
             }
 
+            /*
             // workaround for bug typing bools and integers
             // we need to tell if an integer is used as a boolean
             // temp fix until fixed from analysis-net framework.
@@ -78,7 +79,7 @@ namespace TinyBCT
 						return;
 					}
 					break;
-            }
+            }*/
 
             sb.Append(String.Format("\t\t{0} {1} {2} {3} {4};", instruction.Result, ":=", left, operation, right));
         }
