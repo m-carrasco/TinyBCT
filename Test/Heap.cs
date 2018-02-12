@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Test
 {
+    class C : HeapExamples { }
     class HeapExamples
     {
         int i = 0;
@@ -18,6 +19,27 @@ namespace Test
         public void writeField()
         {
             i = 4;
+        }
+
+        public void useAs()
+        {
+            var a = new HeapExamples();
+            var b = a as HeapExamples;
+            var c = a as C;
+            int d = -1;
+            if(b==null)
+            {
+                d = 0;
+            }
+            else
+            {
+                d = 1;
+            }
+            if (c == null) { }
+            else
+            {
+                d += 2;
+            }
         }
     }
 }
