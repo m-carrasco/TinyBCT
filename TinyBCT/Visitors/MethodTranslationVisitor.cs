@@ -105,6 +105,34 @@ namespace TinyBCT
             }
         }
 
+        public override void TraverseChildren(INamedTypeDefinition namedTypeDefinition)
+        {
+            //function T$TestType() : Ref;
+            //const unique T$TestType: int;
+            //axiom $TypeConstructor(T$TestType()) == T$TestType;
+            // axiom (forall $T: Ref :: { $Subtype(T$Test(), $T) } $Subtype(T$Test(), $T) <==> T$Test() == $T || $Subtype(T$System.Object(), $T));
+
+
+            StringBuilder sb = new StringBuilder();
+            var typeName = Helpers.GetNormalizedType(namedTypeDefinition);
+            var superClass = namedTypeDefinition.BaseClasses.SingleOrDefault();
+            sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
+            sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
+            sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
+            if (superClass != null)
+            {
+                sb.AppendLine("axiom(forall $T: Ref:: { "+String.Format(" $Subtype(T${0}()", typeName)+
+                    ", $T) } $Subtype(T$"+ string.Format("{0}(), $T) <==> T${0}() == $T || $Subtype(T${1}(), $T));", typeName, Helpers.GetNormalizedType(superClass)));
+            }
+            
+
+            // todo: improve this piece of code
+            StreamWriter streamWriter = Program.streamWriter;
+            streamWriter.WriteLine(sb);
+
+            base.TraverseChildren(namedTypeDefinition);
+        }
+
         public override void TraverseChildren(IMethodDefinition methodDefinition)
 		{
             var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);

@@ -48,3 +48,31 @@ function Int2Bool(intValue: int) : bool;
 axiom Int2Bool(1) == true;
 
 axiom Int2Bool(0) == false;
+
+type Type = Ref;
+
+function $TypeConstructor(Ref) : int;
+function $DynamicType(Ref) : Type;
+function $Subtype(Type, Type) : bool;
+
+axiom(forall $T,$T1: Ref:: {  $Subtype($T1, $T) } $Subtype($T1, $T) <==> $T1 == $T || !$Subtype($T, $T1));
+
+
+function {:extern} T$System.Object() : Ref;
+const {:extern} unique T$System.Object: int;
+
+axiom $TypeConstructor(T$System.Object()) == T$System.Object;
+
+
+function $As(a: Ref, b: Type) : Ref;
+
+axiom (forall a: Ref, b: Type :: { $As(a, b): Ref } $As(a, b): Ref == (if $Subtype($DynamicType(a), b) then a else null));
+
+procedure {:inline 1} System.Object.GetType(this: Ref) returns ($result: Ref);
+
+
+
+implementation {:inline 1} System.Object.GetType(this: Ref) returns ($result: Ref)
+{
+    $result := $DynamicType(this);
+}

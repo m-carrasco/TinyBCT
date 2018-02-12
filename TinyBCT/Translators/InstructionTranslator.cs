@@ -15,7 +15,7 @@ namespace TinyBCT
     {
 
         public static ISet<IMethodReference> ExternMethodsCalled = new HashSet<IMethodReference>();
-        public string Result() { return sb.ToString(); }
+        public string Result() { return  sb.ToString().Replace("<>","__"); }
         private StringBuilder sb = new StringBuilder();
 
         private void addLabel(Instruction instr)
@@ -168,9 +168,15 @@ namespace TinyBCT
 
         public override void Visit(CreateObjectInstruction instruction)
         {
+            // assume $DynamicType($tmp0) == T$TestType();
+            //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
             //addLabel(instruction);
-            sb.Append(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
+            sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
+            var type = Helpers.GetNormalizedType(instruction.AllocationType);
+            sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
+            sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
         }
+
 
         public override void Visit(StoreInstruction instruction)
         {
@@ -195,5 +201,15 @@ namespace TinyBCT
                 }
             }
         }
+        public override void Visit(ConvertInstruction instruction)
+        {
+            addLabel(instruction);
+            var source = instruction.Operand;
+            var dest = instruction.Result;
+            var type = instruction.ConversionType;
+
+            sb.Append(String.Format("\t\t{0} := $As({1},T${2}());", dest, source,type.ToString()));
+        }
+
     }
 }

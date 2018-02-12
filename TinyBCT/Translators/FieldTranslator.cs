@@ -40,6 +40,8 @@ namespace TinyBCT.Translators
         public String Translate()
         {
             var name = String.Format("F${0}", fieldRef.ToString());
+            name = Helpers.NormalizeStringForCorral(name);
+
             fieldNames.Add(fieldRef, name);
             return name;
         }

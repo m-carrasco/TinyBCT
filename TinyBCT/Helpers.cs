@@ -46,6 +46,8 @@ namespace TinyBCT
         public static String GetMethodName(IMethodReference methodDefinition)
         {
             var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.SupressAttributeSuffix);
+            signature = NormalizeStringForCorral(signature);
+
             // workaround
             // Test.NoHeap.subtract(System.Int32, System.Int32) -> Test.NoHeap.subtract
             var split = signature.Split('(');
@@ -85,6 +87,7 @@ namespace TinyBCT
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);
 
+            parameters = NormalizeStringForCorral(parameters);
             return parameters;
         }
 
@@ -102,6 +105,20 @@ namespace TinyBCT
                 return true;
 
             return false;
+        }
+
+        public static string GetNormalizedType(ITypeReference type)
+        {
+            var result = type.ToString();
+            // Do this well 
+            result = NormalizeStringForCorral(result);
+
+            return result;
+        }
+
+        public static string NormalizeStringForCorral(string s)
+        {
+            return s.Replace('<', '_').Replace('>', '_');
         }
     }
 }
