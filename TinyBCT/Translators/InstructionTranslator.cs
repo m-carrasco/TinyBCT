@@ -52,7 +52,13 @@ namespace TinyBCT
                 case BinaryOperation.Shr: operation = ">>"; break;*/
                 case BinaryOperation.Eq: operation = "=="; break;
                 case BinaryOperation.Neq: operation = "!="; break;
-                case BinaryOperation.Gt: operation = ">"; break;
+                case BinaryOperation.Gt: operation = ">";
+					// hack: I don't know why is saying > when is comparing referencies
+					if (!left.Type.IsValueType || right.Type.IsValueType)
+					{
+						operation = "!=";
+					}
+					break;
                 case BinaryOperation.Ge: operation = ">="; break;
                 case BinaryOperation.Lt: operation = "<"; break;
                 case BinaryOperation.Le: operation = "<="; break;
@@ -130,7 +136,16 @@ namespace TinyBCT
             var signature = Helpers.GetMethodName(instruction.Method);
             var arguments = string.Join(", ", instruction.Arguments);
 
-            if (instruction.HasResult)
+			var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
+
+			if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
+			{
+				sb.Append(String.Format("\t\t assert {0};", arguments));
+				return;
+			}
+
+
+			if (instruction.HasResult)
                 sb.Append(String.Format("\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
             else
                 sb.Append(String.Format("\t\tcall {0}({1});", signature, arguments));

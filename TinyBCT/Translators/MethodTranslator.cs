@@ -31,6 +31,9 @@ namespace TinyBCT
                         String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
                 ).ToList().ForEach(str => sb.AppendLine(str));
 
+			if (methodDefinition.Name.Value == "Foo")
+			{
+			}
             // translate instructions
             methodBody.Instructions
                 .Select(ins =>

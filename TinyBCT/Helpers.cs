@@ -118,7 +118,22 @@ namespace TinyBCT
 
         public static string NormalizeStringForCorral(string s)
         {
-            return s.Replace('<', '_').Replace('>', '_');
+			return s; // .Replace('<', '_').Replace('>', '_');
         }
-    }
+		
+	}
+	public static class Extensions
+	{
+		public static string FullName(this ITypeReference tref)
+		{
+			return TypeHelper.GetTypeName(tref, NameFormattingOptions.Signature | NameFormattingOptions.TypeParameters);
+		}
+		public static string GetName(this ITypeReference tref)
+		{
+			if (tref is INamedTypeReference)
+				return (tref as INamedTypeReference).Name.Value;
+
+			return TypeHelper.GetTypeName(tref, NameFormattingOptions.OmitContainingType | NameFormattingOptions.OmitContainingNamespace | NameFormattingOptions.SmartTypeName);
+		}
+	}
 }

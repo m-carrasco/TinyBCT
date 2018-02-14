@@ -26,8 +26,17 @@ namespace TinyBCT
                 /*const string*/ input = root + @"\Test\bin\Debug\Test.dll";
             } else
             {
-                root = args[0];
-                input = args[1];
+				var i = 0;
+				while (args[i].StartsWith(@"/"))
+					i++; 
+                root = Path.GetDirectoryName(args[i]);
+                input = args[i];
+				if (String.IsNullOrWhiteSpace(root)) 
+				{
+					root = Directory.GetCurrentDirectory();
+					input = Path.Combine(root, input);
+				}
+				System.Console.WriteLine(input);
             }
 
 
@@ -42,14 +51,18 @@ namespace TinyBCT
 
                 var mtVisitor = new TACWriterVisitor(host, assembly.PdbReader);
                 mtVisitor.Traverse(assembly.Module);
-                streamWriter = new StreamWriter(@"C:\tac_output.txt");
+				var outputPath = Path.GetDirectoryName(input);
+
+				streamWriter = new StreamWriter(outputPath += @"\tac_output.txt");
                 streamWriter.WriteLine(mtVisitor.ToString());
                 streamWriter.Close();
 
-                // ***********************************************
+				// ***********************************************
 
-                var streamReader = new StreamReader(@"prelude.bpl");
-                streamWriter = new StreamWriter(@"C:\result.bpl");
+				var tinyBCTExeFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+				var streamReader = new StreamReader(Path.Combine(tinyBCTExeFolder, @"prelude.bpl"));
+				var outputResultPath = Path.ChangeExtension(input, "bpl");
+                streamWriter = new StreamWriter(outputResultPath);
                 // prelude
                 streamWriter.WriteLine(streamReader.ReadToEnd());
                 streamReader.Close();
@@ -72,7 +85,7 @@ namespace TinyBCT
 			}
 
 			System.Console.WriteLine("Done!");
-			System.Console.ReadKey();
+			//System.Console.ReadKey();
 		}
 	}
 }
