@@ -20,6 +20,7 @@ namespace TinyBCT
 	{
 		private IMetadataHost host;
 		private ISourceLocationProvider sourceLocationProvider;
+		private ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
 
 		public MethodTranslationVisitor(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
 		{
@@ -130,10 +131,36 @@ namespace TinyBCT
             StreamWriter streamWriter = Program.streamWriter;
             streamWriter.WriteLine(sb);
 
-            base.TraverseChildren(namedTypeDefinition);
+			classes.Add(namedTypeDefinition);
+
+			base.TraverseChildren(namedTypeDefinition);
         }
 
-        public override void TraverseChildren(IMethodDefinition methodDefinition)
+		public override void TraverseChildren(IAssembly assembly)
+		{
+			base.TraverseChildren(assembly);
+			StringBuilder sb = new StringBuilder();
+			// todo: improve this piece of code
+			foreach (var c1 in classes)
+			{
+				foreach (var c2 in classes.Where(c => c != c1))
+				{
+					if (!TypeHelper.Type1IsCovariantWithType2(c1, c2))
+					{
+						var tn1 = Helpers.GetNormalizedType(c1);
+						var tn2 = Helpers.GetNormalizedType(c2);
+
+						// axiom(forall $T: Ref:: { $Subtype($T, T1$() } $Subtype($T, $T1) ==> ! $Subtype($T, T2$))
+						sb.AppendLine("axiom(forall $T: Ref:: { " + String.Format("$Subtype($T, T${0}())", tn1)
+							 + "} " + String.Format("$Subtype($T, T${0}()) ==>!$Subtype($T, T${1}()));", tn1, tn2));
+					}
+				}
+			}
+			// todo: improve this piece of code
+			StreamWriter streamWriter = Program.streamWriter;
+			streamWriter.WriteLine(sb);
+		}
+		public override void TraverseChildren(IMethodDefinition methodDefinition)
 		{
             var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
             var methodBody = disassembler.Execute();

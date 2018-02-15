@@ -55,7 +55,7 @@ function $TypeConstructor(Ref) : int;
 function $DynamicType(Ref) : Type;
 function $Subtype(Type, Type) : bool;
 
-axiom(forall $T,$T1: Ref:: {  $Subtype($T1, $T) } $Subtype($T1, $T) <==> $T1 == $T || !$Subtype($T, $T1));
+axiom(forall $T,$T1: Ref:: {  $Subtype($T1, $T) } ($Subtype($T1, $T) && $Subtype($T, $T1)) ==> $T1 == $T );
 
 
 function {:extern} T$System.Object() : Ref;
