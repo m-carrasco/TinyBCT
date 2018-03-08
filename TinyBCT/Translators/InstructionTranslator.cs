@@ -138,7 +138,11 @@ namespace TinyBCT
 
         public override void Visit(MethodCallInstruction instruction)
         {
-            addLabel(instruction);
+            // This is check is done because an object creation is splitted into two TAC instructions
+            // This prevents to add the same instruction tag twice
+            if (!Helpers.IsConstructor(instruction.Method))
+                addLabel(instruction);
+
             var signature = Helpers.GetMethodName(instruction.Method);
             var arguments = string.Join(", ", instruction.Arguments);
 
@@ -191,7 +195,7 @@ namespace TinyBCT
         {
             // assume $DynamicType($tmp0) == T$TestType();
             //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
-            //addLabel(instruction);
+            addLabel(instruction);
             sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
             var type = Helpers.GetNormalizedType(instruction.AllocationType);
             sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
