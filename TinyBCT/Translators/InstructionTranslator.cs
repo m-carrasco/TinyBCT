@@ -116,8 +116,14 @@ namespace TinyBCT
                     // Union and Ref are alias. There is no need of Union2Ref
                     sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, op.Instance, fieldName));
 
-            } else
-                sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
+            }
+            else
+            {
+                if (Helpers.GetBoogieType(instruction.Result.Type) == "bool")
+                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand.ToString() == "0" ? "false" : "true"));
+                else
+                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand.ToString()));
+            }
         }
 
         public override void Visit(TryInstruction instruction)
