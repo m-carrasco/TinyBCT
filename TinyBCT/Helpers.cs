@@ -24,7 +24,8 @@ namespace TinyBCT
                 inst is CreateObjectInstruction ||
                 inst is StoreInstruction ||
                 inst is FinallyInstruction ||
-                inst is TryInstruction)
+                inst is TryInstruction || 
+                inst is ConvertInstruction)
                 return true;
 
             return false;
@@ -127,8 +128,12 @@ namespace TinyBCT
         {
 			return s; // .Replace('<', '_').Replace('>', '_');
         }
-		
-	}
+
+        public static bool IsConstructor(IMethodReference method)
+        {
+            return method.Name.Value == ".ctor";
+        }
+    }
 	public static class Extensions
 	{
 		public static string FullName(this ITypeReference tref)
