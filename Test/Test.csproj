@@ -48,6 +48,7 @@
     <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="GenericIterator.cs" />
     <Compile Include="Heap.cs" />
+    <Compile Include="Inheritance.cs" />
     <Compile Include="List.cs" />
     <Compile Include="NestedClass.cs" />
     <Compile Include="NoHeap.cs" />

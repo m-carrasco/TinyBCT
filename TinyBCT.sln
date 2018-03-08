@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26730.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyBCT", "TinyBCT\TinyBCT.csproj", "{7779BD4A-7E4E-4B4C-80F3-16AD306A78CE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0} = {A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}"
 EndProject
