@@ -119,10 +119,7 @@ namespace TinyBCT
             }
             else
             {
-                if (Helpers.GetBoogieType(instruction.Result.Type) == "bool")
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand.ToString() == "0" ? "false" : "true"));
-                else
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand.ToString()));
+                sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
             }
         }
 
