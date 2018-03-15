@@ -113,7 +113,7 @@ namespace TinyBCT
             //axiom $TypeConstructor(T$TestType()) == T$TestType;
             // axiom (forall $T: Ref :: { $Subtype(T$Test(), $T) } $Subtype(T$Test(), $T) <==> T$Test() == $T || $Subtype(T$System.Object(), $T));
 
-
+            
             StringBuilder sb = new StringBuilder();
             var typeName = Helpers.GetNormalizedType(namedTypeDefinition);
             var superClass = namedTypeDefinition.BaseClasses.SingleOrDefault();
@@ -139,7 +139,7 @@ namespace TinyBCT
 		public override void TraverseChildren(IAssembly assembly)
 		{
 			base.TraverseChildren(assembly);
-			StringBuilder sb = new StringBuilder();
+			/*StringBuilder sb = new StringBuilder();
 			// todo: improve this piece of code
 			foreach (var c1 in classes)
 			{
@@ -158,7 +158,7 @@ namespace TinyBCT
 			}
 			// todo: improve this piece of code
 			StreamWriter streamWriter = Program.streamWriter;
-			streamWriter.WriteLine(sb);
+			streamWriter.WriteLine(sb);*/
 		}
 		public override void TraverseChildren(IMethodDefinition methodDefinition)
 		{
