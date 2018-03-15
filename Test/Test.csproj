@@ -44,6 +44,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="As.cs" />
+    <Compile Include="As2.cs" />
+    <Compile Include="As3.cs" />
     <Compile Include="Examples.cs" />
     <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="GenericIterator.cs" />
