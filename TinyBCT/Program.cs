@@ -17,33 +17,12 @@ namespace TinyBCT
 
         static void Main(string[] args)
 		{
-            string root = String.Empty;
-            string input = String.Empty;
-
-            if (args.Length == 0)
-            {
-                /*const string*/ root = @"..\..\..";
-                /*const string*/ input = root + @"\Test\bin\Debug\Test.dll";
-            } else
-            {
-				var i = 0;
-				while (args[i].StartsWith(@"/"))
-					i++; 
-                root = Path.GetDirectoryName(args[i]);
-                input = args[i];
-				if (String.IsNullOrWhiteSpace(root)) 
-				{
-					root = Directory.GetCurrentDirectory();
-					input = Path.Combine(root, input);
-				}
-				System.Console.WriteLine(input);
-            }
-
+            Settings.Load(args);
 
 			using (var host = new PeReader.DefaultHost())
 			using (var assembly = new Assembly(host))
 			{
-				assembly.Load(input);
+				assembly.Load(Settings.Input());
 
 				Types.Initialize(host);
 
@@ -51,7 +30,7 @@ namespace TinyBCT
 
                 var mtVisitor = new TACWriterVisitor(host, assembly.PdbReader);
                 mtVisitor.Traverse(assembly.Module);
-				var outputPath = Path.GetDirectoryName(input);
+				var outputPath = Path.GetDirectoryName(Settings.Input());
 
 				streamWriter = new StreamWriter(outputPath += @"\tac_output.txt");
                 streamWriter.WriteLine(mtVisitor.ToString());
@@ -61,7 +40,7 @@ namespace TinyBCT
 
 				var tinyBCTExeFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 				var streamReader = new StreamReader(Path.Combine(tinyBCTExeFolder, @"prelude.bpl"));
-				var outputResultPath = Path.ChangeExtension(input, "bpl");
+				var outputResultPath = Path.ChangeExtension(Settings.Input(), "bpl");
                 streamWriter = new StreamWriter(outputResultPath);
                 // prelude
                 streamWriter.WriteLine(streamReader.ReadToEnd());
