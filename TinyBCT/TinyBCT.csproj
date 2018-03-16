@@ -84,6 +84,8 @@
   <ItemGroup>
     <Compile Include="Assembly.cs" />
     <Compile Include="Helpers.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="TACWriter.cs" />
     <Compile Include="Translators\FieldTranslator.cs" />
     <Compile Include="Translators\InstructionTranslator.cs" />
     <Compile Include="Translators\MethodTranslator.cs" />

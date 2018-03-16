@@ -90,22 +90,6 @@ namespace TinyBCT
             backwardCopyAnalysis.Transform(methodBody);
         }
 
-        private void checkNotImplementedInstructions(MethodBody methodBody)
-        {
-            // check if there is no implemented instruction
-            if (methodBody.Instructions.Any(ins => !Helpers.IsInstructionImplemented(ins)))
-            {
-                Console.WriteLine("************" + methodBody.MethodDefinition.Name + "************");
-                foreach (var ins in methodBody.Instructions)
-                {
-                    if (!Helpers.IsInstructionImplemented(ins))
-                        Console.WriteLine(String.Format("{0} ------> {2} {1}", ins, ins.GetType(), "not implemented"));
-                    else
-                        Console.WriteLine(ins);
-                }
-            }
-        }
-
         public override void TraverseChildren(INamedTypeDefinition namedTypeDefinition)
         {
             //function T$TestType() : Ref;
@@ -145,7 +129,7 @@ namespace TinyBCT
 			{
 				foreach (var c2 in classes.Where(c => c != c1))
 				{
-					if (!TypeHelper.Type1IsCovariantWithType2(c1, c2))
+                    if (!TypeHelper.Type1DerivesFromOrIsTheSameAsType2(c1, c2))
 					{
 						var tn1 = Helpers.GetNormalizedType(c1);
 						var tn2 = Helpers.GetNormalizedType(c2);
@@ -160,20 +144,26 @@ namespace TinyBCT
 			StreamWriter streamWriter = Program.streamWriter;
 			streamWriter.WriteLine(sb);*/
 		}
+
 		public override void TraverseChildren(IMethodDefinition methodDefinition)
 		{
             var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
             var methodBody = disassembler.Execute();
-
             transformBody(methodBody);
 
-            checkNotImplementedInstructions(methodBody);
-
+            /******************************************/
+            // add method's tac representation for output (helps for debugging).
+            TACWriter.AddMethod(methodBody);
+            TACWriter.Write();
+            /******************************************/
             MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, methodBody);
-       
             // todo: improve this piece of code
             StreamWriter streamWriter = Program.streamWriter;
             streamWriter.WriteLine(methodTranslator.Translate());
+            /******************************************/
+
+
+            base.TraverseChildren(methodDefinition);
         }
-	}
+    }
 }

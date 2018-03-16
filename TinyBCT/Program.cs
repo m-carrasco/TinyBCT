@@ -26,16 +26,6 @@ namespace TinyBCT
 
 				Types.Initialize(host);
 
-                // *********** store code in TAC *****************
-
-                var mtVisitor = new TACWriterVisitor(host, assembly.PdbReader);
-                mtVisitor.Traverse(assembly.Module);
-				var outputPath = Path.GetDirectoryName(Settings.Input());
-
-				streamWriter = new StreamWriter(outputPath += @"\tac_output.txt");
-                streamWriter.WriteLine(mtVisitor.ToString());
-                streamWriter.Close();
-
 				// ***********************************************
 
 				var tinyBCTExeFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -45,7 +35,9 @@ namespace TinyBCT
                 // prelude
                 streamWriter.WriteLine(streamReader.ReadToEnd());
                 streamReader.Close();
-                
+
+                TACWriter.Open();
+
                 var visitor = new MethodTranslationVisitor(host, assembly.PdbReader);
 				visitor.Traverse(assembly.Module);
 
@@ -61,6 +53,7 @@ namespace TinyBCT
                     streamWriter.WriteLine(field);
 
                 streamWriter.Close();
+                TACWriter.Close();
 			}
 
 			System.Console.WriteLine("Done!");
