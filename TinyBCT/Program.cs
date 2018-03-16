@@ -15,28 +15,28 @@ namespace TinyBCT
 	{
         public static StreamWriter streamWriter;
 
+        private static void SetupOutputFile()
+        {
+            var outputResultPath = Path.ChangeExtension(Settings.Input(), "bpl");
+            streamWriter = new StreamWriter(outputResultPath);
+        }
+
         static void Main(string[] args)
 		{
             Settings.Load(args);
+            SetupOutputFile();
 
-			using (var host = new PeReader.DefaultHost())
+            using (var host = new PeReader.DefaultHost())
 			using (var assembly = new Assembly(host))
 			{
+                // analysis-net setup
 				assembly.Load(Settings.Input());
-
 				Types.Initialize(host);
 
-				// ***********************************************
+                // ***********************************************
 
-				var tinyBCTExeFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-				var streamReader = new StreamReader(Path.Combine(tinyBCTExeFolder, @"prelude.bpl"));
-				var outputResultPath = Path.ChangeExtension(Settings.Input(), "bpl");
-                streamWriter = new StreamWriter(outputResultPath);
-                // prelude
-                streamWriter.WriteLine(streamReader.ReadToEnd());
-                streamReader.Close();
-
-                TACWriter.Open();
+                Prelude.Write(); // writes prelude.bpl content into the output file
+                TACWriter.Open(); //  creates file that will have the tac code
 
                 var visitor = new MethodTranslationVisitor(host, assembly.PdbReader);
 				visitor.Traverse(assembly.Module);
@@ -51,12 +51,12 @@ namespace TinyBCT
                 // we declare read or written fields
                 foreach (var field in FieldTranslator.GetFieldDefinitions())
                     streamWriter.WriteLine(field);
-
-                streamWriter.Close();
-                TACWriter.Close();
 			}
 
-			System.Console.WriteLine("Done!");
+            streamWriter.Close();
+            TACWriter.Close();
+
+            System.Console.WriteLine("Done!");
 			//System.Console.ReadKey();
 		}
 	}
