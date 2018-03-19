@@ -16,13 +16,13 @@ using Backend.ThreeAddressCode.Values;
 
 namespace TinyBCT
 {
-	class MethodTranslationVisitor : MetadataTraverser
+	class Traverser : MetadataTraverser
 	{
 		private IMetadataHost host;
 		private ISourceLocationProvider sourceLocationProvider;
 		private ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
 
-		public MethodTranslationVisitor(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+		public Traverser(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
 		{
 			this.host = host;
 			this.sourceLocationProvider = sourceLocationProvider;
@@ -88,6 +88,9 @@ namespace TinyBCT
             var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
             backwardCopyAnalysis.Analyze();
             backwardCopyAnalysis.Transform(methodBody);
+
+            inmutableArguments(methodBody);
+            methodBody.UpdateVariables();
         }
 
         public override void TraverseChildren(INamedTypeDefinition namedTypeDefinition)
@@ -145,23 +148,22 @@ namespace TinyBCT
 			streamWriter.WriteLine(sb);*/
 		}
 
+        private List<System.Action<IMethodDefinition,MethodBody>> methodDefinitionActions 
+            = new List<System.Action<IMethodDefinition, MethodBody>>();
+
+        public void AddMethodDefinitionAction(System.Action<IMethodDefinition, MethodBody> a)
+        {
+            methodDefinitionActions.Add(a);
+        }
+
 		public override void TraverseChildren(IMethodDefinition methodDefinition)
 		{
             var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
             var methodBody = disassembler.Execute();
             transformBody(methodBody);
 
-            /******************************************/
-            // add method's tac representation for output (helps for debugging).
-            TACWriter.AddMethod(methodBody);
-            TACWriter.Write();
-            /******************************************/
-            MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, methodBody);
-            // todo: improve this piece of code
-            StreamWriter streamWriter = Program.streamWriter;
-            streamWriter.WriteLine(methodTranslator.Translate());
-            /******************************************/
-
+            foreach (var action in methodDefinitionActions)
+                action(methodDefinition, methodBody);
 
             base.TraverseChildren(methodDefinition);
         }

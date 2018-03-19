@@ -90,7 +90,7 @@
     <Compile Include="Translators\FieldTranslator.cs" />
     <Compile Include="Translators\InstructionTranslator.cs" />
     <Compile Include="Translators\MethodTranslator.cs" />
-    <Compile Include="Visitors\MethodTranslationVisitor.cs" />
+    <Compile Include="Traverser\Traverser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

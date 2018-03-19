@@ -15,6 +15,14 @@ namespace TinyBCT
         private static StringBuilder sb = new StringBuilder();
         private static StreamWriter sw;
 
+        // called from Traverser
+        // set in Main
+        public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)
+        {
+            TACWriter.AddMethod(mB);
+            TACWriter.Write();
+        }
+
         public static void Open()
         {
             var outputPath = Path.GetDirectoryName(Settings.Input());

@@ -38,7 +38,9 @@ namespace TinyBCT
                 Prelude.Write(); // writes prelude.bpl content into the output file
                 TACWriter.Open(); //  creates file that will have the tac code
 
-                var visitor = new MethodTranslationVisitor(host, assembly.PdbReader);
+                var visitor = new Traverser(host, assembly.PdbReader);
+                visitor.AddMethodDefinitionAction(TACWriter.IMethodDefinitionTraverse); // saves tac code for debugging
+                visitor.AddMethodDefinitionAction(MethodTranslator.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
 				visitor.Traverse(assembly.Module);
 
                 // extern method called

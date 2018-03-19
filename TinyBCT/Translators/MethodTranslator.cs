@@ -2,6 +2,7 @@
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,6 +13,16 @@ namespace TinyBCT
     {
         IMethodDefinition methodDefinition;
         MethodBody methodBody;
+
+        // called from Traverser
+        // set in Main
+        public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)
+        {
+            MethodTranslator methodTranslator = new MethodTranslator(mD, mB);
+            // todo: improve this piece of code
+            StreamWriter streamWriter = Program.streamWriter;
+            streamWriter.WriteLine(methodTranslator.Translate());
+        }
 
         public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody)
         {
