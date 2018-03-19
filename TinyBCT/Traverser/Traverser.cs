@@ -88,9 +88,6 @@ namespace TinyBCT
             var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
             backwardCopyAnalysis.Analyze();
             backwardCopyAnalysis.Transform(methodBody);
-
-            inmutableArguments(methodBody);
-            methodBody.UpdateVariables();
         }
 
         public override void TraverseChildren(INamedTypeDefinition namedTypeDefinition)
