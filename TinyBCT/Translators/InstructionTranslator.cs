@@ -106,20 +106,24 @@ namespace TinyBCT
         public override void Visit(LoadInstruction instruction)
         {
             addLabel(instruction);
-            InstanceFieldAccess op = instruction.Operand as InstanceFieldAccess;
-            if (op != null)
+            InstanceFieldAccess instanceFieldOp = instruction.Operand as InstanceFieldAccess;
+            if (instanceFieldOp != null)
             {
-                String fieldName = FieldTranslator.GetFieldName(op.Field);
-                if (Helpers.GetBoogieType(op.Type).Equals("int"))
-                    sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, op.Instance, fieldName));
-                else if (Helpers.GetBoogieType(op.Type).Equals("Ref"))
+                String fieldName = FieldTranslator.GetFieldName(instanceFieldOp.Field);
+                if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("int"))
+                    sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
+                else if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("Ref"))
                     // Union and Ref are alias. There is no need of Union2Ref
-                    sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, op.Instance, fieldName));
-
+                    sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
             }
             else
             {
-                sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
+                // static fields are considered global variables
+                var staticFieldAccess = instruction.Operand as StaticFieldAccess;
+                if (staticFieldAccess != null)
+                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                 else
+                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
             }
         }
 
@@ -221,8 +225,18 @@ namespace TinyBCT
                     // Union y Ref son el mismo type, forman un alias.
                     sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", op)*/op));
                 }
+            } else
+            {
+                // static fields are considered global variables
+                var staticFieldAccess = instruction.Result as StaticFieldAccess;
+                if (staticFieldAccess != null)
+                {
+                    String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
+                    sb.Append(String.Format("\t\t{0} := {1};", fieldName, op));
+                }
             }
         }
+
         public override void Visit(ConvertInstruction instruction)
         {
             addLabel(instruction);

@@ -16,8 +16,14 @@ namespace TinyBCT.Translators
         {
             IList<String> values = new List<String>();
 
-            foreach (var name in fieldNames.Values)
-                values.Add(String.Format("const unique {0} : Field;", name));
+            foreach (var item in fieldNames)
+            {
+                if (item.Key.IsStatic) {
+                    values.Add(String.Format("var {0}: {1};", item.Value, Helpers.GetBoogieType(item.Key.Type)));
+                } else {
+                    values.Add(String.Format("const unique {0} : Field;", item.Value));
+                }
+            }
 
             return values;
         }

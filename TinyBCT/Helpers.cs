@@ -126,7 +126,8 @@ namespace TinyBCT
 
         public static string NormalizeStringForCorral(string s)
         {
-			return s; // .Replace('<', '_').Replace('>', '_');
+            return s.Replace("::", "."); // for example: static fields
+            //return s; // .Replace('<', '_').Replace('>', '_');
         }
 
         public static bool IsConstructor(IMethodReference method)
