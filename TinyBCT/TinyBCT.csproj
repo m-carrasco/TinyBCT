@@ -83,6 +83,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assembly.cs" />
+    <Compile Include="DelegateTranslator.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Prelude.cs" />
     <Compile Include="Settings.cs" />
@@ -90,6 +91,7 @@
     <Compile Include="Translators\FieldTranslator.cs" />
     <Compile Include="Translators\InstructionTranslator.cs" />
     <Compile Include="Translators\MethodTranslator.cs" />
+    <Compile Include="Translators\TypeDefinitionTranslator.cs" />
     <Compile Include="Traverser\Traverser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

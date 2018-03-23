@@ -13,6 +13,7 @@ using Backend.Transformations;
 using System.IO;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
+using TinyBCT.Translators;
 
 namespace TinyBCT
 {
@@ -20,7 +21,7 @@ namespace TinyBCT
 	{
 		private IMetadataHost host;
 		private ISourceLocationProvider sourceLocationProvider;
-		private ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
+		//private ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
 
 		public Traverser(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
 		{
@@ -28,6 +29,9 @@ namespace TinyBCT
 			this.sourceLocationProvider = sourceLocationProvider;
 		}
 
+        // not used yet - under development
+        // there are some issues related to the parameter renaming
+        // we modified the methodBody but we should also do the same with the IMethodDef
         private void inmutableArguments(MethodBody methodBody)
         {
             // corral interprets parameter as inmutable references
@@ -61,6 +65,7 @@ namespace TinyBCT
             foreach (KeyValuePair<IVariable, IVariable> oldParamNewLocal in oldParamToNewLocal)
             {
                 var ins = new LoadInstruction(i, oldParamNewLocal.Value, newLocalToNewParam[oldParamNewLocal.Value]);
+                // pisar ins.Label = "bct_LABELID"
                 methodBody.Instructions.Insert(0, ins);
                 i++;
             }
@@ -90,44 +95,36 @@ namespace TinyBCT
             backwardCopyAnalysis.Transform(methodBody);
         }
 
+        private List<System.Action<INamedTypeDefinition>> namedTypeDefinitionActions
+            = new List<System.Action<INamedTypeDefinition>>();
+
+        public void AddNamedTypeDefinitionAction(System.Action<INamedTypeDefinition> a)
+        {
+            namedTypeDefinitionActions.Add(a);
+        }
+
         public override void TraverseChildren(INamedTypeDefinition namedTypeDefinition)
         {
+            // TypeDefinitionTranslator handles this type of boogie code.
             //function T$TestType() : Ref;
             //const unique T$TestType: int;
             //axiom $TypeConstructor(T$TestType()) == T$TestType;
             // axiom (forall $T: Ref :: { $Subtype(T$Test(), $T) } $Subtype(T$Test(), $T) <==> T$Test() == $T || $Subtype(T$System.Object(), $T));
 
-            
-            StringBuilder sb = new StringBuilder();
-            var typeName = Helpers.GetNormalizedType(namedTypeDefinition);
-            var superClass = namedTypeDefinition.BaseClasses.SingleOrDefault();
-            sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
-            sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
-            sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
-            if (superClass != null)
-            {
-                sb.AppendLine("axiom(forall $T: Ref:: { "+String.Format(" $Subtype(T${0}()", typeName)+
-                    ", $T) } $Subtype(T$"+ string.Format("{0}(), $T) <==> T${0}() == $T || $Subtype(T${1}(), $T));", typeName, Helpers.GetNormalizedType(superClass)));
-            }
-            
+            foreach (var action in namedTypeDefinitionActions)
+                action(namedTypeDefinition);
 
-            // todo: improve this piece of code
-            StreamWriter streamWriter = Program.streamWriter;
-            streamWriter.WriteLine(sb);
-
-			classes.Add(namedTypeDefinition);
-
-			base.TraverseChildren(namedTypeDefinition);
+            base.TraverseChildren(namedTypeDefinition);
         }
 
 		public override void TraverseChildren(IAssembly assembly)
 		{
 			base.TraverseChildren(assembly);
-			StringBuilder sb = new StringBuilder();
+			/*StringBuilder sb = new StringBuilder();
 			// todo: improve this piece of code
-			foreach (var c1 in classes)
+			foreach (var c1 in TypeDefinitionTranslator.classes)
 			{
-				foreach (var c2 in classes.Where(c => c != c1))
+				foreach (var c2 in TypeDefinitionTranslator.classes.Where(c => c != c1))
 				{
                     if (!TypeHelper.Type1DerivesFromOrIsTheSameAsType2(c1, c2))
 					{
@@ -142,7 +139,7 @@ namespace TinyBCT
 			}
 			// todo: improve this piece of code
 			StreamWriter streamWriter = Program.streamWriter;
-			streamWriter.WriteLine(sb);
+			streamWriter.WriteLine(sb);*/
 		}
 
         private List<System.Action<IMethodDefinition,MethodBody>> methodDefinitionActions 
