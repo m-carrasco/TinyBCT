@@ -47,6 +47,7 @@
     <Compile Include="As2.cs" />
     <Compile Include="As3.cs" />
     <Compile Include="Ex1.cs" />
+    <Compile Include="Ex2.cs" />
     <Compile Include="Examples.cs" />
     <Compile Include="ExamplesPointsTo.cs" />
     <Compile Include="GenericIterator.cs" />

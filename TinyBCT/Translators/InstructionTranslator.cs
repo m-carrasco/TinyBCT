@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TinyBCT.Translators;
 
@@ -106,26 +107,33 @@ namespace TinyBCT
         public override void Visit(LoadInstruction instruction)
         {
             addLabel(instruction);
-            InstanceFieldAccess instanceFieldOp = instruction.Operand as InstanceFieldAccess;
-            if (instanceFieldOp != null)
+            if (instruction.Operand is InstanceFieldAccess) // memory access handling
             {
+                InstanceFieldAccess instanceFieldOp = instruction.Operand as InstanceFieldAccess;
                 String fieldName = FieldTranslator.GetFieldName(instanceFieldOp.Field);
                 if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("int"))
                     sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
                 else if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("Ref"))
                     // Union and Ref are alias. There is no need of Union2Ref
                     sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
-            }
-            else
+            } else if (instruction.Operand is StaticFieldAccess) // memory access handling
             {
                 // static fields are considered global variables
                 var staticFieldAccess = instruction.Operand as StaticFieldAccess;
-                if (staticFieldAccess != null)
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
-                 else
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
+                sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+            } else if (instruction.Operand is StaticMethodReference) // delegates handling
+            {
+                // tracking of this references is done in DelegateTranslator
+                //call $tmp0:= T$System.Func`2$CreateDelegate(cMain2.foo$System.Int32, null, Type0());
+                //return;
+            } else
+            {
+                sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
             }
+
+            lastLoadInst = instruction;
         }
+
 
         public override void Visit(TryInstruction instruction)
         {
@@ -139,6 +147,12 @@ namespace TinyBCT
 
         public override void Visit(MethodCallInstruction instruction)
         {
+            // captures something like System.Void System.Func<System.Int32, System.Int32, Object>..ctor
+            // or System.Void System.Func<whatever list of types>..ctor
+            string pattern = @"System\.Void System\.Func<([A-Za-z0-9|\.]+(\,\s)?)+>\.\.ctor.*";
+            if (Regex.IsMatch(instruction.Method.ToString(), pattern) )
+                return;
+
             // This is check is done because an object creation is splitted into two TAC instructions
             // This prevents to add the same instruction tag twice
             if (!Helpers.IsConstructor(instruction.Method))
@@ -192,17 +206,82 @@ namespace TinyBCT
 
         }
 
+        /*
+         * Se hace una primera pasada y se guarda una referencia de todos los metodos que aparecen en una StaticReference
+         * de una LoadInstruction
+         * 
+         * Luego cuando se hace la traducción instrucción por instrucción, Load, CreateObjectInstruction y MethodCallInstruction
+         * deberían ser reemplazados en Boogie por una invocación "CreateDelegate"  correspondiente
+         * 
+         * El CreateDelegate lo haré en el CreateObjectInstruction porque es la variable de este resultado que es usado 
+         * para referenciar el objeto.
+         * 
+         * Borrar variables no usadas del Load y el MethodCallInstruction
+         *  
+         * Problemas encontrados:
+         * ¿Como puedo saber si CreateObjectInstruction es de un objeto que apunta a un método?
+         *  Solo se me ocurren maneras medio hack. No se si hay un tipo en CCI para este tipo de objetos.
+         *  Por ejemplo si uso en C# un Func<int, int> aparece como "System.Func", pero si hago un delegate aparece con el nombre del delegate.
+         *  ¿Como puedo capturar todos?
+         *  
+         * ¿Como puedo saber si MethodCallInstruction esta haciendo una invocación de un constructor de un objeto que apunta a un método?
+         *  Si uso un System.Func no se crean objetos adicionales, pero si uso un Delegate si. ¿Tendré que traducir lo de los delegates? . Como puedo identificar cada uno de manera elegante?
+         */
+
+        private static LoadInstruction lastLoadInst = null;
+
         public override void Visit(CreateObjectInstruction instruction)
         {
+            // TODO: we should find a better way to identify types that reference functions
+            if (instruction.AllocationType.ToString().StartsWith("System.Func"))
+            {
+                // estamos asumiendo que antes de esto siempre hubo un LoadInstruction
+                addLabel(instruction);
+
+                // {1} -> entero que identifica univocamente al método
+                // {2} -> objeto que tiene el método, en caso de ser estatico es null
+                // {3} -> todavía no me queda claro.
+
+                /*
+                    procedure {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns (c: Ref);
+                    implementation {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns (c: Ref)
+                    {
+                        call c := Alloc();
+                        assume $RefToDelegateReceiver(Method, c) == Receiver;
+                        assume $RefToDelegateTypeParameters(Method, c) == TypeParameters;
+                        // supongamos que las constantes unicas de los métodos registrados son M1 y M2.
+                        assume $RefToDelegateMethod(M1, c) <==> Method == M1;
+                        assume $RefToDelegateMethod(M2, c) <==> Method == M2;
+                    }
+
+                    function $RefToDelegateMethod(int, Ref) : bool;
+                    function $RefToDelegateReceiver(int, Ref) : Ref;
+                    function $RefToDelegateTypeParameters(int, Ref) : Type;
+
+                    function Type0() : Ref;
+                */
+
+                if (lastLoadInst.Operand is StaticMethodReference) // delegates handling
+                {
+                    var loadDelegateStmt = lastLoadInst.Operand as StaticMethodReference;
+                    var methodRef = loadDelegateStmt.Method;
+                    var methodId = DelegateTranslator.methodIdentifiers[methodRef];
+
+                    sb.AppendLine(String.Format("call {0}:= CreateDelegate({1}, {2}, {3});", instruction.Result, methodId, "null", "Type0()"));
+                }
+
+                return;
+            }
+
             // assume $DynamicType($tmp0) == T$TestType();
             //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
+
             addLabel(instruction);
             sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
             var type = Helpers.GetNormalizedType(instruction.AllocationType);
             sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
             sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
         }
-
 
         public override void Visit(StoreInstruction instruction)
         {

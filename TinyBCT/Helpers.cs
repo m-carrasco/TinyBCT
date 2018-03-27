@@ -83,6 +83,14 @@ namespace TinyBCT
 			return methodRef.Name.Value=="Main";
 		}
 
+        // name of procedures should be followed by the C# types of the arguments
+        // void foo(int i) should be like foo$int(...)
+        // this function returns $int
+        public static String GetArityWithNonBoogieTypes(IMethodReference methodRef)
+        {
+            return String.Join("", methodRef.Parameters.Select(v => "$" + v.Type));
+        }
+
         public static String GetParametersWithBoogieType(IMethodReference methodRef)
         {
             var parameters = String.Empty;
@@ -134,6 +142,7 @@ namespace TinyBCT
         {
             return method.Name.Value == ".ctor";
         }
+
     }
 	public static class Extensions
 	{

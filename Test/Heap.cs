@@ -9,6 +9,12 @@ namespace Test
     class C : HeapExamples { }
     class HeapExamples
     {
+        public void WriteArguments(Object obj, int x)
+        {
+            obj = null;
+            x = x + x;
+        }
+
         int i = 0;
         public static HeapExamples createHeap()
         {

@@ -51,6 +51,5 @@ namespace TinyBCT.Translators
             fieldNames.Add(fieldRef, name);
             return name;
         }
-
     }
 }

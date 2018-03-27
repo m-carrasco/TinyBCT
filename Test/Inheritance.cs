@@ -11,6 +11,8 @@ namespace Test
     {
         public static void testingAS()
         {
+            Contract.Assert(false);
+
             bool failed = false;
 
             // claseA cannot be subtype of any other class

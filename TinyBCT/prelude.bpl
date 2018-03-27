@@ -76,3 +76,10 @@ implementation {:inline 1} System.Object.GetType(this: Ref) returns ($result: Re
 {
     $result := $DynamicType(this);
 }
+
+// used for delegates
+function $RefToDelegateMethod(int, Ref) : bool;
+function $RefToDelegateReceiver(int, Ref) : Ref;
+function $RefToDelegateTypeParameters(int, Ref) : Type;
+// used for delegates - don't know yet what it is for (from BCT)
+function Type0() : Ref;
