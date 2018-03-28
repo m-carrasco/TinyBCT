@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TinyBCT.Translators;
 
 namespace TinyBCT
 {
@@ -42,14 +43,15 @@ namespace TinyBCT
                         String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
                 ).ToList().ForEach(str => sb.AppendLine(str));
 
-            // translate instructions
+            int idx = 0;
+            InstructionTranslator instTranslator = new InstructionTranslator();
             methodBody.Instructions
                 .Select(ins =>
-                        {
-                            InstructionTranslator instTranslator = new InstructionTranslator();
-                            ins.Accept(instTranslator);
-                            return instTranslator.Result();
-                        }).ToList().ForEach(str => sb.AppendLine(str)); ;
+                {
+                    var r = instTranslator.Translate(methodBody.Instructions, idx);
+                    idx++;
+                    return r;
+                }).ToList().ForEach(str => sb.AppendLine(str)); ;
 
             sb.AppendLine("}");
             
