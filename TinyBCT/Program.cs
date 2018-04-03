@@ -41,13 +41,13 @@ namespace TinyBCT
                 // the first traverser is used for pre processing actions
                 var visitor = new Traverser(host, assembly.PdbReader);
                 visitor.AddMethodDefinitionAction(TACWriter.IMethodDefinitionTraverse); // saves tac code for debugging
-                visitor.AddMethodDefinitionAction(DelegateTranslator.TrackDelegatedMethods); // store every method used in delegates 
+                //visitor.AddMethodDefinitionAction(InstructionTranslato.TrackDelegatedMethods); // store every method used in delegates 
                 visitor.AddNamedTypeDefinitionAction(TypeDefinitionTranslator.TypeDefinitionTranslatorTraverse); // generates axioms for typing 
                 visitor.Traverse(assembly.Module);
 
                 TypeDefinitionTranslator.TypeAxioms();
-                streamWriter.WriteLine(DelegateTranslator.DefineMethodsIdentifiers());
-                streamWriter.WriteLine(DelegateTranslator.CreateDelegateMethod());
+                streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
+                streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
 
                 visitor = new Traverser(host, assembly.PdbReader);
                 visitor.AddMethodDefinitionAction(MethodTranslator.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object

@@ -360,11 +360,10 @@ namespace TinyBCT.Translators
 
                 var loadDelegateStmt = loadIns.Operand as StaticMethodReference;
                 var methodRef = loadDelegateStmt.Method;
-                var methodId = DelegateTranslator.methodIdentifiers[methodRef];
+                var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
                 // do we have to type this reference?
                 sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate({1}, {2}, {3});", instruction.Result, methodId, "null", "Type0()"));
-
             }
 
             public override void Visit(MethodCallInstruction instruction)
@@ -405,6 +404,57 @@ namespace TinyBCT.Translators
                     ExternMethodsCalled.Add(instruction.Method);*/
             }
 
+        }
+    }
+
+    public class DelegateStore
+    {
+        static IDictionary<IMethodReference, string> methodIdentifiers =
+                new Dictionary<IMethodReference, string>();
+
+        public static string CreateDelegateMethod()
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine("procedure {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref);");
+            sb.AppendLine("implementation {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref)");
+            sb.AppendLine("{");
+            sb.AppendLine("     call c := Alloc();");
+            sb.AppendLine("     assume $RefToDelegateReceiver(Method, c) == Receiver;");
+            sb.AppendLine("     assume $RefToDelegateTypeParameters(Method, c) == TypeParameters;");
+
+            foreach (var id in methodIdentifiers.Values)
+                sb.AppendLine(String.Format("     assume $RefToDelegateMethod({0}, c) <==> Method == {0};", id));
+
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        public static string DefineMethodsIdentifiers()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var methodId in methodIdentifiers.Values)
+                sb.AppendLine(String.Format("const unique {0}: int;", methodId));
+
+            return sb.ToString();
+        }
+
+        public static string GetMethodIdentifier(IMethodReference methodRef)
+        {
+            if (methodIdentifiers.ContainsKey(methodRef))
+                return methodIdentifiers[methodRef];
+
+            var methodName = Helpers.GetMethodName(methodRef);
+            var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
+
+            // example:  cMain2.objectParameter$System.Object;
+            var methodId = methodName + methodArity;
+
+            methodIdentifiers.Add(methodRef, methodId);
+
+            return methodId;
         }
     }
 }
