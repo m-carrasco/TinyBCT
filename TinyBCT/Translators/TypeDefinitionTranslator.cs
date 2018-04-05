@@ -10,7 +10,13 @@ namespace TinyBCT.Translators
 {
     class TypeDefinitionTranslator
     {
-        public static ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
+        public static ISet<ITypeDefinition> classes = new HashSet<ITypeDefinition>();
+
+        // there can be super class types that are not defined in the dll
+        // for instance MulticastDelegate
+        // once every type definition is processed we check if the super classes were declared 
+        // we will declare the difference between parents and classes sets
+        public static ISet<ITypeDefinition> parents = new HashSet<ITypeDefinition>();
 
         INamedTypeDefinition typeDef;
         public TypeDefinitionTranslator(INamedTypeDefinition namedTypeDefinition)
@@ -54,6 +60,35 @@ namespace TinyBCT.Translators
             streamWriter.WriteLine(sb);
         }
 
+        // we are missing information of the hierarchy
+        // currently this code is defining undeclared classes but there can be information missing
+        // todo : improve
+        public static void DefineUndeclaredSuperClasses()
+        {
+            StringBuilder sb = new StringBuilder();
+            var diff = parents.Except(classes);
+
+            foreach (var c in diff)
+            {
+                var typeName = Helpers.GetNormalizedType(c);
+
+                // already in prelude
+                if (typeName.Equals("T$System.Object()"))
+                    continue;
+
+                var superClass = c.BaseClasses.SingleOrDefault();
+                sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
+                sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
+                sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
+
+                sb.AppendLine("axiom(forall $T: Ref:: { " + String.Format(" $Subtype(T${0}()", typeName) +
+                    ", $T) } $Subtype(T$" + string.Format("{0}(), $T) <==> T${0}() == $T || $Subtype({1}, $T));", typeName, "T$System.Object()"));
+            }
+
+            StreamWriter streamWriter = Program.streamWriter;
+            streamWriter.WriteLine(sb);
+        }
+
         public string Translate()
         {
             StringBuilder sb = new StringBuilder();
@@ -66,6 +101,8 @@ namespace TinyBCT.Translators
             {
                 sb.AppendLine("axiom(forall $T: Ref:: { " + String.Format(" $Subtype(T${0}()", typeName) +
                     ", $T) } $Subtype(T$" + string.Format("{0}(), $T) <==> T${0}() == $T || $Subtype(T${1}(), $T));", typeName, Helpers.GetNormalizedType(superClass)));
+
+               parents.Add(superClass.ResolvedType);
             }
 
             // todo: improve this piece of code

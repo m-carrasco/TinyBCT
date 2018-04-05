@@ -46,6 +46,7 @@ namespace TinyBCT
                 visitor.Traverse(assembly.Module);
 
                 TypeDefinitionTranslator.TypeAxioms();
+                TypeDefinitionTranslator.DefineUndeclaredSuperClasses();
 
                 visitor = new Traverser(host, assembly.PdbReader);
                 visitor.AddMethodDefinitionAction(MethodTranslator.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
