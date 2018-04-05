@@ -61,6 +61,18 @@ namespace TinyBCT
             return GetBoogieType(methodDefinition.Type);
         }
 
+        public static String GetExternalMethodDefinition(IMethodReference methodRef)
+        {
+            var methodName = Helpers.GetMethodName(methodRef);
+            var parameters = Helpers.GetParametersWithBoogieType(methodRef);
+            var returnType = Helpers.GetMethodBoogieReturnType(methodRef) == null ? String.Empty : Helpers.GetMethodBoogieReturnType(methodRef);
+
+            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true);
+
+            return t.TransformText();
+        }
+
+        /*
         public static String GetMethodDefinition(IMethodReference methodRef, bool IsExtern)
         {
             var methodName = Helpers.GetMethodName(methodRef);
@@ -70,12 +82,22 @@ namespace TinyBCT
             var head = String.Empty;
 
             if (methodRef.Type.TypeCode != PrimitiveTypeCode.Void)
-                head = String.Format("procedure {5} {0} {1}({2}) returns (r : {3}){4}", IsExtern ? " {:extern}" : String.Empty, methodName, arguments, returnType, IsExtern ? ";" : String.Empty, IsMain(methodRef) ? " {:entrypoint}" : String.Empty);
+                head = String.Format("procedure {5} {0} {1}({2}) returns (r : {3}){4}", 
+                            IsExtern ? " {:extern}" : String.Empty, 
+                            methodName, 
+                            arguments, 
+                            returnType, 
+                            IsExtern ? ";" : String.Empty, 
+                            IsMain(methodRef) ? " {:entrypoint}" : String.Empty);
             else
-                head = String.Format("procedure {4} {0}  {1}({2}){3}", IsExtern ? " {:extern}" : String.Empty, methodName, arguments, IsExtern ? ";" : String.Empty, IsMain(methodRef) ? " {:entrypoint}" : String.Empty);
+                head = String.Format("procedure {4} {0}  {1}({2}){3}", IsExtern ? " {:extern}" : String.Empty,
+                                                                        methodName, 
+                                                                        arguments, 
+                                                                        IsExtern ? ";" : String.Empty, 
+                                                                        IsMain(methodRef) ? " {:entrypoint}" : String.Empty);
 
             return head;
-        }
+        }*/
 
 		public static bool IsMain(IMethodReference methodRef)
 		{

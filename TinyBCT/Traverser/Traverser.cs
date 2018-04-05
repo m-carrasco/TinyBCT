@@ -150,14 +150,20 @@ namespace TinyBCT
             methodDefinitionActions.Add(a);
         }
 
-		public override void TraverseChildren(IMethodDefinition methodDefinition)
-		{
-            var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
-            var methodBody = disassembler.Execute();
-            transformBody(methodBody);
+        public override void TraverseChildren(IMethodDefinition methodDefinition)
+        {
+            // if it is external, its definition will be translated only if it is called
+            // that case is handled on the method call instruction translation
+            // calling Dissasembler on a external method will raise an exception.
+            if (!methodDefinition.IsExternal)
+            {
+                var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
+                var methodBody = disassembler.Execute();
+                transformBody(methodBody);
 
-            foreach (var action in methodDefinitionActions)
-                action(methodDefinition, methodBody);
+                foreach (var action in methodDefinitionActions)
+                    action(methodDefinition, methodBody);
+            }
 
             base.TraverseChildren(methodDefinition);
         }

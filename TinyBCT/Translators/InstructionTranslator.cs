@@ -19,6 +19,9 @@ namespace TinyBCT.Translators
         public static ISet<IMethodReference> ExternMethodsCalled = new HashSet<IMethodReference>();
 
         Translation translation;
+        // while translating instructions some variables may be removed
+        // for example for delegates there are instructions that are no longer used
+        public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
 
         public string Translate(IList<Instruction> instructions, int idx)
         {
@@ -30,13 +33,19 @@ namespace TinyBCT.Translators
         void SetState(IList<Instruction> instructions, int idx)
         {
             if (DelegateTranslation.IsDelegateTranslation(instructions, idx))
-                translation = new DelegateTranslation();
+                translation = new DelegateTranslation(this);
             else
-                translation = new SimpleTranslation();
+                translation = new SimpleTranslation(this);
         }
 
         abstract class Translation : InstructionVisitor
         {
+            protected InstructionTranslator instTranslator;
+            public Translation(InstructionTranslator p)
+            {
+                instTranslator = p;
+            }
+
             protected void addLabel(Instruction instr)
             {
                 sb.AppendLine(String.Format("\t{0}:", instr.Label));
@@ -53,6 +62,10 @@ namespace TinyBCT.Translators
         // translates each instruction independently 
         class SimpleTranslation : Translation
         {
+            public SimpleTranslation(InstructionTranslator p) : base(p)
+            {
+            }
+
             public override void Visit(NopInstruction instruction)
             {
                 //addLabel(instruction);
@@ -321,11 +334,17 @@ namespace TinyBCT.Translators
 
             private static LoadInstruction loadIns = null;
 
+            public DelegateTranslation(InstructionTranslator p) : base(p)
+            {
+            }
+
             public override void Visit(LoadInstruction instruction)
             {
                 // todo: modify when delegates for virtual method is implemented
                 Contract.Assert(instruction.Operand is StaticMethodReference);
                 loadIns = instruction;
+
+                instTranslator.RemovedVariables.UnionWith(instruction.ModifiedVariables);
             }
 
             public override void Visit(CreateObjectInstruction instruction)

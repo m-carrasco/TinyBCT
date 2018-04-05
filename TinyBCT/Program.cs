@@ -46,17 +46,19 @@ namespace TinyBCT
                 visitor.Traverse(assembly.Module);
 
                 TypeDefinitionTranslator.TypeAxioms();
-                streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
-                streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
 
                 visitor = new Traverser(host, assembly.PdbReader);
                 visitor.AddMethodDefinitionAction(MethodTranslator.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
 				visitor.Traverse(assembly.Module);
 
+                streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
+                streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
+
+
                 // extern method called
                 foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
                 {
-                    var head = Helpers.GetMethodDefinition(methodRef, true);
+                    var head = Helpers.GetExternalMethodDefinition(methodRef);
                     streamWriter.WriteLine(head);
                 }
 

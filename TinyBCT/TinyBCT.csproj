@@ -83,10 +83,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assembly.cs" />
+    <Compile Include="BoogieProcedureTemplate.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>BoogieProcedureTemplate.tt</DependentUpon>
+    </Compile>
     <Compile Include="Helpers.cs" />
     <Compile Include="Prelude.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TACWriter.cs" />
+    <Compile Include="Templates.cs" />
     <Compile Include="Translators\FieldTranslator.cs" />
     <Compile Include="Translators\InstructionTranslator.cs" />
     <Compile Include="Translators\MethodTranslator.cs" />
@@ -102,6 +108,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="BoogieProcedureTemplate.tt">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>BoogieProcedureTemplate.cs</LastGenOutput>
+    </Content>
     <Content Include="Dependencies\Backend.dll" />
     <Content Include="Dependencies\Backend.pdb" />
     <Content Include="Dependencies\Microsoft.Cci.MetadataHelper.dll" />
@@ -110,6 +120,9 @@
     <Content Include="Dependencies\Microsoft.Cci.PeReader.dll" />
     <Content Include="Dependencies\Microsoft.Cci.SourceModel.dll" />
     <Content Include="info.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
