@@ -73,7 +73,7 @@ namespace TinyBCT.Translators
                 var typeName = Helpers.GetNormalizedType(c);
 
                 // already in prelude
-                if (typeName.Equals("T$System.Object()"))
+                if (typeName.Equals("System.Object"))
                     continue;
 
                 var superClass = c.BaseClasses.SingleOrDefault();
