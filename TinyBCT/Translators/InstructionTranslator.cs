@@ -1,4 +1,5 @@
-﻿using Backend.ThreeAddressCode.Instructions;
+﻿using Backend;
+using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using Backend.Visitors;
 using Microsoft.Cci;
@@ -22,6 +23,7 @@ namespace TinyBCT.Translators
         // while translating instructions some variables may be removed
         // for example for delegates there are instructions that are no longer used
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
+        public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
 
         public string Translate(IList<Instruction> instructions, int idx)
         {
@@ -32,8 +34,10 @@ namespace TinyBCT.Translators
 
         void SetState(IList<Instruction> instructions, int idx)
         {
-            if (DelegateTranslation.IsDelegateTranslation(instructions, idx))
-                translation = new DelegateTranslation(this);
+            if (DelegateInvokeTranslation.IsDelegateInvokeTranslation(instructions,idx))
+                translation = new DelegateInvokeTranslation(this);
+            else if (DelegateCreationTranslation.IsDelegateCreationTranslation(instructions, idx))
+                translation = new DelegateCreationTranslation(this);
             else
                 translation = new SimpleTranslation(this);
         }
@@ -279,7 +283,7 @@ namespace TinyBCT.Translators
 
         // it is triggered when Load, CreateObject and MethodCall instructions are seen in this order.
         // Load must be of a static or virtual method (currently only static is supported)
-        class DelegateTranslation : Translation
+        class DelegateCreationTranslation : Translation
         {
             // at the moment only delegates for static methods are supported
             private static bool IsMethodReference(Instruction ins)
@@ -291,7 +295,7 @@ namespace TinyBCT.Translators
             }
 
             // decides if the DelegateTranslation state is set for instruction translation
-            public static bool IsDelegateTranslation(IList<Instruction> instructions, int idx)
+            public static bool IsDelegateCreationTranslation(IList<Instruction> instructions, int idx)
             {
                 // we are going to read LOAD CREATE METHOD
                 if (idx + 2 <= instructions.Count - 1)
@@ -334,9 +338,7 @@ namespace TinyBCT.Translators
 
             private static LoadInstruction loadIns = null;
 
-            public DelegateTranslation(InstructionTranslator p) : base(p)
-            {
-            }
+            public DelegateCreationTranslation(InstructionTranslator p) : base(p) {}
 
             public override void Visit(LoadInstruction instruction)
             {
@@ -424,6 +426,57 @@ namespace TinyBCT.Translators
             }
 
         }
+
+        class DelegateInvokeTranslation : Translation
+        {
+            public DelegateInvokeTranslation(InstructionTranslator p) : base(p)
+            {
+            }
+
+            public override void Visit(MethodCallInstruction instruction)
+            {
+                addLabel(instruction);
+
+                // this local variable will hold the InvokeDelegate result 
+                // the intent is to translate its type to Union (or Ref they are alias)
+                var localVar = new LocalVariable(String.Format("$delegate_res_{0}", instruction.Label), false);
+                localVar.Type = Types.Instance.PlatformType.SystemObject;
+                instTranslator.AddedVariables.Add(localVar);
+
+                // todo: this depends on the arguments types
+                sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
+                
+                /*
+                    var $res_invoke : Union;
+                    L_0000:
+                    L_0002:
+                        $r1 := 1;
+                    L_0003:
+                        // r1 hay que castearlo a Union (eso se puede arreglar)
+                        assume Union2Int(Int2Union(1)) == 1;
+                        call $res_invoke := InvokeDelegate(f,Int2Union($r1));
+                        r := Union2Int($res_invoke);
+                */
+                
+                sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate({1},Int2Union({2}));", localVar, instruction.Arguments[0], instruction.Arguments[1]));
+                // el union depende del tipo de los argumentos
+                sb.AppendLine(String.Format("\t\t{0} := Union2Int({1});", instruction.Result, localVar));
+            }
+
+            public static bool IsDelegateInvokeTranslation(IList<Instruction> instructions, int idx)
+            {
+                MethodCallInstruction instruction = instructions[idx] as MethodCallInstruction;
+
+                if (instruction == null)
+                    return false;
+
+                if (instruction.Method.ContainingType.ResolvedType.IsDelegate &&
+                    instruction.Method.ToString().Contains(".Invoke")) // better way?
+                    return true;
+
+                return false;
+            }
+        }
     }
 
     public class DelegateStore
@@ -444,6 +497,35 @@ namespace TinyBCT.Translators
 
             foreach (var id in methodIdentifiers.Values)
                 sb.AppendLine(String.Format("     assume $RefToDelegateMethod({0}, c) <==> Method == {0};", id));
+
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        public static string InvokeDelegateMethod()
+        {
+            var sb = new StringBuilder();
+
+            // we should parametrize the parameters and return's types
+            // currently we are only supporting static int -> int methods
+            sb.AppendLine("procedure {:inline 1} InvokeDelegate($this: Ref, arg$in: Ref) returns ($r: Ref);");
+            sb.AppendLine("implementation {:inline 1} InvokeDelegate($this: Ref, arg$in: Ref) returns ($r: Ref)");
+            sb.AppendLine("{");
+            sb.AppendLine("\tvar local0: int;");
+            sb.AppendLine("\tvar local1: int;");
+
+            foreach (var id in methodIdentifiers)
+            {
+                sb.AppendLine(String.Format("\tif ($RefToDelegateMethod({0}, $this))", id.Value));
+                sb.AppendLine("\t{");
+                sb.AppendLine("\t\tlocal0 := Union2Int(arg$in);");
+                sb.AppendLine(String.Format("\t\tcall local1 := {0}(local0);", Helpers.GetMethodName(id.Key))); 
+                sb.AppendLine("\t\tassume Union2Int(Int2Union(local1)) == local1;");
+                sb.AppendLine("\t\t$r := Int2Union(local1);");
+                sb.AppendLine("\t\treturn;");
+                sb.AppendLine("\t}");
+            }
 
             sb.AppendLine("}");
 

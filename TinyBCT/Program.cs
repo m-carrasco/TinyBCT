@@ -54,7 +54,7 @@ namespace TinyBCT
 
                 streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
                 streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
-
+                streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
 
                 // extern method called
                 foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)

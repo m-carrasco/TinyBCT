@@ -48,6 +48,9 @@ namespace TinyBCT
             foreach (var v in instTranslator.RemovedVariables)
                 methodBody.Variables.Remove(v);
 
+            foreach (var v in instTranslator.AddedVariables)
+                methodBody.Variables.Add(v);
+
             //methodBody.UpdateVariables();
 
             return insSb.ToString();
