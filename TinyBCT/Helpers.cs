@@ -149,6 +149,7 @@ namespace TinyBCT
         {
             var result = type.ToString();
             // Do this well 
+            result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
             result = NormalizeStringForCorral(result);
 
             return result;
@@ -157,6 +158,7 @@ namespace TinyBCT
         public static string NormalizeStringForCorral(string s)
         {
             return s.Replace("::", "."); // for example: static fields
+                
             //return s; // .Replace('<', '_').Replace('>', '_');
         }
 

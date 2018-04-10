@@ -25,6 +25,8 @@ namespace TinyBCT.Translators
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
 
+
+
         public string Translate(IList<Instruction> instructions, int idx)
         {
             SetState(instructions, idx);
@@ -337,6 +339,7 @@ namespace TinyBCT.Translators
             }
 
             private static LoadInstruction loadIns = null;
+            private static CreateObjectInstruction createObjIns = null;
 
             public DelegateCreationTranslation(InstructionTranslator p) : base(p) {}
 
@@ -347,91 +350,49 @@ namespace TinyBCT.Translators
                 loadIns = instruction;
 
                 instTranslator.RemovedVariables.UnionWith(instruction.ModifiedVariables);
+
+                // continues in CreateObjectInstruction
             }
 
             public override void Visit(CreateObjectInstruction instruction)
             {
                 // we ensure that before this instruction there was a load instruction
-                Contract.Assert(loadIns != null);
+                //Contract.Assert(loadIns != null);
 
+                createObjIns = instruction;
+
+                /*var loadDelegateStmt = loadIns.Operand as StaticMethodReference;
+                var methodRef = loadDelegateStmt.Method;
+                var methodId = DelegateStore.GetMethodIdentifier(methodRef);
+
+                // do we have to type this reference?
+                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate({1}, {2}, {3});", instruction.Result, methodId, "null", "Type0()"));*/
+                // continues in MethodCallInstruction
+            }
+
+            public override void Visit(MethodCallInstruction instruction)
+            {
+                Contract.Assert(loadIns != null && createObjIns != null);
                 addLabel(instruction);
-
-                // {1} -> entero que identifica univocamente al método
-                // {2} -> objeto que tiene el método, en caso de ser estatico es null
-                // {3} -> todavía no me queda claro.
-
-                /*
-                    procedure {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns (c: Ref);
-                    implementation {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns (c: Ref)
-                    {
-                        call c := Alloc();
-                        assume $RefToDelegateReceiver(Method, c) == Receiver;
-                        assume $RefToDelegateTypeParameters(Method, c) == TypeParameters;
-                        // supongamos que las constantes unicas de los métodos registrados son M1 y M2.
-                        assume $RefToDelegateMethod(M1, c) <==> Method == M1;
-                        assume $RefToDelegateMethod(M2, c) <==> Method == M2;
-                    }
-
-                    function $RefToDelegateMethod(int, Ref) : bool;
-                    function $RefToDelegateReceiver(int, Ref) : Ref;
-                    function $RefToDelegateTypeParameters(int, Ref) : Type;
-
-                    function Type0() : Ref;
-                */
 
                 var loadDelegateStmt = loadIns.Operand as StaticMethodReference;
                 var methodRef = loadDelegateStmt.Method;
                 var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
-                // do we have to type this reference?
-                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate({1}, {2}, {3});", instruction.Result, methodId, "null", "Type0()"));
-            }
+                DelegateStore.AddDelegatedMethodToGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType), methodRef);
 
-            public override void Visit(MethodCallInstruction instruction)
-            {
-                // for delegate nothing is done 
-                // translation was performed in CreateObjectInstruction visit
+                // invoke the correct version of create delegate
+                var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, "null", "Type0()"));
+
                 loadIns = null;
-
-                // captures something like System.Void System.Func<System.Int32, System.Int32, Object>..ctor
-                // or System.Void System.Func<whatever list of types>..ctor
-                //string pattern = @"System\.Void System\.Func<([A-Za-z0-9|\.]+(\,\s)?)+>\.\.ctor.*";
-                //if (Regex.IsMatch(instruction.Method.ToString(), pattern))
-                //    return;
-
-                // This is check is done because an object creation is splitted into two TAC instructions
-                // This prevents to add the same instruction tag twice
-                //if (!Helpers.IsConstructor(instruction.Method))
-                //    addLabel(instruction);
-
-                /* var signature = Helpers.GetMethodName(instruction.Method);
-                var arguments = string.Join(", ", instruction.Arguments);
-
-                var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
-
-                if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
-                {
-                    sb.Append(String.Format("\t\t assert {0};", arguments));
-                    return;
-                }
-
-
-                if (instruction.HasResult)
-                    sb.Append(String.Format("\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
-                else
-                    sb.Append(String.Format("\t\tcall {0}({1});", signature, arguments));
-
-                if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
-                    ExternMethodsCalled.Add(instruction.Method);*/
+                createObjIns = null;
             }
-
         }
 
         class DelegateInvokeTranslation : Translation
         {
-            public DelegateInvokeTranslation(InstructionTranslator p) : base(p)
-            {
-            }
+            public DelegateInvokeTranslation(InstructionTranslator p) : base(p) {}
 
             public override void Visit(MethodCallInstruction instruction)
             {
@@ -443,9 +404,12 @@ namespace TinyBCT.Translators
                 localVar.Type = Types.Instance.PlatformType.SystemObject;
                 instTranslator.AddedVariables.Add(localVar);
 
+                // create if it doesnt exist yet
+                DelegateStore.CreateDelegateGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType));
+
                 // todo: this depends on the arguments types
                 sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
-                
+
                 /*
                     var $res_invoke : Union;
                     L_0000:
@@ -457,8 +421,14 @@ namespace TinyBCT.Translators
                         call $res_invoke := InvokeDelegate(f,Int2Union($r1));
                         r := Union2Int($res_invoke);
                 */
-                
-                sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate({1},Int2Union({2}));", localVar, instruction.Arguments[0], instruction.Arguments[1]));
+
+                // invoke the correct version of invoke delegate
+                var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                if (instruction.HasResult)
+                    sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2},Int2Union({3}));", localVar, normalizedType, instruction.Arguments[0], instruction.Arguments[1]));
+                else
+                    sb.AppendLine(String.Format("\t\tcall InvokeDelegate_{1}({2},Int2Union({3}));", localVar, normalizedType, instruction.Arguments[0], instruction.Arguments[1]));
+
                 // el union depende del tipo de los argumentos
                 sb.AppendLine(String.Format("\t\t{0} := Union2Int({1});", instruction.Result, localVar));
             }
@@ -471,7 +441,7 @@ namespace TinyBCT.Translators
                     return false;
 
                 if (instruction.Method.ContainingType.ResolvedType.IsDelegate &&
-                    instruction.Method.ToString().Contains(".Invoke")) // better way?
+                    instruction.Method.Name.Value.Equals("Invoke")) // better way?
                     return true;
 
                 return false;
@@ -484,21 +454,57 @@ namespace TinyBCT.Translators
         static IDictionary<IMethodReference, string> methodIdentifiers =
                 new Dictionary<IMethodReference, string>();
 
-        public static string CreateDelegateMethod()
+        public static IDictionary<string, ISet<IMethodReference>> MethodGrouping
+            = new Dictionary<string, ISet<IMethodReference>>();
+
+        public static void AddDelegatedMethodToGroup(string tRef, IMethodReference mRef)
+        {
+            if (MethodGrouping.ContainsKey(tRef))
+                MethodGrouping[tRef].Add(mRef);
+            else
+            {
+                MethodGrouping[tRef] = new HashSet<IMethodReference>();
+                MethodGrouping[tRef].Add(mRef);
+            }
+        }
+
+        public static  void CreateDelegateGroup(string containingType)
+        {
+            if (MethodGrouping.ContainsKey(containingType))
+                return;
+
+            MethodGrouping[containingType] = new HashSet<IMethodReference>();
+        }
+
+        public static string CreateDelegateMethod(String typeRef)
         {
             var sb = new StringBuilder();
+            var normalizedType = typeRef;// Helpers.GetNormalizedType(typeRef);
 
-            sb.AppendLine("procedure {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref);");
-            sb.AppendLine("implementation {:inline 1} CreateDelegate(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref)");
+            sb.AppendLine(String.Format("procedure {{:inline 1}} CreateDelegate_{0}(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref);", normalizedType));
+            sb.AppendLine(String.Format("implementation {{:inline 1}} CreateDelegate_{0}(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref)", normalizedType));
             sb.AppendLine("{");
             sb.AppendLine("     call c := Alloc();");
             sb.AppendLine("     assume $RefToDelegateReceiver(Method, c) == Receiver;");
             sb.AppendLine("     assume $RefToDelegateTypeParameters(Method, c) == TypeParameters;");
 
-            foreach (var id in methodIdentifiers.Values)
+            foreach (var method in MethodGrouping[typeRef])
+            {
+                var id = methodIdentifiers[method];
                 sb.AppendLine(String.Format("     assume $RefToDelegateMethod({0}, c) <==> Method == {0};", id));
+            }
 
             sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        public static string CreateDelegateMethod()
+        {
+            var sb = new StringBuilder();
+
+            foreach (var typeRef in MethodGrouping.Keys)
+                sb.AppendLine(CreateDelegateMethod(typeRef));
 
             return sb.ToString();
         }
@@ -507,20 +513,45 @@ namespace TinyBCT.Translators
         {
             var sb = new StringBuilder();
 
+            foreach (var typeRef in MethodGrouping.Keys)
+                sb.AppendLine(InvokeDelegateMethod(typeRef));
+
+            return sb.ToString();
+        }
+
+        public static string InvokeDelegateMethod(string typeRef)
+        {
+            var sb = new StringBuilder();
+            var normalizedType = typeRef;//Helpers.GetNormalizedType(typeRef);
+
             // we should parametrize the parameters and return's types
             // currently we are only supporting static int -> int methods
-            sb.AppendLine("procedure {:inline 1} InvokeDelegate($this: Ref, arg$in: Ref) returns ($r: Ref);");
-            sb.AppendLine("implementation {:inline 1} InvokeDelegate($this: Ref, arg$in: Ref) returns ($r: Ref)");
+            sb.AppendLine(String.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref, arg$in: Ref) returns ($r: Ref);", normalizedType));
+            sb.AppendLine(String.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref, arg$in: Ref) returns ($r: Ref)", normalizedType));
             sb.AppendLine("{");
             sb.AppendLine("\tvar local0: int;");
             sb.AppendLine("\tvar local1: int;");
 
-            foreach (var id in methodIdentifiers)
+            /*foreach (var id in methodIdentifiers)
             {
                 sb.AppendLine(String.Format("\tif ($RefToDelegateMethod({0}, $this))", id.Value));
                 sb.AppendLine("\t{");
                 sb.AppendLine("\t\tlocal0 := Union2Int(arg$in);");
                 sb.AppendLine(String.Format("\t\tcall local1 := {0}(local0);", Helpers.GetMethodName(id.Key))); 
+                sb.AppendLine("\t\tassume Union2Int(Int2Union(local1)) == local1;");
+                sb.AppendLine("\t\t$r := Int2Union(local1);");
+                sb.AppendLine("\t\treturn;");
+                sb.AppendLine("\t}");
+            }*/
+
+            foreach (var method in MethodGrouping[typeRef])
+            {
+                var id = methodIdentifiers[method];
+
+                sb.AppendLine(String.Format("\tif ($RefToDelegateMethod({0}, $this))", id));
+                sb.AppendLine("\t{");
+                sb.AppendLine("\t\tlocal0 := Union2Int(arg$in);");
+                sb.AppendLine(String.Format("\t\tcall local1 := {0}(local0);", Helpers.GetMethodName(method)));
                 sb.AppendLine("\t\tassume Union2Int(Int2Union(local1)) == local1;");
                 sb.AppendLine("\t\t$r := Int2Union(local1);");
                 sb.AppendLine("\t\treturn;");
