@@ -46,14 +46,13 @@ namespace TinyBCT
 
         public static String GetMethodName(IMethodReference methodDefinition)
         {
-            var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.SupressAttributeSuffix);
-            signature = NormalizeStringForCorral(signature);
-
-            // workaround
-            // Test.NoHeap.subtract(System.Int32, System.Int32) -> Test.NoHeap.subtract
-            var split = signature.Split('(');
-            //..ctor()
-            return split[0].Replace("..", ".");
+            var signature = MemberHelper.GetMethodSignature(methodDefinition);
+            signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor
+            var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
+            arity = arity.Replace("[]", "array");
+            var result = signature + arity;
+            result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
+            return result;
         }
 
         public static String GetMethodBoogieReturnType(IMethodReference methodDefinition)
@@ -135,7 +134,7 @@ namespace TinyBCT
             if (methodDefinition.IsConstructor)
             {
                 var methodName = Helpers.GetMethodName(methodDefinition);
-                if (methodName.Equals("System.Object.ctor"))
+                if (methodName.Equals("System.Object.#ctor"))
                     return true;
             }
 
