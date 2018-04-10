@@ -408,28 +408,54 @@ namespace TinyBCT.Translators
                 DelegateStore.CreateDelegateGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType));
 
                 // todo: this depends on the arguments types
-                sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
+                // todo: this must  be generalized because different types can casted to union
+                foreach (var argument in instruction.Arguments.Skip(1)) // first argument is the delegate object
+                {
+                    var argType = Helpers.GetBoogieType(argument.Type);
+                    if (argType.Equals("Ref")) // Ref and Union are alias
+                        continue;
+                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                    sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
+                }
 
-                /*
+                //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
+
+                /* 
+                    // example of desired code
                     var $res_invoke : Union;
                     L_0000:
                     L_0002:
                         $r1 := 1;
                     L_0003:
-                        // r1 hay que castearlo a Union (eso se puede arreglar)
-                        assume Union2Int(Int2Union(1)) == 1;
-                        call $res_invoke := InvokeDelegate(f,Int2Union($r1));
+                        assume Union2Int(Int2Union(1)) == 1; // depends on the delegate type
+                        call $res_invoke := InvokeDelegate(f,Int2Union($r1)); -> there can be more than 1 argument
                         r := Union2Int($res_invoke);
                 */
+
+                var arguments2Union = new List<String>();
+                foreach (var argument in instruction.Arguments.Skip(1))
+                {
+                    var argType = Helpers.GetBoogieType(argument.Type);
+                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                    if (argType.Equals("Ref")) // Ref and Union are alias
+                    {
+                        arguments2Union.Add(argument.ToString());
+                    } else
+                    {
+                        arguments2Union.Add(String.Format("{0}2Union({1})", argType, argument.ToString()));
+                    }
+                }
+
+                var arguments = String.Join(",",arguments2Union);
 
                 // invoke the correct version of invoke delegate
                 var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 if (instruction.HasResult)
-                    sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2},Int2Union({3}));", localVar, normalizedType, instruction.Arguments[0], instruction.Arguments[1]));
+                    sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2},{3});", localVar, normalizedType, instruction.Arguments[0], arguments));
                 else
-                    sb.AppendLine(String.Format("\t\tcall InvokeDelegate_{1}({2},Int2Union({3}));", localVar, normalizedType, instruction.Arguments[0], instruction.Arguments[1]));
+                    sb.AppendLine(String.Format("\t\tcall InvokeDelegate_{1}({2},{3});", localVar, normalizedType, instruction.Arguments[0], arguments));
 
-                // el union depende del tipo de los argumentos
+                // the union depends on the type of the arguments
                 sb.AppendLine(String.Format("\t\t{0} := Union2Int({1});", instruction.Result, localVar));
             }
 
