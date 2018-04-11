@@ -446,17 +446,30 @@ namespace TinyBCT.Translators
                     }
                 }
 
-                var arguments = String.Join(",",arguments2Union);
+                var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
 
                 // invoke the correct version of invoke delegate
                 var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 if (instruction.HasResult)
-                    sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2},{3});", localVar, normalizedType, instruction.Arguments[0], arguments));
+                    sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
                 else
-                    sb.AppendLine(String.Format("\t\tcall InvokeDelegate_{1}({2},{3});", localVar, normalizedType, instruction.Arguments[0], arguments));
+                    sb.AppendLine(String.Format("\t\tcall InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
 
-                // the union depends on the type of the arguments
-                sb.AppendLine(String.Format("\t\t{0} := Union2Int({1});", instruction.Result, localVar));
+                if (instruction.HasResult)
+                {
+                    // the union depends on the type of the arguments
+                    var argType = Helpers.GetBoogieType(instruction.Result.Type);
+                    if (argType.Equals("Ref")) // Ref and Union are alias
+                        sb.AppendLine(String.Format("\t\t{0} := {1};", instruction.Result, localVar));
+                    else
+                    {
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, argType));
+
+                    }
+
+                }
+
             }
 
             public static bool IsDelegateInvokeTranslation(IList<Instruction> instructions, int idx)
@@ -550,25 +563,30 @@ namespace TinyBCT.Translators
             var sb = new StringBuilder();
             var normalizedType = typeRef;//Helpers.GetNormalizedType(typeRef);
 
+            var methodRef = MethodGrouping[typeRef].First(); // get a reference to a Method in the group. All should have the same return type and parameters type
+
             // we should parametrize the parameters and return's types
             // currently we are only supporting static int -> int methods
-            sb.AppendLine(String.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref, arg$in: Ref) returns ($r: Ref);", normalizedType));
-            sb.AppendLine(String.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref, arg$in: Ref) returns ($r: Ref)", normalizedType));
-            sb.AppendLine("{");
-            sb.AppendLine("\tvar local0: int;");
-            sb.AppendLine("\tvar local1: int;");
 
-            /*foreach (var id in methodIdentifiers)
-            {
-                sb.AppendLine(String.Format("\tif ($RefToDelegateMethod({0}, $this))", id.Value));
-                sb.AppendLine("\t{");
-                sb.AppendLine("\t\tlocal0 := Union2Int(arg$in);");
-                sb.AppendLine(String.Format("\t\tcall local1 := {0}(local0);", Helpers.GetMethodName(id.Key))); 
-                sb.AppendLine("\t\tassume Union2Int(Int2Union(local1)) == local1;");
-                sb.AppendLine("\t\t$r := Int2Union(local1);");
-                sb.AppendLine("\t\treturn;");
-                sb.AppendLine("\t}");
-            }*/
+            var argInList = new List<string>();
+
+            bool hasReturnVariable = methodRef.Type.TypeCode != PrimitiveTypeCode.Void;
+
+            // for virtual methods we may have to change this to include the reference to the object receiving the message
+            var parameters = hasReturnVariable ? ","+ String.Join(",", methodRef.Parameters.Select(v => String.Format("arg{0}$in", v.Index) + " : Ref")) : String.Empty;
+
+            sb.AppendLine(String.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2};", normalizedType, parameters, hasReturnVariable ? "returns ($r: Ref)" : String.Empty));
+            sb.AppendLine(String.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2}", normalizedType, parameters, hasReturnVariable ? "returns ($r: Ref)" : String.Empty));
+            sb.AppendLine("{");
+
+            // we declare a local for each parameter - local will not be union, will be the real type (boogie version)
+            // the resultRealType variable is for the return value if any - then it will be casted to Union and will be the return value
+
+            foreach (var v in methodRef.Parameters)
+                sb.AppendLine(String.Format("\tvar local{0} : {1};", v.Index, Helpers.GetBoogieType(v.Type)));
+
+            if (hasReturnVariable)
+                sb.AppendLine(String.Format("\tvar resultRealType: {0};", Helpers.GetBoogieType(methodRef.Type)));
 
             foreach (var method in MethodGrouping[typeRef])
             {
@@ -576,10 +594,42 @@ namespace TinyBCT.Translators
 
                 sb.AppendLine(String.Format("\tif ($RefToDelegateMethod({0}, $this))", id));
                 sb.AppendLine("\t{");
-                sb.AppendLine("\t\tlocal0 := Union2Int(arg$in);");
-                sb.AppendLine(String.Format("\t\tcall local1 := {0}(local0);", Helpers.GetMethodName(method)));
-                sb.AppendLine("\t\tassume Union2Int(Int2Union(local1)) == local1;");
-                sb.AppendLine("\t\t$r := Int2Union(local1);");
+                // every argument is casted to Union (if they are Ref it is not necessary, they are alias)
+                foreach (var v in methodRef.Parameters)
+                {
+                    var argType = Helpers.GetBoogieType(v.Type);
+                    if (argType.Equals("Ref")) // Ref and Union are alias
+                        sb.AppendLine(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
+                    else {
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType));
+                    }
+                }
+
+                // we may have to add the receiver object for virtual methods
+                var args = new List<string>();
+                foreach (var v in methodRef.Parameters)
+                    args.Add(String.Format("local{0}", v.Index));
+
+                if (hasReturnVariable)
+                    sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                else
+                    sb.AppendLine(String.Format("\t\tcall {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+
+                if (hasReturnVariable)
+                {
+                    if (Helpers.GetBoogieType(methodRef.Type).Equals("Ref"))
+                        sb.AppendLine("\t\t$r := resultRealType;");
+                    else
+                    {
+                        var argType = Helpers.GetBoogieType(methodRef.Type);
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType));
+                        sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType));
+                    }
+                }
+
+
                 sb.AppendLine("\t\treturn;");
                 sb.AppendLine("\t}");
             }
