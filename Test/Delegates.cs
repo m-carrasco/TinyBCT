@@ -66,22 +66,20 @@ namespace Test
 
         public static void invoke1(Func<int, int> f)
         {
-            // deberia invocarse plus o devolver no deterministico
+            // it should invoke plus or return a no deterministic value.
             var r = f(1);
-
-            //Contract.Assert(r == 0 || r == 2);
         }
 
         public static void invoke2(DelegateIntInt f)
         {
-            // deberia invocarse minus o cualquier cosa
+            // it should invoke minus or return a no deterministic value.
             var r = f(1);
             //Contract.Assert(r == 0 || r == 2);
         }
 
         public static void creation_invoke1()
         {
-            // en este invoke deberia ser solo plus
+            // it should invoke plus
             Func<int, int> f = plus;
             var r = f(5);
             Contract.Assert(r == 6);
@@ -89,7 +87,7 @@ namespace Test
 
         public static void creation_invoke2()
         {
-            // deberia estar solo minux
+            // it should invoke minus
             DelegateIntInt d = minus;
             var r = d(5);
             Contract.Assert(r == 4);
@@ -98,7 +96,7 @@ namespace Test
         public static void creation_invoke3()
         {
             Func<int, int, int, int> f = plus;
-            // deberia estar solo plus
+            // it should invoke plus
             var r = f(1, 2, 3);
             Contract.Assert(r == 6);
         } 
