@@ -383,7 +383,8 @@ namespace TinyBCT.Translators
 
                 // invoke the correct version of create delegate
                 var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
-                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, "null", "Type0()"));
+                IVariable receiverObject = instruction.Arguments[1];
+                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
 
                 loadIns = null;
                 createObjIns = null;
@@ -465,11 +466,8 @@ namespace TinyBCT.Translators
                     {
                         argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
                         sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, argType));
-
                     }
-
                 }
-
             }
 
             public static bool IsDelegateInvokeTranslation(IList<Instruction> instructions, int idx)
@@ -608,6 +606,11 @@ namespace TinyBCT.Translators
 
                 // we may have to add the receiver object for virtual methods
                 var args = new List<string>();
+                if (method.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
+                {
+                    var receiverObject = String.Format("$RefToDelegateReceiver({0}, $this)", id);
+                    args.Add(receiverObject);
+                }
                 foreach (var v in methodRef.Parameters)
                     args.Add(String.Format("local{0}", v.Index));
 
@@ -628,7 +631,6 @@ namespace TinyBCT.Translators
                         sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType));
                     }
                 }
-
 
                 sb.AppendLine("\t\treturn;");
                 sb.AppendLine("\t}");
