@@ -1,6 +1,7 @@
 ﻿using Backend;
 using Backend.Analyses;
 using Backend.ThreeAddressCode.Instructions;
+using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace TinyBCT
 {
-    class Helpers
+    static class Helpers
     {
         public static bool IsInstructionImplemented(Instruction inst)
         {
@@ -128,6 +129,23 @@ namespace TinyBCT
             return parameters;
         }
 
+        public static bool IsCompiledGeneratedClass(this INamedTypeDefinition typeAsClassResolved)
+        {
+            var result = typeAsClassResolved != null && typeAsClassResolved.Attributes.Any(attrib => attrib.Type.GetName().Equals("CompilerGeneratedAttribute"));
+            return result;
+        }
+
+        public static bool IsCompilerGenerated(this ITypeReference type)
+        {
+            var resolvedClass = type.ResolvedType as INamedTypeDefinition;
+
+            if (resolvedClass != null)
+            {
+                return resolvedClass.IsCompiledGeneratedClass();
+            }
+            return false;
+        }
+
         // workaround
         public static Boolean IsExternal(IMethodDefinition methodDefinition)
         {
@@ -156,7 +174,8 @@ namespace TinyBCT
 
         public static string NormalizeStringForCorral(string s)
         {
-            return s.Replace("::", "."); // for example: static fields
+            return s.Replace("::", ".")// for example: static fields
+                .Replace("<>", "__");  // class compiled generated
                 
             //return s; // .Replace('<', '_').Replace('>', '_');
         }

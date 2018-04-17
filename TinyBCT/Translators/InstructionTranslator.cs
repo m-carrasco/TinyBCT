@@ -147,6 +147,23 @@ namespace TinyBCT.Translators
                 {
                     // static fields are considered global variables
                     var staticFieldAccess = instruction.Operand as StaticFieldAccess;
+
+                    // code generated from (x => x * x) may have a singleton
+                    // we will force to initialize the singleton every time it is used
+                    // if it is not defined we will have a wrong delegate invokation
+                    // the invariant for this is : null || correct delegate
+                    // * null case:
+                    //      it is correctly initialized
+                    // * correct delegate
+                    //      * correct invokation
+                    // this problem arise becuase static constructors are not called
+                    // also there is no invariant for static variables
+                    if (staticFieldAccess.Type.ResolvedType.IsDelegate &&
+                        staticFieldAccess.Field.ContainingType.IsCompilerGenerated()) 
+                    {
+                        sb.AppendLine(String.Format("\t\tassume {0} == null;", FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                    }
+
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
                 }
                 else if (instruction.Operand is StaticMethodReference) // delegates handling
