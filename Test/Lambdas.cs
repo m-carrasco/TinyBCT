@@ -123,5 +123,32 @@ namespace Test
             Func<int, int> l = (x => y * x);
             l(1);
         }
+
+        // checking if the singleton is null is only done at the lambda creation site.
+        // each singleton in the compiled class is different, one per creation point. they only share the class if it is the same lambda, different static variable if they are different creation points
+        public static void lambda3()
+        {
+            Func<int, int> l = (x => x * x);
+            var r = l(1);
+            r = l(1);
+            Contract.Assert(r == 1);
+        }
+
+        public static void lambda4()
+        {
+            Func<int, int> l = (x => x * x);
+            var r = l(1);
+
+            Func<int, int> l1 = (x => x * x);
+            r = l1(1);
+
+            Contract.Assert(r == 1);
+        }
+
+        public static void lambda5()
+        {
+            lambda1();
+            lambda1();
+        }
     }
 }

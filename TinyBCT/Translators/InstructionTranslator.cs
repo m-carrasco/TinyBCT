@@ -177,7 +177,7 @@ namespace TinyBCT.Translators
                     if (staticFieldAccess.Type.ResolvedType.IsDelegate &&
                         staticFieldAccess.Field.ContainingType.IsCompilerGenerated()) 
                     {
-                        sb.AppendLine(String.Format("\t\tassume {0} == null;", FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                        sb.AppendLine(String.Format("\t\t{0} := null;", FieldTranslator.GetFieldName(staticFieldAccess.Field)));
                     }
 
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
