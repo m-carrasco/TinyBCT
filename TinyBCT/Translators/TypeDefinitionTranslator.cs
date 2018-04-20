@@ -76,7 +76,6 @@ namespace TinyBCT.Translators
                 if (typeName.Equals("System.Object"))
                     continue;
 
-                var superClass = c.BaseClasses.SingleOrDefault();
                 sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
                 sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
                 sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));

@@ -12,7 +12,7 @@ namespace TinyBCT
 {
     class TACWriter
     {
-        private static StringBuilder sb = new StringBuilder();
+        private static StringBuilder sb;
         private static StreamWriter sw;
 
         // called from Traverser
@@ -23,10 +23,12 @@ namespace TinyBCT
             TACWriter.Write();
         }
 
-        public static void Open()
+        public static void Open(string inputFile)
         {
-            var outputPath = Path.GetDirectoryName(Settings.Input());
-            sw = new StreamWriter(outputPath += @"\tac_output.txt"); 
+            var outputPath = Path.GetDirectoryName(inputFile);
+            var name = Path.GetFileName(inputFile);
+            sb = new StringBuilder();
+            sw = new StreamWriter(outputPath += String.Format(@"\{0}_tac_output.txt",name)); 
         }
 
         public static void Close()
