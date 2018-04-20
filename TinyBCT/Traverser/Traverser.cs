@@ -86,13 +86,13 @@ namespace TinyBCT
             var typeAnalysis = new TypeInferenceAnalysis(cfg);
             typeAnalysis.Analyze();
 
-            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
+            /*var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
             forwardCopyAnalysis.Analyze();
             forwardCopyAnalysis.Transform(methodBody);
 
             var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
             backwardCopyAnalysis.Analyze();
-            backwardCopyAnalysis.Transform(methodBody);
+            backwardCopyAnalysis.Transform(methodBody);*/
         }
 
         private List<System.Action<INamedTypeDefinition>> namedTypeDefinitionActions
