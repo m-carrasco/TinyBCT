@@ -25,8 +25,6 @@ namespace TinyBCT.Translators
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
 
-
-
         public string Translate(IList<Instruction> instructions, int idx)
         {
             SetState(instructions, idx);
@@ -84,6 +82,12 @@ namespace TinyBCT.Translators
 
                 IVariable left = instruction.LeftOperand;
                 IVariable right = instruction.RightOperand;
+
+                // Binary operations get translated into method calls:
+                // ops:
+                //     + : System.String.Concat$System.String$System.String
+                System.Diagnostics.Contracts.Contract.Assume(
+                    !left.Type.TypeCode.Equals(PrimitiveTypeCode.String) && !right.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
                 String operation = String.Empty;
 
@@ -172,7 +176,10 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, instruction.Operand));
+                    string operand = instruction.Operand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
+                        Helpers.Strings.fixStringLiteral(instruction.Operand) :
+                        instruction.Operand.ToString();
+                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, operand));
                 }
             }
 
@@ -226,6 +233,13 @@ namespace TinyBCT.Translators
                 IVariable leftOperand = instruction.LeftOperand;
                 IInmediateValue rightOperand = instruction.RightOperand;
 
+                // Binary operations get translated into method calls:
+                // ops:
+                //     ==: System.String.op_Equality$System.String$System.String
+                //     !=: ? TODO(rcastano): check
+                System.Diagnostics.Contracts.Contract.Assume(
+                    !leftOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && !rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String));
+
                 var operation = string.Empty;
 
                 switch (instruction.Operation)
@@ -237,7 +251,6 @@ namespace TinyBCT.Translators
                     case BranchOperation.Lt: operation = "<"; break;
                     case BranchOperation.Le: operation = "<="; break;
                 }
-
 
                 sb.AppendLine(String.Format("\t\tif ({0} {1} {2})", leftOperand, operation, rightOperand));
                 sb.AppendLine("\t\t{");
@@ -265,20 +278,26 @@ namespace TinyBCT.Translators
                 var op = instruction.Operand; // what it is stored
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
 
+                string opStr = op.ToString();
+                if (op.Type.TypeCode.Equals(PrimitiveTypeCode.String))
+                {
+                    opStr = Helpers.Strings.fixStringLiteral(op);
+                }
+
                 if (instanceFieldAccess != null)
                 {
                     String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
                     if (Helpers.GetBoogieType(op.Type).Equals("int"))
                     {
-                        sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", op));
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", op)));
+                        sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", opStr)));
                     }
                     else if (Helpers.GetBoogieType(op.Type).Equals("Ref"))
                     {
-                        //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", op));
+                        //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
                         // Union y Ref son el mismo type, forman un alias.
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", op)*/op));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/opStr));
                     }
                 }
                 else
@@ -288,7 +307,7 @@ namespace TinyBCT.Translators
                     if (staticFieldAccess != null)
                     {
                         String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-                        sb.Append(String.Format("\t\t{0} := {1};", fieldName, op));
+                        sb.Append(String.Format("\t\t{0} := {1};", fieldName, opStr));
                     }
                 }
             }
@@ -299,6 +318,7 @@ namespace TinyBCT.Translators
                 var source = instruction.Operand;
                 var dest = instruction.Result;
                 var type = instruction.ConversionType;
+                System.Diagnostics.Contracts.Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
                 sb.Append(String.Format("\t\t{0} := $As({1},T${2}());", dest, source, type.ToString()));
             }

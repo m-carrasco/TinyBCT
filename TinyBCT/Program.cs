@@ -90,6 +90,7 @@ namespace TinyBCT
 
                 ProcessFiles(translateMethodDefinitions);
             }
+            Helpers.Strings.writeStringConsts(streamWriter);
 
             streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());

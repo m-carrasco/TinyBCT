@@ -38,6 +38,10 @@ namespace TinyBCT
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
                 return "bool";
+
+            if (type.TypeCode.Equals(PrimitiveTypeCode.String))
+                return "Ref";
+
             // hack 
             if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive) || type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                 return "Ref";
@@ -185,6 +189,44 @@ namespace TinyBCT
             return method.Name.Value == ".ctor";
         }
 
+
+        public static class Strings
+        {
+            static ISet<string> stringLiterals = new HashSet<string>();
+            public static string varNameForStringLiteral(string literal)
+            {
+                // String literal will start and end with '"'.
+                System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
+                stringLiterals.Add(literal);
+                return String.Format("$string_literal_{0}", literal.Substring(1, literal.Length - 2));
+            }
+            public static string fixStringLiteral(IValue v)
+            {
+                System.Diagnostics.Contracts.Contract.Assume(v.Type.TypeCode.Equals(PrimitiveTypeCode.String));
+                string vStr = v.ToString();
+                if (v is Constant)
+                {
+                    vStr = varNameForStringLiteral(vStr);
+                    stringLiterals.Add(v.ToString());
+                }
+                return vStr;
+            }
+
+            public static string getTempBoolVar()
+            {
+                return "TinyBCT_temp_bool";
+            }
+
+            public static void writeStringConsts(System.IO.StreamWriter sw)
+            {
+                foreach (var lit in stringLiterals)
+                {
+                    sw.WriteLine(
+                        String.Format("\tvar {0} : Ref;", Helpers.Strings.varNameForStringLiteral(lit))
+                        );
+                }
+            }
+        }
     }
 	public static class Extensions
 	{
