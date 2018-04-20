@@ -212,11 +212,6 @@ namespace TinyBCT
                 return vStr;
             }
 
-            //public static string getTempBoolVar()
-            //{
-            //    return "TinyBCT_temp_bool";
-            //}
-
             public static void writeStringConsts(System.IO.StreamWriter sw)
             {
                 foreach (var lit in stringLiterals)
