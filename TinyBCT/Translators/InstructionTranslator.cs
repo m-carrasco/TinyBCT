@@ -14,6 +14,8 @@ namespace TinyBCT.Translators
 {
     class InstructionTranslator
     {
+        public Dictionary<string, int> labels = new Dictionary<string, int>();
+
         // store for extern method called
         // since those methods do not have bodies, they are not translated
         // we need to declared them if they are called
@@ -52,7 +54,17 @@ namespace TinyBCT.Translators
 
             protected void addLabel(Instruction instr)
             {
-                sb.AppendLine(String.Format("\t{0}:", instr.Label));
+                string label = instr.Label;
+                if(! instTranslator.labels.ContainsKey(instr.Label))
+                {
+                    instTranslator.labels[label] = 1;
+                }
+                else
+                {
+                    label = label + @"_Diego_" + instTranslator.labels[instr.Label];
+                    instTranslator.labels[instr.Label]++; 
+                }
+                sb.AppendLine(String.Format("\t{0}:", label));
             }
 
             protected StringBuilder sb = new StringBuilder();
