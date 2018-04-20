@@ -204,6 +204,10 @@ namespace TinyBCT.Translators
                 {
                     sb.Append(String.Format("\t\t assert {0};", arguments));
                     return;
+                } else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
+                {
+                    sb.Append(String.Format("\t\t assume {0};", arguments));
+                    return;
                 }
 
                 if (instruction.HasResult)
