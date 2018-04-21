@@ -1,4 +1,5 @@
 ﻿using Backend;
+using Backend.Model;
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
@@ -14,21 +15,23 @@ namespace TinyBCT
     {
         IMethodDefinition methodDefinition;
         MethodBody methodBody;
+        ClassHierarchyAnalysis CHA;
 
         // called from Traverser
         // set in Main
         public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)
         {
-            MethodTranslator methodTranslator = new MethodTranslator(mD, mB);
+            MethodTranslator methodTranslator = new MethodTranslator(mD, mB, Traverser.CHA);
             // todo: improve this piece of code
             StreamWriter streamWriter = Program.streamWriter;
             streamWriter.WriteLine(methodTranslator.Translate());
         }
 
-        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody)
+        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA)
         {
             this.methodDefinition = methodDefinition;
             this.methodBody = methodBody;
+            this.CHA = CHA;
         }
 
         String TranslateInstructions()
@@ -36,7 +39,7 @@ namespace TinyBCT
             StringBuilder insSb = new StringBuilder();
 
             int idx = 0;
-            InstructionTranslator instTranslator = new InstructionTranslator();
+            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA);
             methodBody.Instructions
                 .Select(ins =>
                 {

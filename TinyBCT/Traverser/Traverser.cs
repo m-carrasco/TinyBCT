@@ -14,6 +14,7 @@ using System.IO;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using TinyBCT.Translators;
+using Backend.Model;
 
 namespace TinyBCT
 {
@@ -21,12 +22,15 @@ namespace TinyBCT
 	{
 		private IMetadataHost host;
 		private ISourceLocationProvider sourceLocationProvider;
-		//private ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
+        //private ISet<INamedTypeDefinition> classes = new HashSet<INamedTypeDefinition>();
 
-		public Traverser(IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+        // FIX: I have issues with the use of actions that do not allow my to pass this as paramater
+        public static ClassHierarchyAnalysis CHA;
+        public Traverser(IMetadataHost host, ISourceLocationProvider sourceLocationProvider, ClassHierarchyAnalysis CHAnalysis)
 		{
 			this.host = host;
 			this.sourceLocationProvider = sourceLocationProvider;
+            CHA = CHAnalysis;
 		}
 
         // not used yet - under development

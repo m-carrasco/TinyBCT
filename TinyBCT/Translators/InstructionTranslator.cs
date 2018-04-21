@@ -1,4 +1,5 @@
 ﻿using Backend;
+using Backend.Model;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using Backend.Visitors;
@@ -14,7 +15,10 @@ namespace TinyBCT.Translators
 {
     class InstructionTranslator
     {
-        public Dictionary<string, int> labels = new Dictionary<string, int>();
+
+        private ClassHierarchyAnalysis CHA;
+        // Diego: No longer required
+        // public Dictionary<string, int> labels = new Dictionary<string, int>();
 
         // store for extern method called
         // since those methods do not have bodies, they are not translated
@@ -26,6 +30,11 @@ namespace TinyBCT.Translators
         // for example for delegates there are instructions that are no longer used
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
+
+        public InstructionTranslator(ClassHierarchyAnalysis CHA)
+        {
+            this.CHA = CHA;
+        }
 
         public string Translate(IList<Instruction> instructions, int idx)
         {
@@ -55,15 +64,16 @@ namespace TinyBCT.Translators
             protected void addLabel(Instruction instr)
             {
                 string label = instr.Label;
-                if(! instTranslator.labels.ContainsKey(instr.Label))
-                {
-                    instTranslator.labels[label] = 1;
-                }
-                else
-                {
-                    label = label + @"_Diego_" + instTranslator.labels[instr.Label];
-                    instTranslator.labels[instr.Label]++; 
-                }
+                // Diego: No longer required
+                //if(! instTranslator.labels.ContainsKey(instr.Label))
+                //{
+                //    instTranslator.labels[label] = 1;
+                //}
+                //else
+                //{
+                //    label = label + @"_Diego_" + instTranslator.labels[instr.Label];
+                //    instTranslator.labels[instr.Label]++; 
+                //}
                 sb.AppendLine(String.Format("\t{0}:", label));
             }
 
@@ -227,6 +237,11 @@ namespace TinyBCT.Translators
                 {
                     sb.Append(String.Format("\t\t assume {0};", arguments));
                     return;
+                }
+
+                if(instruction.Operation == MethodCallOperation.Virtual)
+                {
+                    var calless = Helpers.PotentialCalleesUsingCHA(instruction, Traverser.CHA);
                 }
 
                 if (instruction.HasResult)

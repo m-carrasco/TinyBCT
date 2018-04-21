@@ -1,5 +1,6 @@
 ﻿using Backend;
 using Backend.Analyses;
+using Backend.Model;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
@@ -76,6 +77,57 @@ namespace TinyBCT
             return t.TransformText();
         }
 
+        public static IList<IMethodReference> PotentialCalleesUsingCHA(MethodCallInstruction invocation, ClassHierarchyAnalysis CHA)
+        {
+            var result = new List<IMethodReference>();
+            var unsolvedCallee = invocation.Method;
+            switch(invocation.Operation)
+            {
+                case MethodCallOperation.Static:
+                    result.Add(unsolvedCallee);
+                    break;
+                case MethodCallOperation.Virtual:
+                    var receiver = invocation.Arguments[0];
+                    var calleeTypes = new List<ITypeReference>(CHA.GetSubtypes(receiver.Type));
+                    calleeTypes.Add(receiver.Type);
+                    var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee));
+                    result.AddRange(candidateCalless);
+                    break;
+            }
+
+            return result;
+        }
+        public static IMethodReference FindMethodImplementation(this ITypeReference receiverType, IMethodReference method)
+        {
+            var result = method;
+
+            while (receiverType != null && !method.ContainingType.TypeEquals(receiverType))
+            {
+                var receiverTypeDef = receiverType.ResolvedType;
+                if (receiverTypeDef == null) break;
+
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
+
+                if (matchingMethod != null)
+                {
+                    result = matchingMethod;
+                    break;
+                }
+                else
+                {
+                    receiverType = receiverTypeDef.BaseClasses.SingleOrDefault();
+                }
+
+            }
+
+            return result;
+        }
+        public static bool TypeEquals(this ITypeReference type1, ITypeReference type2)
+        {
+            return TypeHelper.TypesAreEquivalent(type1, type2);
+        }
+
+
         /*
         public static String GetMethodDefinition(IMethodReference methodRef, bool IsExtern)
         {
@@ -103,7 +155,7 @@ namespace TinyBCT
             return head;
         }*/
 
-		public static bool IsMain(IMethodReference methodRef)
+        public static bool IsMain(IMethodReference methodRef)
 		{
 			if (methodRef.Name == null) return false;
 			return methodRef.Name.Value=="Main";

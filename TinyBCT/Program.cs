@@ -8,6 +8,7 @@ using Microsoft.Cci;
 using Backend;
 using System.IO;
 using TinyBCT.Translators;
+using Backend.Model;
 
 namespace TinyBCT
 {
@@ -27,6 +28,21 @@ namespace TinyBCT
                 processAction(inputFile);
         }
 
+        static ClassHierarchyAnalysis CreateCHAnalysis(IMetadataHost host)
+        {
+            foreach (var inputFile in Settings.InputFiles)
+            {
+                var assembly = new Assembly(host);
+                assembly.Load(inputFile);
+   
+            }
+            var CHAnalysis = new ClassHierarchyAnalysis(host);
+            CHAnalysis.Analyze();
+            return CHAnalysis;
+
+        }
+
+
         static void Main(string[] args)
         {
             Settings.Load(args);
@@ -36,6 +52,8 @@ namespace TinyBCT
 
             using (var host = new PeReader.DefaultHost())
             {
+                var CHAnalysis = CreateCHAnalysis(host);
+
                 Action<string> writeTAC = (String inputFile) =>
                 {
                     using (var assembly = new Assembly(host))
@@ -45,12 +63,13 @@ namespace TinyBCT
                         Types.Initialize(host);
 
                         TACWriter.Open(inputFile);
-                        var visitor = new Traverser(host, assembly.PdbReader);
+                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
                         visitor.AddMethodDefinitionAction(TACWriter.IMethodDefinitionTraverse); // saves tac code for debugging
                         visitor.Traverse(assembly.Module);
                         TACWriter.Close();
                     }
                 };
+
 
                 ProcessFiles(writeTAC);
 
@@ -62,7 +81,7 @@ namespace TinyBCT
                         assembly.Load(inputFile);
                         Types.Initialize(host);
 
-                        var visitor = new Traverser(host, assembly.PdbReader);
+                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
                         visitor.AddNamedTypeDefinitionAction(TypeDefinitionTranslator.TypeDefinitionTranslatorTraverse); // generates axioms for typing 
                         visitor.Traverse(assembly.Module);
                     }
@@ -82,7 +101,7 @@ namespace TinyBCT
                         assembly.Load(inputFile);
                         Types.Initialize(host);
 
-                        var visitor = new Traverser(host, assembly.PdbReader);
+                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
                         visitor.AddMethodDefinitionAction(MethodTranslator.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
                         visitor.Traverse(assembly.Module);
                     }
