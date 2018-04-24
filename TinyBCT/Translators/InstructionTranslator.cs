@@ -64,17 +64,8 @@ namespace TinyBCT.Translators
             protected void addLabel(Instruction instr)
             {
                 string label = instr.Label;
-                // Diego: No longer required
-                //if(! instTranslator.labels.ContainsKey(instr.Label))
-                //{
-                //    instTranslator.labels[label] = 1;
-                //}
-                //else
-                //{
-                //    label = label + @"_Diego_" + instTranslator.labels[instr.Label];
-                //    instTranslator.labels[instr.Label]++; 
-                //}
-                sb.AppendLine(String.Format("\t{0}:", label));
+                if(!String.IsNullOrEmpty(label))
+                    sb.AppendLine(String.Format("\t{0}:", label));
             }
 
             protected StringBuilder sb = new StringBuilder();
@@ -95,7 +86,7 @@ namespace TinyBCT.Translators
             public override void Visit(NopInstruction instruction)
             {
                 //addLabel(instruction);
-                sb.Append(String.Format("\t{0}:", instruction.Label));
+                //sb.Append(String.Format("\t{0}:", instruction.Label));
             }
 
             public override void Visit(BinaryInstruction instruction)
@@ -221,8 +212,8 @@ namespace TinyBCT.Translators
             {
                 // This is check is done because an object creation is splitted into two TAC instructions
                 // This prevents to add the same instruction tag twice
-                if (!Helpers.IsConstructor(instruction.Method))
-                    addLabel(instruction);
+                //if (!Helpers.IsConstructor(instruction.Method))
+                //    addLabel(instruction);
 
                 var signature = Helpers.GetMethodName(instruction.Method);
                 var arguments = string.Join(", ", instruction.Arguments);

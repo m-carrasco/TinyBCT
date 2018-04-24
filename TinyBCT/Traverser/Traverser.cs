@@ -15,6 +15,7 @@ using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using TinyBCT.Translators;
 using Backend.Model;
+using Backend.Utils;
 
 namespace TinyBCT
 {
@@ -89,6 +90,7 @@ namespace TinyBCT
 
             var typeAnalysis = new TypeInferenceAnalysis(cfg);
             typeAnalysis.Analyze();
+            methodBody.RemoveUnusedLabels();
 
             /*var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
             forwardCopyAnalysis.Analyze();
