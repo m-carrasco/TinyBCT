@@ -211,8 +211,8 @@ namespace TinyBCT.Translators
             {
                 // This is check is done because an object creation is splitted into two TAC instructions
                 // This prevents to add the same instruction tag twice
-                //if (!Helpers.IsConstructor(instruction.Method))
-                //    addLabel(instruction);
+                if (!Helpers.IsConstructor(instruction.Method))
+                    addLabel(instruction);
 
                 var signature = Helpers.GetMethodName(instruction.Method);
                 var arguments = string.Join(", ", instruction.Arguments);
