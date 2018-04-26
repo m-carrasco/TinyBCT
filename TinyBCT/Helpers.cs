@@ -14,6 +14,7 @@ namespace TinyBCT
 {
     static class Helpers
     {
+        private static ISet<string> methodsTranslated = new HashSet<string>();
         public static bool IsInstructionImplemented(Instruction inst)
         {
             if (inst is MethodCallInstruction ||
@@ -69,6 +70,11 @@ namespace TinyBCT
 
         public static String GetExternalMethodDefinition(IMethodReference methodRef)
         {
+            if (Helpers.IsCurrentlyMissing(methodRef.ResolvedMethod))
+            {
+                // TODO(rcastano): Add logger. Print this as INFO or WARNING level.
+                Console.Write("WARNING: Creating non-deterministic definition for missing method: " + Helpers.GetMethodName(methodRef));
+            }
             var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
             var returnType = Helpers.GetMethodBoogieReturnType(methodRef) == null ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(methodRef) + ")");
@@ -203,6 +209,14 @@ namespace TinyBCT
             return false;
         }
 
+        public static Boolean IsCurrentlyMissing(IMethodDefinition methodDefinition)
+        {
+            // The value of this condition can change throughout the execution of the translation.
+            // For that reason, it should be called at the end of the translation again to confirm
+            // the method is actually missing from the binary.
+            return !methodsTranslated.Contains(Helpers.GetMethodName(methodDefinition));
+        }
+
         // workaround
         public static Boolean IsExternal(IMethodDefinition methodDefinition)
         {
@@ -217,6 +231,11 @@ namespace TinyBCT
                 return true;
 
             return false;
+        }
+
+        public static void addTranslatedMethod(IMethodDefinition methodDefinition)
+        {
+            methodsTranslated.Add(Helpers.GetMethodName(methodDefinition));
         }
 
         public static string GetNormalizedType(ITypeReference type)

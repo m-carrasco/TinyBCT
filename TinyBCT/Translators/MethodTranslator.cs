@@ -32,6 +32,8 @@ namespace TinyBCT
             this.methodDefinition = methodDefinition;
             this.methodBody = methodBody;
             this.CHA = CHA;
+
+            Helpers.addTranslatedMethod(methodDefinition);
         }
 
         String TranslateInstructions()
@@ -102,7 +104,7 @@ namespace TinyBCT
             var parametersWithTypes = Helpers.GetParametersWithBoogieType(methodDefinition);
             var returnTypeIfAny = TranslateReturnTypeIfAny();
 
-            var boogieProcedureTemplate = new BoogieProcedureTemplate(methodName, attr, localVariables, ins, parametersWithTypes, returnTypeIfAny, Helpers.IsExternal(methodDefinition));
+            var boogieProcedureTemplate = new BoogieProcedureTemplate(methodName, attr, localVariables, ins, parametersWithTypes, returnTypeIfAny, Helpers.IsExternal(methodDefinition) || Helpers.IsCurrentlyMissing(methodDefinition));
             return boogieProcedureTemplate.TransformText();
         }
 

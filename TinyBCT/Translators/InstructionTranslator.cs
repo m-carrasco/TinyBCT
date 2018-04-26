@@ -24,6 +24,9 @@ namespace TinyBCT.Translators
         // since those methods do not have bodies, they are not translated
         // we need to declared them if they are called
         public static ISet<IMethodReference> ExternMethodsCalled = new HashSet<IMethodReference>();
+        // store for methods that have not been found yet but have been called
+        // Also necessary to declare them if they end up being missing
+        public static ISet<IMethodReference> PotentiallyMissingMethodsCalled = new HashSet<IMethodReference>();
 
         Translation translation;
         Instruction lastInstruction = null;
@@ -250,6 +253,9 @@ namespace TinyBCT.Translators
 
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
                     ExternMethodsCalled.Add(instruction.Method);
+                // Important not to add methods to both sets.
+                else if (Helpers.IsCurrentlyMissing(instruction.Method.ResolvedMethod))
+                    PotentiallyMissingMethodsCalled.Add(instruction.Method);
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
