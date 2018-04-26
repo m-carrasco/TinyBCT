@@ -94,7 +94,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(NopInstruction instruction)
             {
-                //addLabel(instruction);
+                addLabel(instruction);
                 sb.Append(String.Format("\t{0}:", instruction.Label));
             }
 
