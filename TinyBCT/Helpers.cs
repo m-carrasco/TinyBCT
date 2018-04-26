@@ -70,7 +70,7 @@ namespace TinyBCT
         {
             var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
-            var returnType = Helpers.GetMethodBoogieReturnType(methodRef) == null ? String.Empty : Helpers.GetMethodBoogieReturnType(methodRef);
+            var returnType = Helpers.GetMethodBoogieReturnType(methodRef) == null ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(methodRef) + ")");
 
             var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true);
 
