@@ -28,7 +28,7 @@ namespace TinyBCT
             var outputPath = Path.GetDirectoryName(inputFile);
             var name = Path.GetFileName(inputFile);
             sb = new StringBuilder();
-            sw = new StreamWriter(outputPath += String.Format(@"\{0}_tac_output.txt",name)); 
+            sw = new StreamWriter(Path.Combine(outputPath, String.Format(@"{0}_tac_output.txt",name))); 
         }
 
         public static void Close()
