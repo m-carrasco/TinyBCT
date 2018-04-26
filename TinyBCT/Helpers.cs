@@ -27,7 +27,8 @@ namespace TinyBCT
                 inst is StoreInstruction ||
                 inst is FinallyInstruction ||
                 inst is TryInstruction || 
-                inst is ConvertInstruction)
+                inst is ConvertInstruction ||
+                inst is InitializeObjectInstruction)
                 return true;
 
             return false;
@@ -231,8 +232,9 @@ namespace TinyBCT
         public static string NormalizeStringForCorral(string s)
         {
             return s.Replace("::", ".")// for example: static fields
-                .Replace("<>", "__");  // class compiled generated
-                
+                .Replace("<>", "__")  // class compiled generated
+                .Replace('<', '$').Replace('>', '$').Replace(", ", "$");
+
             //return s; // .Replace('<', '_').Replace('>', '_');
         }
 
