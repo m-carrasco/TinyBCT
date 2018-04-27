@@ -24,8 +24,12 @@ namespace TinyBCT.Translators
         // since those methods do not have bodies, they are not translated
         // we need to declared them if they are called
         public static ISet<IMethodReference> ExternMethodsCalled = new HashSet<IMethodReference>();
+        // store for methods that have not been found yet but have been called
+        // Also necessary to declare them if they end up being missing
+        public static ISet<IMethodReference> PotentiallyMissingMethodsCalled = new HashSet<IMethodReference>();
 
         Translation translation;
+        Instruction lastInstruction = null;
         // while translating instructions some variables may be removed
         // for example for delegates there are instructions that are no longer used
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
@@ -44,6 +48,7 @@ namespace TinyBCT.Translators
         {
             SetState(instructions, idx);
             instructions[idx].Accept(translation);
+            lastInstruction = instructions[idx];
             return translation.Result();
         }
 
@@ -190,6 +195,13 @@ namespace TinyBCT.Translators
                 {
                     // see DelegateTranslation
                 }
+                else if (instruction.Operand is Reference)
+                {
+                    // Reference loading only found when using "default" keyword.
+                    // Ignoring translation, the actual value referenced is used by accessing
+                    // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
+                    // TODO(rcastano): check that loaded references are only used in the assumed context.
+                }
                 else
                 {
                     string operand = instruction.Operand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
@@ -305,8 +317,8 @@ namespace TinyBCT.Translators
             {
                 // This is check is done because an object creation is splitted into two TAC instructions
                 // This prevents to add the same instruction tag twice
-                //if (!Helpers.IsConstructor(instruction.Method))
-                //    addLabel(instruction);
+                if (!Helpers.IsConstructor(instruction.Method))
+                    addLabel(instruction);
 
                 var arguments = string.Join(", ", instruction.Arguments);
 
@@ -335,6 +347,9 @@ namespace TinyBCT.Translators
                 
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
                     ExternMethodsCalled.Add(instruction.Method);
+                // Important not to add methods to both sets.
+                else if (Helpers.IsCurrentlyMissing(instruction.Method.ResolvedMethod))
+                    PotentiallyMissingMethodsCalled.Add(instruction.Method);
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
@@ -388,7 +403,6 @@ namespace TinyBCT.Translators
 
                 var op = instruction.Operand; // what it is stored
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
-
                 string opStr = op.ToString();
                 if (op.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
@@ -409,6 +423,11 @@ namespace TinyBCT.Translators
                         //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
                         // Union y Ref son el mismo type, forman un alias.
                         sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/opStr));
+                    }
+                    else
+                    {
+                        // Not supporting these cases yet
+                        System.Diagnostics.Contracts.Contract.Assume(false);
                     }
                 }
                 else
@@ -432,6 +451,40 @@ namespace TinyBCT.Translators
                 System.Diagnostics.Contracts.Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
                 sb.Append(String.Format("\t\t{0} := $As({1},T${2}());", dest, source, type.ToString()));
+            }
+
+            public override void Visit(InitializeObjectInstruction instruction)
+            {
+                addLabel(instruction);
+                Contract.Assume(instruction.Variables.Count == 1);
+                foreach (var var in instruction.Variables)
+                {
+                    LoadInstruction loadInstruction = this.instTranslator.lastInstruction as LoadInstruction;
+                    Contract.Assume(loadInstruction != null);
+                    Backend.ThreeAddressCode.Values.Reference reference = (Backend.ThreeAddressCode.Values.Reference) loadInstruction.Operand;
+                    IAssignableValue where = reference.Value as IAssignableValue;
+                    Contract.Assume(where != null);
+                    var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
+                    string valueStr = "0";
+
+                    if (instanceFieldAccess != null)
+                    {
+                        String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
+                        
+                        sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", valueStr));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", valueStr)));
+                    }
+                    else
+                    {
+                        // static fields are considered global variables
+                        var staticFieldAccess = where as StaticFieldAccess;
+                        if (staticFieldAccess != null)
+                        {
+                            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
+                            sb.Append(String.Format("\t\t{0} := {1};", fieldName, valueStr));
+                        }
+                    }
+                }
             }
         }
 

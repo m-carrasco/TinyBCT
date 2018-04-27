@@ -121,6 +121,14 @@ namespace TinyBCT
                 var head = Helpers.GetExternalMethodDefinition(methodRef);
                 streamWriter.WriteLine(head);
             }
+            foreach (var methodRef in InstructionTranslator.PotentiallyMissingMethodsCalled)
+            {
+                if (Helpers.IsCurrentlyMissing(methodRef.ResolvedMethod))
+                {
+                    var head = Helpers.GetExternalMethodDefinition(methodRef);
+                    streamWriter.WriteLine(head);
+                }
+            }
 
             // we declare read or written fields
             foreach (var field in FieldTranslator.GetFieldDefinitions())
