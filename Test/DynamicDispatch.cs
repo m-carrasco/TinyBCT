@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,13 +29,49 @@ namespace DynamicDispatch
               L_000C:  $r3 = local_1;
               L_000D:  return $r3;
          */
-        public static int test1(Animal a)
+        public static int test1()
         {
             // correct order of checks 
             // fist check mammal
             // second check reptil
             // third abstract version animal
+
+            Animal a = new Mammal();
+
+            int old_oxy = a.oxygen;
             int oxy = a.Breathe();
+
+            if (a is Mammal)
+                Contract.Assert(oxy == old_oxy * 2);
+            else if (a is Reptile)
+                Contract.Assert(oxy == old_oxy + 1);
+            else
+                Contract.Assert(false);
+
+
+            a = new Dog();
+
+            old_oxy = a.oxygen;
+            oxy = a.Breathe();
+
+            if (a is Mammal)
+                Contract.Assert(oxy == old_oxy * 2);
+            else if (a is Reptile)
+                Contract.Assert(oxy == old_oxy + 1);
+            else
+                Contract.Assert(false);
+
+            a = new Reptile();
+            old_oxy = a.oxygen;
+            oxy = a.Breathe();
+
+            if (a is Mammal)
+                Contract.Assert(oxy == old_oxy * 2);
+            else if (a is Reptile)
+                Contract.Assert(oxy == old_oxy + 1);
+            else
+                Contract.Assert(false);
+
             return oxy;
         }
 
@@ -61,7 +98,7 @@ namespace DynamicDispatch
 
          */
 
-        public static int test2(Dog d)
+        public static int test2()
         {
             // correct order of checks 
             // fist check mammal
@@ -69,8 +106,12 @@ namespace DynamicDispatch
             // third abstract version animal
 
             // this order could be more precise, the only possible method is the mammal implementation
-
+            Dog d = new Dog();
+            int old_oxy = d.oxygen;
             int oxy = d.Breathe();
+
+            Contract.Assert(old_oxy * 2 == oxy);
+
             return oxy;
         }
 
@@ -95,52 +136,67 @@ namespace DynamicDispatch
               L_000D:  return $r3;
          */
 
-        public static int test3(Mammal m)
+        public static int test3()
         {
             // mammal
             // dog
+            Mammal m = new Mammal();
+
+
+            int old_hair = m.hair;
             int hair = m.GrowHair();
+
+            if (m is Dog)
+                Contract.Assert(old_hair * old_hair == hair);
+            else if (m is Mammal)
+                Contract.Assert(old_hair + 1 == hair);
+            else
+                Contract.Assert(false);
+
+             m = new Dog();
+
+            old_hair = m.hair;
+            hair = m.GrowHair();
+
+            if (m is Dog)
+                Contract.Assert(old_hair * old_hair == hair);
+            else if (m is Mammal)
+                Contract.Assert(old_hair + 1 == hair);
+            else
+                Contract.Assert(false);
 
             return hair;
         }
 
-        /*
-              parameter Mammal m;
-
-              Mammal $r0;
-              Int32 $r1;
-              Int32 hair;
-              Int32 $r2;
-              Int32 local_1;
-              Int32 $r3;
-
-              L_0000:  nop;
-              L_0001:  $r0 = m;
-              L_0002:  $r1 = Animal::Breathe($r0);
-              L_0007:  hair = $r1;
-              L_0008:  $r2 = hair;
-              L_0009:  local_1 = $r2;
-              L_000A:  goto L_000C;
-              L_000C:  $r3 = local_1;
-              L_000D:  return $r3;
-
-        */
-        public static int test4(Mammal m)
+        void test4()
         {
-            // mammal
-            int b = m.Breathe();
+            Reptile a = new Reptile();
 
-            return b;
+            if (a.SampleMethod() != 1)
+                Contract.Assert(false);
         }
 
-        public static void test5(ClassA a)
+        void test5()
         {
-            // order must be:
-            // C
-            // B
-            // A
-            a.X();
+            Mammal a = new Dog();
+
+            if (a.SampleMethod() != 2)
+                Contract.Assert(false);
         }
+
+        void test6()
+        {
+            Mammal a = new Mammal();
+
+            if (a.SampleMethod() != 3)
+                Contract.Assert(false);
+        }
+
+        void test6(ISampleInterface i)
+        {
+            int r = i.SampleMethod();
+        }
+
     }
 
     abstract class Animal
@@ -155,7 +211,7 @@ namespace DynamicDispatch
         public abstract int Breathe();
     }
 
-    class Mammal : Animal
+    class Mammal : Animal, ISampleInterface
     {
         public Mammal()
         {
@@ -175,23 +231,38 @@ namespace DynamicDispatch
             hair = hair + 1;
             return hair;
         }
+
+        public int SampleMethod()
+        {
+            return 3;
+        }
     }
 
-    class Dog : Mammal
+    class Dog : Mammal, ISampleInterface
     {
         public override int GrowHair()
         {
             hair = hair * hair;
             return hair;
         }
+
+        public new int SampleMethod()
+        {
+            return 2;
+        }
     }
 
-    class Repitile : Animal
+    class Reptile : Animal, ISampleInterface
     {
         public override int Breathe()
         {
             oxygen = oxygen + 1;
             return oxygen;
+        }
+
+        public int SampleMethod()
+        {
+            return 1;
         }
     }
 
@@ -200,7 +271,7 @@ namespace DynamicDispatch
     {
         public virtual void X()
         {
-            Console.WriteLine("A");
+            //Console.WriteLine("A");
         }
     }
 
@@ -208,13 +279,27 @@ namespace DynamicDispatch
     {
         public override void X()
         {
-            Console.WriteLine("B");
+            //Console.WriteLine("B");
         }
     }
 
-    class ClassC : ClassB
+    class ClassC : ClassB, ISampleInterface
     {
-        public override void X() => Console.WriteLine("C");
+        public int SampleMethod()
+        {
+            return 0;
+        }
+
+        public override void X()
+        {
+
+        }
+    }
+
+
+    interface ISampleInterface
+    {
+        int SampleMethod();
     }
 
 }
