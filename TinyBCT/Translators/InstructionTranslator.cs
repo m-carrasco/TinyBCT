@@ -27,6 +27,10 @@ namespace TinyBCT.Translators
         // store for methods that have not been found yet but have been called
         // Also necessary to declare them if they end up being missing
         public static ISet<IMethodReference> PotentiallyMissingMethodsCalled = new HashSet<IMethodReference>();
+        // Type definitions might not be present in the dll because they are instantiations of generic types,
+        // for example, List<int>. For these types, we will need to add the appropriate constants and axioms
+        // in Boogie.
+        public static ISet<ITypeDefinition> mentionedClasses = new HashSet<ITypeDefinition>();
 
         Translation translation;
         Instruction lastInstruction = null;
@@ -428,6 +432,7 @@ namespace TinyBCT.Translators
                 //addLabel(instruction);
                 sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
                 var type = Helpers.GetNormalizedType(instruction.AllocationType);
+                InstructionTranslator.mentionedClasses.Add(instruction.AllocationType.ResolvedType);
                 sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
                 sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
             }
