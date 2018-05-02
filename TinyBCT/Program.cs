@@ -91,7 +91,7 @@ namespace TinyBCT
 
                 // TypeDefinitionTranslator.TypeAxioms(); diego's axioms
                 // information stored from previous steps is used
-                TypeDefinitionTranslator.DefineUndeclaredSuperClasses();
+                TypeDefinitionTranslator.DefineUndeclaredClasses(TypeDefinitionTranslator.parents);
 
                 Action<string> translateMethodDefinitions = (String inputFile) =>
                 {
@@ -110,6 +110,7 @@ namespace TinyBCT
                 ProcessFiles(translateMethodDefinitions);
             }
             Helpers.Strings.writeStringConsts(streamWriter);
+            TypeDefinitionTranslator.DefineUndeclaredClasses(InstructionTranslator.mentionedClasses);
 
             streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
