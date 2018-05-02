@@ -39,18 +39,31 @@ namespace TinyBCT.Translators
         private int delegateInvokations = 0;
         private int virtualInvokations = 0;
 
-        public InstructionTranslator(ClassHierarchyAnalysis CHA)
+        private IPrimarySourceLocation prevSourceLocation;
+
+        protected IMethodDefinition method;
+
+        public InstructionTranslator(ClassHierarchyAnalysis CHA, IMethodDefinition method)
         {
             this.CHA = CHA;
+            this.method = method;
         }
 
         public string Translate(IList<Instruction> instructions, int idx)
         {
             SetState(instructions, idx);
+            var currentInstruction = instructions[idx];
+            translation.AddLabel(currentInstruction);
+            translation.AddLineNumbers(currentInstruction, prevSourceLocation);
+            if (currentInstruction.Location != null)
+                prevSourceLocation = currentInstruction.Location;
             instructions[idx].Accept(translation);
             lastInstruction = instructions[idx];
+
             return translation.Result();
         }
+
+        
 
         void SetState(IList<Instruction> instructions, int idx)
         {
@@ -70,11 +83,11 @@ namespace TinyBCT.Translators
                 instTranslator = p;
             }
 
-            protected void addLabel(Instruction instr)
-            {
+            internal void AddLabel(Instruction instr)
+            { 
                 string label = instr.Label;
                 if(!String.IsNullOrEmpty(label))
-                    sb.AppendLine(String.Format("\t{0}:", label));
+                    sb.AppendLine(String.Format("\t{0}:", label));                    
             }
 
             protected StringBuilder sb = new StringBuilder();
@@ -82,6 +95,27 @@ namespace TinyBCT.Translators
             {
                 //return sb.ToString();
                 return sb.ToString().Replace("<>", "__");
+            }
+
+            internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
+            {
+                IPrimarySourceLocation location = instr.Location;
+
+                if (location == null && prevSourceLocation != null)
+                {
+                    location = prevSourceLocation;
+                }
+                if(location!=null)
+                { 
+                    var fileName = location.SourceDocument.Name;
+                    var sourceLine = location.StartLine;
+                    sb.AppendLine(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", fileName, sourceLine));
+                    //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
+                }
+                else 
+                {
+                    sb.AppendLine(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", "Empty", 0));
+                }
             }
         }
 
@@ -94,12 +128,12 @@ namespace TinyBCT.Translators
 
             public override void Visit(NopInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
             }
 
             public override void Visit(BinaryInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
 
                 IVariable left = instruction.LeftOperand;
                 IVariable right = instruction.RightOperand;
@@ -144,20 +178,20 @@ namespace TinyBCT.Translators
 
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
                 sb.Append(String.Format("\t\tgoto {0};", instruction.Target));
             }
 
             public override void Visit(ReturnInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
                 if (instruction.HasOperand)
                     sb.Append(String.Format("\t\tr := {0};", instruction.Operand.Name));
             }
 
             public override void Visit(LoadInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
                 if (instruction.Operand is InstanceFieldAccess) // memory access handling
                 {
                     InstanceFieldAccess instanceFieldOp = instruction.Operand as InstanceFieldAccess;
@@ -317,8 +351,9 @@ namespace TinyBCT.Translators
             {
                 // This is check is done because an object creation is splitted into two TAC instructions
                 // This prevents to add the same instruction tag twice
-                if (!Helpers.IsConstructor(instruction.Method))
-                    addLabel(instruction);
+                // DIEGO: Removed after fix in analysis framewlrk 
+                // if (!Helpers.IsConstructor(instruction.Method))
+                //addLabel(instruction);
 
                 var arguments = string.Join(", ", instruction.Arguments);
 
@@ -354,7 +389,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(ConditionalBranchInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
 
                 IVariable leftOperand = instruction.LeftOperand;
                 IInmediateValue rightOperand = instruction.RightOperand;
@@ -390,7 +425,7 @@ namespace TinyBCT.Translators
                 // assume $DynamicType($tmp0) == T$TestType();
                 //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
 
-                addLabel(instruction);
+                //addLabel(instruction);
                 sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
                 var type = Helpers.GetNormalizedType(instruction.AllocationType);
                 sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
@@ -399,7 +434,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(StoreInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
 
                 var op = instruction.Operand; // what it is stored
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
@@ -444,7 +479,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(ConvertInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
                 var source = instruction.Operand;
                 var dest = instruction.Result;
                 var type = instruction.ConversionType;
@@ -455,7 +490,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(InitializeObjectInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
                 Contract.Assume(instruction.Variables.Count == 1);
                 foreach (var var in instruction.Variables)
                 {
@@ -578,7 +613,7 @@ namespace TinyBCT.Translators
             public override void Visit(MethodCallInstruction instruction)
             {
                 Contract.Assert(loadIns != null && createObjIns != null);
-                addLabel(instruction);
+                //addLabel(instruction);
 
                 var loadDelegateStmt = loadIns.Operand as StaticMethodReference;
                 var methodRef = loadDelegateStmt.Method;
@@ -602,7 +637,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(MethodCallInstruction instruction)
             {
-                addLabel(instruction);
+                //addLabel(instruction);
 
                 // this local variable will hold the InvokeDelegate result 
                 // the intent is to translate its type to Union (or Ref they are alias)
