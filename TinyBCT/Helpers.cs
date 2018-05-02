@@ -54,7 +54,12 @@ namespace TinyBCT
 
         public static String GetMethodName(IMethodReference methodDefinition)
         {
-            var signature = MemberHelper.GetMethodSignature(methodDefinition);
+            var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.UseGenericTypeNameSuffix);
+            var specializedMethodReference = (methodDefinition as ISpecializedMethodReference);
+            if (specializedMethodReference != null)
+            {
+                signature = MemberHelper.GetMethodSignature((methodDefinition as ISpecializedMethodReference).UnspecializedVersion, NameFormattingOptions.UseGenericTypeNameSuffix);
+            }
             signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor
             var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
             arity = arity.Replace("[]", "array");
@@ -260,7 +265,12 @@ namespace TinyBCT
 
         public static string GetNormalizedType(ITypeReference type)
         {
-            var result = type.ToString();
+            var result = TypeHelper.GetTypeName(type.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
+            var namedTypeReference = (type as INamedTypeReference);
+            if (namedTypeReference != null)
+            {
+                result = TypeHelper.GetTypeName(namedTypeReference.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix);
+            }
             // Do this well 
             result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
             result = NormalizeStringForCorral(result);
