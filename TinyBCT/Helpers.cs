@@ -84,6 +84,17 @@ namespace TinyBCT
             return t.TransformText();
         }
 
+        public class SubtypeComparer : IComparer<IMethodReference>
+        {
+            public int Compare(IMethodReference a, IMethodReference b)
+            {
+                if (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(a.ContainingType.ResolvedType, b.ContainingType.ResolvedType))
+                    return 0;
+                else
+                    return 1;
+            }
+        }
+
         public static IList<IMethodReference> PotentialCalleesUsingCHA(MethodCallInstruction invocation, ClassHierarchyAnalysis CHA)
         {
             var result = new List<IMethodReference>();
@@ -95,15 +106,24 @@ namespace TinyBCT
                     break;
                 case MethodCallOperation.Virtual:
                     var receiver = invocation.Arguments[0];
-                    var calleeTypes = new List<ITypeReference>(CHA.GetSubtypes(receiver.Type));
+                    var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(receiver.Type));
                     calleeTypes.Add(receiver.Type);
                     var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee));
-                    result.AddRange(candidateCalless);
+                    foreach(var candidate in candidateCalless) // improved this
+                    {
+                        if (!result.Contains(candidate)) 
+                            result.Add(candidate);
+                    }
+
+                    //result.AddRange(candidateCalless);
                     break;
             }
 
+            result.Sort(new SubtypeComparer()); // improved this
             return result;
         }
+
+
         public static IMethodReference FindMethodImplementation(this ITypeReference receiverType, IMethodReference method)
         {
             var result = method;

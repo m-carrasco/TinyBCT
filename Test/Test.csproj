@@ -48,6 +48,7 @@
     <Compile Include="As3.cs" />
     <Compile Include="Assume.cs" />
     <Compile Include="Delegates.cs" />
+    <Compile Include="DynamicDispatch.cs" />
     <Compile Include="Ex1.cs" />
     <Compile Include="Ex2.cs" />
     <Compile Include="Examples.cs" />
