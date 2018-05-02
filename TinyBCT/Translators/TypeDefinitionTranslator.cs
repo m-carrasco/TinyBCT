@@ -63,10 +63,10 @@ namespace TinyBCT.Translators
         // we are missing information of the hierarchy
         // currently this code is defining undeclared classes but there can be information missing
         // todo : improve
-        public static void DefineUndeclaredClasses(ISet<ITypeDefinition> classesParam)
+        public static void DefineUndeclaredSuperClasses()
         {
             StringBuilder sb = new StringBuilder();
-            var diff = classesParam.Except(classes);
+            var diff = parents.Except(classes);
 
             foreach (var c in diff)
             {
