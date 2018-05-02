@@ -92,13 +92,13 @@ namespace TinyBCT
             typeAnalysis.Analyze();
             methodBody.RemoveUnusedLabels();
 
-            /*var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
+            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
             forwardCopyAnalysis.Analyze();
             forwardCopyAnalysis.Transform(methodBody);
 
             var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
             backwardCopyAnalysis.Analyze();
-            backwardCopyAnalysis.Transform(methodBody);*/
+            backwardCopyAnalysis.Transform(methodBody);
         }
 
         private List<System.Action<INamedTypeDefinition>> namedTypeDefinitionActions
