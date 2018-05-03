@@ -66,8 +66,13 @@ namespace TinyBCT.Translators
         public static void DefineUndeclaredSuperClasses()
         {
             StringBuilder sb = new StringBuilder();
-            var diff = parents.Except(classes);
 
+
+            HashSet<ITypeReference> diff = new HashSet<ITypeReference>();
+            diff.UnionWith(InstructionTranslator.MentionedClasses);
+            diff.UnionWith(parents);
+            diff.ExceptWith(classes);
+            
             foreach (var c in diff)
             {
                 var typeName = Helpers.GetNormalizedType(c);
