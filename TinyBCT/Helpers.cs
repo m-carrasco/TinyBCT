@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TinyBCT
@@ -62,13 +63,15 @@ namespace TinyBCT
         }
         public static String GetMethodName(IMethodReference methodDefinition)
         {
-            var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
-            signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
-            var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
-            arity = arity.Replace("[]", "array");
-            var result = signature + arity;
-            result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
-            return result;
+            return CreateUniqueMethodName(methodDefinition);
+
+            //var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
+            //signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
+            //var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
+            //arity = arity.Replace("[]", "array");
+            //var result = signature + arity;
+            //result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
+            //return result;
         }
 
         public static String GetMethodBoogieReturnType(IMethodReference methodDefinition)
@@ -201,7 +204,7 @@ namespace TinyBCT
         // this function returns $int
         public static String GetArityWithNonBoogieTypes(IMethodReference methodRef)
         {
-            return String.Join("", GetUnspecializedVersion(methodRef).Parameters.Select(v => "$" + v.Type));
+            return String.Join("", GetUnspecializedVersion(methodRef).Parameters.Select(v => "$" + TypeHelper.UninstantiateAndUnspecialize(v.Type)));
         }
 
         public static String GetParametersWithBoogieType(IMethodReference methodRef)
@@ -280,6 +283,66 @@ namespace TinyBCT
 
             return result;
         }
+
+        /// <summary>
+        /// Normalize Methdod Definitions taken from original BCT
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string CreateUniqueMethodName(IMethodReference method) {
+            method = GetUnspecializedVersion(method);
+            var containingTypeName = TypeHelper.GetTypeName(method.ContainingType, NameFormattingOptions.None);
+            var s = MemberHelper.GetMethodSignature(method, NameFormattingOptions.DocumentationId);
+            s = s.Substring(2);
+            s = s.TrimEnd(')');
+            s = TurnStringIntoValidIdentifier(s);
+            return s;
+        }
+
+        public static string TurnStringIntoValidIdentifier(string s)
+        {
+
+            // Do this specially just to make the resulting string a little bit more readable.
+            // REVIEW: Just let the main replacement take care of it?
+            s = s.Replace("[0:,0:]", "2DArray"); // TODO: Do this programmatically to handle arbitrary arity
+            s = s.Replace("[0:,0:,0:]", "3DArray");
+            s = s.Replace("[0:,0:,0:,0:]", "4DArray");
+            s = s.Replace("[0:,0:,0:,0:,0:]", "5DArray");
+            s = s.Replace("[]", "array");
+
+            // The definition of a Boogie identifier is from BoogiePL.atg.
+            // Just negate that to get which characters should be replaced with a dollar sign.
+
+            // letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
+            // digit = "0123456789".
+            // special = "'~#$^_.?`".
+            // nondigit = letter + special.
+            // ident =  [ '\\' ] nondigit {nondigit | digit}.
+
+            s = Regex.Replace(s, "[^A-Za-z0-9'~#$^_.?`]", "$");
+
+            s = GetRidOfSurrogateCharacters(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Unicode surrogates cannot be handled by Boogie.
+        /// http://msdn.microsoft.com/en-us/library/dd374069(v=VS.85).aspx
+        /// </summary>
+        private static string GetRidOfSurrogateCharacters(string s)
+        {
+            //  TODO this is not enough! Actually Boogie cannot support UTF8
+            var cs = s.ToCharArray();
+            var okayChars = new char[cs.Length];
+            for (int i = 0, j = 0; i < cs.Length; i++)
+            {
+                if (Char.IsSurrogate(cs[i])) continue;
+                okayChars[j++] = cs[i];
+            }
+            var raw = String.Concat(okayChars);
+            return raw.Trim(new char[] { '\0' });
+        }
+
 
         public static string NormalizeStringForCorral(string s)
         {

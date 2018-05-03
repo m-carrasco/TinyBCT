@@ -910,16 +910,19 @@ namespace TinyBCT.Translators
             return sb.ToString();
         }
 
+        // This method has a clone? GetMethodName
         public static string GetMethodIdentifier(IMethodReference methodRef)
         {
+            var methodId = Helpers.CreateUniqueMethodName(methodRef);
+
             if (methodIdentifiers.ContainsKey(methodRef))
                 return methodIdentifiers[methodRef];
 
-            var methodName = Helpers.GetMethodName(methodRef);
-            var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
+            //var methodName = Helpers.GetMethodName(methodRef);
+            //var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
 
-            // example:  cMain2.objectParameter$System.Object;
-            var methodId = methodName + methodArity;
+            //// example:  cMain2.objectParameter$System.Object;
+            //var methodId = methodName + methodArity;
 
             methodIdentifiers.Add(methodRef, methodId);
 
