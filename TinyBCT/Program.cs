@@ -43,7 +43,7 @@ namespace TinyBCT
         }
 
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             Settings.Load(args);
             SetupOutputFile();
