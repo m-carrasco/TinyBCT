@@ -15,6 +15,8 @@ namespace TinyBCT
 
         public static string OutputFile;
 
+        public static bool EmitLineNumbers = false;
+
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
         public static void Load(string[] args)
@@ -36,6 +38,12 @@ namespace TinyBCT
                 .Callback(o => OutputFile = o)
                 .SetDefault(String.Empty)
                 .WithDescription("Path to output file. Any previous extension will be removed and .bpl will be added. By default it is the same name and path of the first input file.");
+
+            p.Setup<bool>('l', "lineNumbers")
+            .Callback(b => EmitLineNumbers = b)
+            .SetDefault(false)
+            .WithDescription("Emit line numbers from source code in .bpl file. By default is true");
+
 
             var result = p.Parse(args);
 

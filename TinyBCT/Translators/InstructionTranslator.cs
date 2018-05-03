@@ -99,6 +99,8 @@ namespace TinyBCT.Translators
 
             internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
             {
+                if (!Settings.EmitLineNumbers)
+                    return;
                 IPrimarySourceLocation location = instr.Location;
 
                 if (location == null && prevSourceLocation != null)

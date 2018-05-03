@@ -56,7 +56,7 @@ class TestAs
             ";
         if (Test.TestUtils.CreateAssemblyDefinition(source, "SimpleTest"))
         {
-            TinyBCT.Program.Main(new string[] { "-i", "SimpleTest.dll" });
+            TinyBCT.Program.Main(new string[] { "-i", "SimpleTest.dll", "-l", "false"});
         }
         else
         {
@@ -116,7 +116,7 @@ class GenericsMain {
             ";
         if (Test.TestUtils.CreateAssemblyDefinition(source, "GenericsTest"))
         {
-            TinyBCT.Program.Main(new string[] { "-i", "GenericsTest.dll" });
+            TinyBCT.Program.Main(new string[] { "-i", "GenericsTest.dll","-l","false" });
         }
         else
         {
