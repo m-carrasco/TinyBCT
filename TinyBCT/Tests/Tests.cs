@@ -107,7 +107,7 @@ class GenericsMain {
     Contract.Assert(holds_int_1.getValue() == 1);
     Holds<int> holds_int_2 = new Holds<int>(2);
 	// BCT fails assertion, as it should
-    // Contract.Assert(holds_int_2.getValue() == 1);
+    Contract.Assert(holds_int_2.getValue() == 1);
 	
 	Holds<string> holds_default_string = new Holds<string>();
     // Contract.Assert(!holds_default_string.getValue().Equals(""Hello""));
@@ -116,7 +116,60 @@ class GenericsMain {
             ";
         if (Test.TestUtils.CreateAssemblyDefinition(source, "GenericsTest"))
         {
-            TinyBCT.Program.Main(new string[] { "-i", "GenericsTest.dll","-l","false" });
+            TinyBCT.Program.Main(new string[] { "-i", "GenericsTest.dll","-l","true" });
+        }
+        else
+        {
+            Assert.Fail();
+        }
+    }
+    [TestMethod]
+    public void TestsYield()
+    {
+        var source = @"
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+
+namespace Test
+{
+    class List
+    {
+        public void foo()
+        {
+            var l = new List<int>();
+
+            l.Add(1);
+            l.Add(2);
+            l.Add(3);
+            l.Add(4);
+
+            int acum = 0;
+            foreach (var item in Elems(l))
+            {
+                acum = acum + item;
+            }
+            Contract.Assert(acum >= 6);
+        }
+        static IEnumerable<int> Elems(ICollection<int> list)
+        {
+            foreach (var elem in list)
+            {
+                yield return elem;
+
+            }
+        }
+    }
+}
+        ";
+        DoTest(source, "TestYield");
+    }
+
+    private void DoTest(string source, string assemblyName)
+    {
+       
+        if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName))
+        {
+            TinyBCT.Program.Main(new string[] { "-i", assemblyName+".dll", "-l", "true","-b", @"C:\Users\diegog\Source\Repos\corral\AddOns\AngelicVerifierNull\test\c#\poirot_stubs.bpl" });
         }
         else
         {

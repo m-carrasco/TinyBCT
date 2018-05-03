@@ -13,6 +13,10 @@ namespace TinyBCT
         public static IList<string> InputFiles 
             = new List<string>();
 
+        public static IList<string> BplInputFiles
+            = new List<string>();
+
+
         public static string OutputFile;
 
         public static bool EmitLineNumbers = false;
@@ -38,6 +42,11 @@ namespace TinyBCT
                 .Callback(o => OutputFile = o)
                 .SetDefault(String.Empty)
                 .WithDescription("Path to output file. Any previous extension will be removed and .bpl will be added. By default it is the same name and path of the first input file.");
+
+            p.Setup<List<string>>('b', "bplFiles")
+            .Callback(bs => BplInputFiles = bs)
+            .SetDefault(new List<string>())
+            .WithDescription("Path to input bpl files that will be appended at the end of the resulting output file");
 
             p.Setup<bool>('l', "lineNumbers")
             .Callback(b => EmitLineNumbers = b)

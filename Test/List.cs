@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Test
 {
     class List
     {
-        public void foo(List<int> l)
+        public void foo()
         {
-            //var l = new LinkedList<int>();
+            var l = new List<int>();
 
             l.Add(1);
             l.Add(2);

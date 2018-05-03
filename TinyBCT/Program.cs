@@ -16,10 +16,11 @@ namespace TinyBCT
     {
         public static StreamWriter streamWriter;
 
-        private static void SetupOutputFile()
+        private static string SetupOutputFile()
         {
             var outputResultPath = Path.ChangeExtension(Settings.OutputFile, "bpl");
-            streamWriter = new StreamWriter(outputResultPath);
+            streamWriter = File.CreateText(outputResultPath);
+            return outputResultPath;
         }
 
         static void ProcessFiles(Action<string> processAction)
@@ -46,7 +47,7 @@ namespace TinyBCT
         public static void Main(string[] args)
         {
             Settings.Load(args);
-            SetupOutputFile();
+            var outputPath = SetupOutputFile();
 
             Prelude.Write(); // writes prelude.bpl content into the output file
 
@@ -137,6 +138,19 @@ namespace TinyBCT
                 streamWriter.WriteLine(field);
 
             streamWriter.Close();
+
+            foreach (var bplInputFile in Settings.BplInputFiles)
+            {
+                var output = new FileStream(outputPath, FileMode.Append, FileAccess.Write);
+                ////output.WriteLine("// Appending {0}", bplInputFile);
+                ////streamWriter.Flush();
+
+                using (var inputStream = File.OpenRead(bplInputFile))
+                {
+                    inputStream.CopyTo(output);//streamWriter.BaseStream);
+                }
+            }
+
         }
-	}
+    }
 }
