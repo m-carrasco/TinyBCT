@@ -372,9 +372,47 @@ namespace TinyBCT.Translators
                 // DIEGO: Removed after fix in analysis framewlrk 
                 // if (!Helpers.IsConstructor(instruction.Method))
                 //addLabel(instruction);
+                var arguments = "";
+                var copyArgs = new List<IVariable>();
+                List<string> toAppend = new List<string>();
+                var unspecializedMethod = Helpers.GetUnspecializedVersion(instruction.Method);
+                Contract.Assume(
+                    unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ||
+                    unspecializedMethod.Parameters.Count() + 1 == instruction.Arguments.Count());
+                // Instance methods, passing 'this'
+                if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
+                {
+                    copyArgs.Add(instruction.Arguments.ElementAt(0));
+                }
+                for (int i = 0; i < instruction.Method.Parameters.Count(); ++i)
+                {
+                    int arg_i =
+                        unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ?
+                        i : i + 1;
+                    var paramType = Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
+                    var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i).Type);
+                    if (!paramType.Equals(argType))
+                    {
+                        // TODO(rcastano): try to reuse variables.
+                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false);
+                        localVar.Type = Types.Instance.PlatformType.SystemObject;
+                        instTranslator.AddedVariables.Add(localVar);
 
-                var arguments = string.Join(", ", instruction.Arguments);
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        toAppend.Add(String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType));
 
+                        copyArgs.Add(localVar);
+                    }
+                    else
+                    {
+                        copyArgs.Add(instruction.Arguments.ElementAt(arg_i));
+                    }
+                }
+                foreach (var line in toAppend)
+                {
+                    sb.AppendLine(line);
+                }
+                arguments = String.Join(", ", copyArgs);
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
