@@ -17,6 +17,7 @@ namespace TinyBCT.Translators
     class InstructionTranslator
     {
         private ClassHierarchyAnalysis CHA;
+        private MethodBody methodBody; // currently used to get ExceptionsInformation
         // Diego: No longer required
         // public Dictionary<string, int> labels = new Dictionary<string, int>();
 
@@ -47,10 +48,11 @@ namespace TinyBCT.Translators
 
         protected IMethodDefinition method;
 
-        public InstructionTranslator(ClassHierarchyAnalysis CHA, IMethodDefinition method)
+        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody, IMethodDefinition method)
         {
             this.CHA = CHA;
             this.method = method;
+            this.methodBody = methodBody;
         }
 
         public string Translate(IList<Instruction> instructions, int idx)
@@ -251,8 +253,25 @@ namespace TinyBCT.Translators
 
             public override void Visit(TryInstruction instruction)
             {
+                // nothing is done for this type of instruciton
+            }
+
+            public override void Visit(CatchInstruction instruction)
+            {
+                // catch System.NullReferenceException ex;   //Backend.ThreeAddressCode.Instructions.CatchInstruction  INSTRUCTION NOT IMPLEMENTED 
+
+                /*
+                        Encuentro un catch:
+                            La instruccion que marca y declara el inicio de un catch pasarlo a un if de subtipado de la variable global exception.
+                            Al entrar al if, se setea la variable global en null. Antes la variable del catch se setea con la global
+                            El framework de zoppi le agrega un "terminator" a ese bloque al finally o donde corresponda, por eso no nos preocupamos en agregar un else
+                */
+            }
+
+            public override void Visit(ThrowInstruction instruction)
+            {
                 // now that we can type reference (so exceptions), we could implement try catch structures
-                sb.Append("// TryInstruction not implemented yet.");
+                sb.Append("// FinallyInstruction not implemented yet.");
             }
 
             public override void Visit(FinallyInstruction instruction)
@@ -462,7 +481,8 @@ namespace TinyBCT.Translators
                     {
                         //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
                         // Union y Ref son el mismo type, forman un alias.
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/opStr));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/
+                opStr));
                     }
                     else
                     {
