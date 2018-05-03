@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.MSBuild;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,16 +15,21 @@ namespace Test
     {
         public static bool CreateAssemblyDefinition(string code, string name)
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText(code);
+            var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG");
+            var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
 
+            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithOptimizationLevel(OptimizationLevel.Debug);
+            //options = options.WithGeneralDiagnosticOption(ReportDiagnostic.Warn);
+            //options = options.;
+ 
             CSharpCompilation compilation = CSharpCompilation.Create(
                 name,
                 new[] { syntaxTree },
                 new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+                options);
 
-            using (var dllStream = new MemoryStream())
-            using (var pdbStream = new MemoryStream())
+            //using (var dllStream = new MemoryStream())
+            //using (var pdbStream = new MemoryStream())
             {
                 var outputPath = Path.ChangeExtension(name, "dll");
                 var pdbPath = Path.ChangeExtension(name, "pdb");
