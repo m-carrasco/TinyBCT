@@ -28,6 +28,11 @@ namespace TinyBCT.Translators
         // Also necessary to declare them if they end up being missing
         public static ISet<IMethodReference> PotentiallyMissingMethodsCalled = new HashSet<IMethodReference>();
 
+        // Type definitions might not be present in the dll because they are instantiations of generic types,
+        // for example, List<int>. For these types, we will need to add the appropriate constants and axioms
+        // in Boogie.
+        public static ISet<ITypeReference> MentionedClasses = new HashSet<ITypeReference>();
+
         Translation translation;
         Instruction lastInstruction = null;
         // while translating instructions some variables may be removed
@@ -314,6 +319,7 @@ namespace TinyBCT.Translators
                 int i = 0;
                 foreach (var impl in calless)
                 {
+                    MentionedClasses.Add(impl.ContainingType);
                     // first and last invocation are not handled in this loop
                     if (i == 0 || i == calless.Count - 1)
                     {
@@ -484,6 +490,7 @@ namespace TinyBCT.Translators
                 //addLabel(instruction);
                 sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
                 var type = Helpers.GetNormalizedType(instruction.AllocationType);
+                InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
                 sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
                 sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
             }
@@ -948,16 +955,19 @@ namespace TinyBCT.Translators
             return sb.ToString();
         }
 
+        // This method has a clone? GetMethodName
         public static string GetMethodIdentifier(IMethodReference methodRef)
         {
+            var methodId = Helpers.CreateUniqueMethodName(methodRef);
+
             if (methodIdentifiers.ContainsKey(methodRef))
                 return methodIdentifiers[methodRef];
 
-            var methodName = Helpers.GetMethodName(methodRef);
-            var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
+            //var methodName = Helpers.GetMethodName(methodRef);
+            //var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
 
-            // example:  cMain2.objectParameter$System.Object;
-            var methodId = methodName + methodArity;
+            //// example:  cMain2.objectParameter$System.Object;
+            //var methodId = methodName + methodArity;
 
             methodIdentifiers.Add(methodRef, methodId);
 
