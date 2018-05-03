@@ -51,19 +51,19 @@ namespace TinyBCT
 
             return null;
         }
-        public static IMethodReference GetUnspecializedVersion(IMethodReference methodDefinition)
+        public static IMethodReference GetUnspecializedVersion(IMethodReference method)
         {
-            var specializedMethodReference = (methodDefinition as ISpecializedMethodReference);
+            var specializedMethodReference = (method as ISpecializedMethodReference);
             if (specializedMethodReference != null)
             {
-                return (methodDefinition as ISpecializedMethodReference).UnspecializedVersion;
+                return (method as ISpecializedMethodReference).UnspecializedVersion;
             }
-            return methodDefinition;
+            return method;
         }
         public static String GetMethodName(IMethodReference methodDefinition)
         {
             var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
-            signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor
+            signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
             var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
             arity = arity.Replace("[]", "array");
             var result = signature + arity;
@@ -201,7 +201,7 @@ namespace TinyBCT
         // this function returns $int
         public static String GetArityWithNonBoogieTypes(IMethodReference methodRef)
         {
-            return String.Join("", methodRef.Parameters.Select(v => "$" + v.Type));
+            return String.Join("", GetUnspecializedVersion(methodRef).Parameters.Select(v => "$" + v.Type));
         }
 
         public static String GetParametersWithBoogieType(IMethodReference methodRef)
