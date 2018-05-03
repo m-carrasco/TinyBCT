@@ -15,12 +15,10 @@ namespace Test
     {
         public static bool CreateAssemblyDefinition(string code, string name)
         {
-            var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG");
-            var syntaxTree = CSharpSyntaxTree.ParseText(code, parseOptions);
+            var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL");
+            var syntaxTree = CSharpSyntaxTree.ParseText(code, options: parseOptions);
 
             var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithOptimizationLevel(OptimizationLevel.Debug);
-            //options = options.WithGeneralDiagnosticOption(ReportDiagnostic.Warn);
-            //options = options.;
  
             CSharpCompilation compilation = CSharpCompilation.Create(
                 name,
