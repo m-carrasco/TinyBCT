@@ -283,7 +283,23 @@ namespace TinyBCT.Translators
                 if (instruction.HasResult)
                 {
                     //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, firstSignature, arguments));
+                    // the union depends on the type of the arguments
+                    var resType = Helpers.GetBoogieType(instruction.Result.Type);
+                    var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(instruction.Method));
+                    if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
+                    {
+                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, firstSignature, arguments));
+                    }
+                    else
+                    {
+                        // TODO(rcastano): reuse variable
+                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false);
+                        localVar.Type = Types.Instance.PlatformType.SystemObject;
+                        instTranslator.AddedVariables.Add(localVar);
+                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", localVar, firstSignature, arguments));
+                        resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
+                    }
 
                 }
                 else
@@ -620,7 +636,7 @@ namespace TinyBCT.Translators
                 var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
                 DelegateStore.AddDelegatedMethodToGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType), methodRef);
-
+                
                 // invoke the correct version of create delegate
                 var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 IVariable receiverObject = instruction.Arguments[1];
