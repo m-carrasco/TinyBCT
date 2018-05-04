@@ -169,7 +169,10 @@ namespace Test
        
         if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName))
         {
-            TinyBCT.Program.Main(new string[] { "-i", assemblyName+".dll", "-l", "true","-b", @"C:\Users\diegog\Source\Repos\corral\AddOns\AngelicVerifierNull\test\c#\poirot_stubs.bpl" });
+            TinyBCT.Program.Main(new string[] { "-i", assemblyName+".dll",
+                @"C:\Users\diegog\Source\Repos\corral\AddOns\AngelicVerifierNull\test\c#\CollectionStubs.dll",
+                "-l", "true",
+                "-b", @"C:\Users\diegog\Source\Repos\corral\AddOns\AngelicVerifierNull\test\c#\poirot_stubs.bpl" });
         }
         else
         {

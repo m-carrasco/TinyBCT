@@ -139,7 +139,7 @@ namespace TinyBCT
         {
             var result = method;
 
-            while (receiverType != null && !method.ContainingType.TypeEquals(receiverType))
+            while (receiverType != null) // && !method.ContainingType.TypeEquals(receiverType))
             {
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
@@ -240,12 +240,12 @@ namespace TinyBCT
             return false;
         }
 
-        public static Boolean IsCurrentlyMissing(IMethodDefinition methodDefinition)
+        public static Boolean IsCurrentlyMissing(IMethodReference methodReference)
         {
             // The value of this condition can change throughout the execution of the translation.
             // For that reason, it should be called at the end of the translation again to confirm
             // the method is actually missing from the binary.
-            return !methodsTranslated.Contains(Helpers.GetMethodName(methodDefinition));
+            return !methodsTranslated.Contains(Helpers.GetMethodName(methodReference));
         }
 
         // workaround

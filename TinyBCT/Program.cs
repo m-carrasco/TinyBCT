@@ -126,9 +126,9 @@ namespace TinyBCT
             }
             foreach (var methodRef in InstructionTranslator.PotentiallyMissingMethodsCalled)
             {
-                if (Helpers.IsCurrentlyMissing(methodRef.ResolvedMethod))
+                if (Helpers.IsCurrentlyMissing(methodRef))
                 {
-                    var head = Helpers.GetExternalMethodDefinition(methodRef);
+                    var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
                     streamWriter.WriteLine(head);
                 }
             }
