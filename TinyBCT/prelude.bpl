@@ -96,3 +96,6 @@ implementation System.String.op_Inequality$System.String$System.String(a$in: Ref
 {
   $result := (a$in != b$in);
 }
+
+var $Exception : Ref;
+var $ExceptionType : Ref;

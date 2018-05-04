@@ -27,6 +27,8 @@ namespace TinyBCT
 
         // FIX: I have issues with the use of actions that do not allow my to pass this as paramater
         public static ClassHierarchyAnalysis CHA;
+        public static ControlFlowGraph CFG; // ugly - the thing is that if labels were erased we can't create cfg
+
         public Traverser(IMetadataHost host, ISourceLocationProvider sourceLocationProvider, ClassHierarchyAnalysis CHAnalysis)
 		{
 			this.host = host;
@@ -80,25 +82,26 @@ namespace TinyBCT
         {
             var cfAnalysis = new ControlFlowAnalysis(methodBody);
             //var cfg = cfAnalysis.GenerateNormalControlFlow();
-            var cfg = cfAnalysis.GenerateExceptionalControlFlow();
+            CFG = cfAnalysis.GenerateExceptionalControlFlow();
 
-            var splitter = new WebAnalysis(cfg);
+            var splitter = new WebAnalysis(CFG);
             splitter.Analyze();
             splitter.Transform();
 
             methodBody.UpdateVariables();
 
-            var typeAnalysis = new TypeInferenceAnalysis(cfg);
+            var typeAnalysis = new TypeInferenceAnalysis(CFG);
             typeAnalysis.Analyze();
-            methodBody.RemoveUnusedLabels();
 
-            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(cfg);
+            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(CFG);
             forwardCopyAnalysis.Analyze();
             forwardCopyAnalysis.Transform(methodBody);
 
-            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(cfg);
+            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(CFG);
             backwardCopyAnalysis.Analyze();
             backwardCopyAnalysis.Transform(methodBody);
+
+            methodBody.RemoveUnusedLabels();
         }
 
         private List<System.Action<INamedTypeDefinition>> namedTypeDefinitionActions

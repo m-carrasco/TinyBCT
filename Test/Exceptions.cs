@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -24,63 +25,74 @@ namespace Test
 
     class Exceptions
     {
-        public static void exceptions()
+        public void test1()
         {
             int i = 0;
             try
             {
-                try
-                {
-                    if (i == 0)
-                        throw new Exception();
-                    else throw new NullReferenceException();
-                }
-                catch (NullReferenceException ex)
-                {
-                    i = 10;
-                }
-                catch (Exception ex)
-                {
-                    i = 111;
-                }
-
-                i = 17;
-
+                throw new Exception();
             }
-            catch (NullReferenceException ex)
+            catch(Exception ex)
             {
-                i = 1;
+                i = 10;
+            }
+
+            Contract.Assert(i == 10);
+        }
+
+        public void test2()
+        {
+            int i = 0;
+            try
+            {
+                throw new Exception();
             }
             catch (Exception ex)
             {
-                i = 1;
+                i = 10;
             }
             finally
             {
-                i = 2;
+                i += 10;
             }
 
-            i = 5;
+            Contract.Assert(i == 20);
         }
 
-        public static void exceptions1()
+        public void test3()
         {
             int i = 0;
             try
             {
-                try
-                {
-                    throw new Exception();
-                }
-                catch (Exception ex)
-                {
-                    throw new NullReferenceException();
-                }
             }
             catch (Exception ex)
             {
-                i = 1;
+                i = 10;
             }
+            finally
+            {
+                i += 10;
+            }
+
+            Contract.Assert(i == 10);
         }
+
+        public void test4()
+        {
+            int i = 0;
+            try
+            {
+                throw new Exception();
+            }
+            finally
+            {
+                i += 10;
+                Contract.Assert(i == 10);
+            }
+
+            // compilers removes this piece of code - it is not present in bytecode
+            Contract.Assert(false); // this should not be called.
+        }
+
     }
 }
