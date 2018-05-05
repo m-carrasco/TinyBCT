@@ -427,20 +427,7 @@ namespace TinyBCT.Translators
                 }
                 arguments = String.Join(", ", copyArgs);
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
-                if(methodName.Contains(@"<Elems>d__1"))
-                {
-
-                }
-                if (methodName.Contains(@"GetEnumerator"))
-                {
-
-                }
-                if (methodName.Contains(@"get_Current"))
-                {
-
-                }
-
-
+ 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
                     sb.Append(String.Format("\t\t assert {0};", arguments));

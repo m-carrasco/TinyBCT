@@ -157,8 +157,8 @@ namespace TinyBCT
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
 
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
-                matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value.EndsWith(method.Name.Value) && MemberHelper.SignaturesAreEqual(m, method));
+                //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value.EndsWith(method.Name.Value) && MemberHelper.SignaturesAreEqual(m, method));
 
 
                 if (matchingMethod != null)
