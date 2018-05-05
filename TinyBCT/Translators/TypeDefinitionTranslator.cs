@@ -104,7 +104,10 @@ namespace TinyBCT.Translators
         {
             StringBuilder sb = new StringBuilder();
             var typeName = Helpers.GetNormalizedType(typeDef);
-            normalizedTypeStrings.Add(typeName);
+            if (normalizedTypeStrings.Contains(typeName))
+                return "";
+
+                normalizedTypeStrings.Add(typeName);
             var superClass = typeDef.BaseClasses.SingleOrDefault();
             sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
             sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
