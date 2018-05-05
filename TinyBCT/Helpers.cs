@@ -54,12 +54,13 @@ namespace TinyBCT
         }
         public static IMethodReference GetUnspecializedVersion(IMethodReference method)
         {
-            var specializedMethodReference = (method as ISpecializedMethodReference);
-            if (specializedMethodReference != null)
-            {
-                return (method as ISpecializedMethodReference).UnspecializedVersion;
-            }
-            return method;
+            return MemberHelper.UninstantiateAndUnspecialize(method);
+            //var specializedMethodReference = (method as ISpecializedMethodReference);
+            //if (specializedMethodReference != null)
+            //{
+            //    return (method as ISpecializedMethodReference).UnspecializedVersion;
+            //}
+            //return method;
         }
         public static String GetMethodName(IMethodReference methodDefinition)
         {
@@ -99,11 +100,22 @@ namespace TinyBCT
         {
             public int Compare(IMethodReference a, IMethodReference b)
             {
+                if (IsSubtypeOrImplements(a.ContainingType, b.ContainingType))
+                {
+                    return 0;
+                }
+                else
+                    return 1;
                 if (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(a.ContainingType.ResolvedType, b.ContainingType.ResolvedType))
                     return 0;
                 else
                     return 1;
             }
+        }
+        public static bool IsSubtypeOrImplements(ITypeReference t1, ITypeReference t2)
+        {
+            return (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(t1.ResolvedType, t2.ResolvedType)) 
+                || TypeHelper.Type1ImplementsType2(t1.ResolvedType,t2);
         }
 
         public static IList<IMethodReference> PotentialCalleesUsingCHA(MethodCallInstruction invocation, ClassHierarchyAnalysis CHA)
@@ -117,8 +129,9 @@ namespace TinyBCT
                     break;
                 case MethodCallOperation.Virtual:
                     var receiver = invocation.Arguments[0];
-                    var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(receiver.Type));
-                    calleeTypes.Add(receiver.Type);
+                    var type = (receiver.Type is IGenericTypeInstanceReference) ? (receiver.Type as IGenericTypeInstanceReference).GenericType : receiver.Type;
+                    var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(type));
+                    calleeTypes.Add(type);
                     var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee));
                     foreach(var candidate in candidateCalless) // improved this
                     {
@@ -139,12 +152,14 @@ namespace TinyBCT
         {
             var result = method;
 
-            while (receiverType != null) // && !method.ContainingType.TypeEquals(receiverType))
+            while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType))
             {
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
 
                 var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
+                matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value.EndsWith(method.Name.Value) && MemberHelper.SignaturesAreEqual(m, method));
+
 
                 if (matchingMethod != null)
                 {
@@ -290,9 +305,9 @@ namespace TinyBCT
         /// <param name="s"></param>
         /// <returns></returns>
         public static string CreateUniqueMethodName(IMethodReference method) {
-            method = GetUnspecializedVersion(method);
-            var containingTypeName = TypeHelper.GetTypeName(method.ContainingType, NameFormattingOptions.None);
-            var s = MemberHelper.GetMethodSignature(method, NameFormattingOptions.DocumentationId);
+            var unspecializedMethod = GetUnspecializedVersion(method);
+            //var containingTypeName = TypeHelper.GetTypeName(method.ContainingType, NameFormattingOptions.None);
+            var s = MemberHelper.GetMethodSignature(unspecializedMethod, NameFormattingOptions.DocumentationId);
             s = s.Substring(2);
             s = s.TrimEnd(')');
             s = TurnStringIntoValidIdentifier(s);

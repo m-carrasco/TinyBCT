@@ -284,37 +284,9 @@ namespace TinyBCT.Translators
 
                 sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
                 sb.AppendLine("\t\t{");
-
-                var firstSignature = Helpers.GetMethodName(calless.First());
-
-                if (instruction.HasResult)
-                {
-                    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                    // the union depends on the type of the arguments
-                    var resType = Helpers.GetBoogieType(instruction.Result.Type);
-                    var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(instruction.Method));
-                    if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
-                    {
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, firstSignature, arguments));
-                    }
-                    else
-                    {
-                        // TODO(rcastano): reuse variable
-                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false);
-                        localVar.Type = Types.Instance.PlatformType.SystemObject;
-                        instTranslator.AddedVariables.Add(localVar);
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", localVar, firstSignature, arguments));
-                        resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
-                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
-                    }
-
-                }
-                else
-                {
-                    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", firstSignature, arguments));
-                }
-
+                CallMethod(instruction, arguments, calless.First());
                 sb.AppendLine("\t\t}");
+
 
                 int i = 0;
                 foreach (var impl in calless)
@@ -331,17 +303,19 @@ namespace TinyBCT.Translators
                     sb.AppendLine("\t\t{");
 
                     var midSignature = Helpers.GetMethodName(impl);
+                    CallMethod(instruction, arguments, impl);
 
-                    if (instruction.HasResult)
-                    {
-                        //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
 
-                    }
-                    else
-                    {
-                        sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
-                    }
+                    //if (instruction.HasResult)
+                    //{
+                    //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                    //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
+
+                    //}
+                    //else
+                    //{
+                    //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
+                    //}
 
                     sb.AppendLine("\t\t}");
                     i++;
@@ -371,6 +345,39 @@ namespace TinyBCT.Translators
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod) || instruction.Method.ResolvedMethod.IsAbstract)
                     ExternMethodsCalled.Add(instruction.Method);
             }
+
+            private void CallMethod(MethodCallInstruction instruction, string arguments, IMethodReference callee)
+            {
+                var signature = Helpers.GetMethodName(callee);
+
+                if (instruction.HasResult)
+                {
+                    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                    // the union depends on the type of the arguments
+                    var resType = Helpers.GetBoogieType(instruction.Result.Type);
+                    var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
+                    if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
+                    {
+                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
+                    }
+                    else
+                    {
+                        // TODO(rcastano): reuse variable
+                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false);
+                        localVar.Type = Types.Instance.PlatformType.SystemObject;
+                        instTranslator.AddedVariables.Add(localVar);
+                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", localVar, signature, arguments));
+                        resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
+                    }
+
+                }
+                else
+                {
+                    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", signature, arguments));
+                }
+            }
+
             public override void Visit(MethodCallInstruction instruction)
             {
                 // This is check is done because an object creation is splitted into two TAC instructions
@@ -420,6 +427,19 @@ namespace TinyBCT.Translators
                 }
                 arguments = String.Join(", ", copyArgs);
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
+                if(methodName.Contains(@"<Elems>d__1"))
+                {
+
+                }
+                if (methodName.Contains(@"GetEnumerator"))
+                {
+
+                }
+                if (methodName.Contains(@"get_Current"))
+                {
+
+                }
+
 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
