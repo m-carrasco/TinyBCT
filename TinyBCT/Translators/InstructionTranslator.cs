@@ -388,6 +388,15 @@ namespace TinyBCT.Translators
                 var arguments = "";
                 var copyArgs = new List<IVariable>();
                 List<string> toAppend = new List<string>();
+
+                var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
+
+                // For debugging purposes, remove 
+                if (methodName.Contains("Current"))
+                {
+
+                }
+
                 var unspecializedMethod = Helpers.GetUnspecializedVersion(instruction.Method);
                 Contract.Assume(
                     unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ||
@@ -426,8 +435,7 @@ namespace TinyBCT.Translators
                     sb.AppendLine(line);
                 }
                 arguments = String.Join(", ", copyArgs);
-                var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
- 
+
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
                     sb.Append(String.Format("\t\t assert {0};", arguments));
@@ -436,7 +444,11 @@ namespace TinyBCT.Translators
                 {
                     sb.Append(String.Format("\t\t assume {0};", arguments));
                     return;
-                } else if (instruction.Operation == MethodCallOperation.Virtual)
+                }
+                // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
+                // Our examples are compiled agains mscorlib generic types and we need to replace some method with colection stubs
+                // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
+                else if (instruction.Operation == MethodCallOperation.Virtual)
                 {
                     DynamicDispatch(instruction, arguments);
                     return;
@@ -444,10 +456,12 @@ namespace TinyBCT.Translators
 
                 var signature = Helpers.GetMethodName(instruction.Method);
 
-                if (instruction.HasResult)
-                    sb.Append(String.Format("\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
-                else
-                    sb.Append(String.Format("\t\tcall {0}({1});", signature, arguments));
+                CallMethod(instruction, arguments, instruction.Method);
+
+                //if (instruction.HasResult)
+                //    sb.Append(String.Format("\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
+                //else
+                //    sb.Append(String.Format("\t\tcall {0}({1});", signature, arguments));
                 
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
                     ExternMethodsCalled.Add(instruction.Method);

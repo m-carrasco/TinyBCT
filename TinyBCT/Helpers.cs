@@ -130,6 +130,13 @@ namespace TinyBCT
                 case MethodCallOperation.Virtual:
                     var receiver = invocation.Arguments[0];
                     var type = (receiver.Type is IGenericTypeInstanceReference) ? (receiver.Type as IGenericTypeInstanceReference).GenericType : receiver.Type;
+                    if(type is IManagedPointerTypeReference)
+                    {
+                        type = (type as IManagedPointerTypeReference).TargetType;
+                        type = TypeHelper.UninstantiateAndUnspecialize(type);
+                        //type = (type is IGenericTypeInstanceReference) ? (type as IGenericTypeInstanceReference).GenericType : type;
+
+                    }
                     var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(type));
                     calleeTypes.Add(type);
                     var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee));
@@ -305,6 +312,7 @@ namespace TinyBCT
         /// <param name="s"></param>
         /// <returns></returns>
         public static string CreateUniqueMethodName(IMethodReference method) {
+            // We remove all type instances 
             var unspecializedMethod = GetUnspecializedVersion(method);
             //var containingTypeName = TypeHelper.GetTypeName(method.ContainingType, NameFormattingOptions.None);
             var s = MemberHelper.GetMethodSignature(unspecializedMethod, NameFormattingOptions.DocumentationId);
