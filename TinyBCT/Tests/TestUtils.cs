@@ -13,17 +13,26 @@ namespace Test
 {
     class TestUtils
     {
-        public static bool CreateAssemblyDefinition(string code, string name)
+        public static bool CreateAssemblyDefinition(string code, string name, string[] references = null)
         {
             var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL");
             var syntaxTree = CSharpSyntaxTree.ParseText(code, options: parseOptions);
 
             var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithOptimizationLevel(OptimizationLevel.Debug);
- 
+
+            var metadataRefences = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) };
+            //if (references != null)
+            //{
+            //    metadataRefences = new[] {
+            //        MetadataReference.CreateFromFile(references[0]),
+            //        MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            //                                }; 
+            //}
+
             CSharpCompilation compilation = CSharpCompilation.Create(
                 name,
                 new[] { syntaxTree },
-                new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
+                metadataRefences,
                 options);
 
             //using (var dllStream = new MemoryStream())
