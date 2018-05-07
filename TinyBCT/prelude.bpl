@@ -68,6 +68,8 @@ const {:extern} unique T$System.Object: int;
 
 axiom $TypeConstructor(T$System.Object()) == T$System.Object;
 
+axiom $Subtype(T$System.Object(), T$System.Object());
+
 
 function $As(a: Ref, b: Type) : Ref;
 
