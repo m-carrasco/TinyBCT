@@ -198,10 +198,18 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadInstruction instruction)
             {
-                //addLabel(instruction);
-                if (instruction.Operand is InstanceFieldAccess) // memory access handling
+                var instructionOperand = instruction.Operand;
+                if (instructionOperand is Reference)
                 {
-                    InstanceFieldAccess instanceFieldOp = instruction.Operand as InstanceFieldAccess;
+                    // Reference loading only found when using "default" keyword.
+                    // Ignoring translation, the actual value referenced is used by accessing
+                    // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
+                    // TODO(rcastano): check that loaded references are only used in the assumed context.
+                    instructionOperand = (instructionOperand as Reference).Value;
+                }
+                if (instructionOperand is InstanceFieldAccess) // memory access handling
+                {
+                    InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
                     String fieldName = FieldTranslator.GetFieldName(instanceFieldOp.Field);
                     if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("int"))
                         sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
@@ -209,10 +217,10 @@ namespace TinyBCT.Translators
                         // Union and Ref are alias. There is no need of Union2Ref
                         sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
                 }
-                else if (instruction.Operand is StaticFieldAccess) // memory access handling
+                else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
                     // static fields are considered global variables
-                    var staticFieldAccess = instruction.Operand as StaticFieldAccess;
+                    var staticFieldAccess = instructionOperand as StaticFieldAccess;
 
                     // code generated from (x => x * x) may have a singleton
                     // we will force to initialize the singleton every time it is used
@@ -232,22 +240,15 @@ namespace TinyBCT.Translators
 
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
                 }
-                else if (instruction.Operand is StaticMethodReference) // delegates handling
+                else if (instructionOperand is StaticMethodReference) // delegates handling
                 {
                     // see DelegateTranslation
                 }
-                else if (instruction.Operand is Reference)
-                {
-                    // Reference loading only found when using "default" keyword.
-                    // Ignoring translation, the actual value referenced is used by accessing
-                    // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
-                    // TODO(rcastano): check that loaded references are only used in the assumed context.
-                }
                 else
                 {
-                    string operand = instruction.Operand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                        Helpers.Strings.fixStringLiteral(instruction.Operand) :
-                        instruction.Operand.ToString();
+                    string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
+                        Helpers.Strings.fixStringLiteral(instructionOperand) :
+                        instructionOperand.ToString();
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, operand));
                 }
             }

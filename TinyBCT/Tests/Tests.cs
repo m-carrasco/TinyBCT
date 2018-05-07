@@ -203,7 +203,21 @@ namespace Test
 
             l.Add(1);
             l.Add(2);
- //           l.Add(3);
+ 
+            int acum = 0;
+            foreach (var item in l)
+            {
+                acum = acum + item;
+            }
+            Contract.Assert(acum == 3);
+        }
+        public void l3()
+        {
+            var l = new List<int>();
+
+            l.Add(1);
+            l.Add(2);
+            l.Add(3);
  //          l.Add(4);
 
             int acum = 0;
@@ -211,9 +225,8 @@ namespace Test
             {
                 acum = acum + item;
             }
-            Contract.Assert(acum >= 3);
+            Contract.Assert(acum == 6);
         }
-
 
     }
 }
@@ -231,9 +244,9 @@ namespace Test
         if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references))
         {
             TinyBCT.Program.Main(new string[] { "-i", assemblyName+".dll",
-                @"C:\Users\diegog\Source\Repos\corral\AddOns\AngelicVerifierNull\test\c#\CollectionStubs.dll",
+                @"..\..\Dependencies\CollectionStubs.dll",
                 "-l", "true",
-                "-b", @"C:\Users\diegog\Source\Repos\corral\AddOns\AngelicVerifierNull\test\c#\poirot_stubs.bpl" });
+                "-b", @"..\..\Dependencies\poirot_stubs.bpl" });
         }
         else
         {
