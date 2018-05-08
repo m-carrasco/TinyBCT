@@ -23,8 +23,21 @@ namespace Test
             El framework de zoppi le agrega un "terminator" a ese bloque al finally o donde corresponda, por eso no nos preocupamos en agregar un else
      */
 
+    public class ExceptionA : Exception
+    {
+    }
+
+    public class ExceptionB : Exception
+    {
+    }
+
+    public class ExceptionC : Exception
+    {
+    }
+
     class Exceptions
     {
+        // works
         public void test1()
         {
             int i = 0;
@@ -92,6 +105,61 @@ namespace Test
 
             // compilers removes this piece of code - it is not present in bytecode
             Contract.Assert(false); // this should not be called.
+        }
+
+        public void throwException()
+        {
+            throw new Exception();
+        }
+
+        public void safe()
+        {
+
+        }
+
+        public void test5()
+        {
+            int i = 0;
+            try
+            {
+                if (i == 0)
+                {
+                    throwException();
+                }
+
+            } catch (Exception ex)
+            {
+
+            }
+
+            i = 10;
+        }
+
+        public void test6()
+        {
+            int i = 0;
+            try
+            {
+                throw new ExceptionB();
+            }
+            catch (ExceptionA ex)
+            {
+                i = 10;
+            }
+            catch (ExceptionB ex)
+            {
+                i = 20;
+            }
+            catch (ExceptionC ex)
+            {
+                i = 30;
+            }
+            finally
+            {
+                i += 40;
+            }
+
+            Contract.Assert(i == 60);
         }
 
     }
