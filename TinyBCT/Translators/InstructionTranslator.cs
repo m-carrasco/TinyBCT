@@ -192,6 +192,30 @@ namespace TinyBCT.Translators
 
             public override void Visit(NopInstruction instruction)
             {
+                // hack to get endfinally
+                if (instruction.IsEndFinally)
+                {
+                    /*
+                     The endfinally instruction transfers control out of a finally or fault block in the usual manner. 
+                     This mean that if the finally block was being executed as a result of a leave statement in a try block, 
+                     then execution continues at the next statement following the finally block. 
+                     If, on the other hand, the finally block was being executed as a result of an exception having been thrown, 
+                     then execution will transfer to the next suitable block of exception handling code. 
+
+                        taken from: "Expert .NET 1.1 Programming"
+                     */
+                    
+                    // only encode behaviour if there was an unhandled exception
+                    sb.AppendLine("if ($Exception != null)");
+                    sb.AppendLine("{");
+                    var target = GetThrowTarget(instruction);
+                    if (String.IsNullOrEmpty(target))
+                        sb.AppendLine("return;");
+                    else
+                        sb.AppendLine(String.Format("goto {0};", target));
+                    sb.AppendLine("}");
+
+                }
                 //addLabel(instruction);
             }
 
