@@ -20,22 +20,28 @@ namespace Test
     {
     }
 
+    public class ExceptionSubB : ExceptionB
+    {
+    }
+
     class Exceptions
     {
-        // works
         public void test1()
         {
             int i = 0;
             try
             {
-                throw new Exception();
+                var e = new Exception();
+                i = 1; 
+                // this way shows that it is necessary to initialize the global $Exception variable
+                throw e;
             }
             catch(Exception ex)
             {
-                i = 10;
+                i = i+ 10;
             }
 
-            Contract.Assert(i == 10);
+            Contract.Assert(i == 11);
         }
 
         public void test2()
@@ -43,18 +49,20 @@ namespace Test
             int i = 0;
             try
             {
-                throw new Exception();
+                var e = new Exception();
+                i = 1;
+                throw e;
             }
             catch (Exception ex)
             {
-                i = 10;
+                i = i + 10;
             }
             finally
             {
                 i += 10;
             }
 
-            Contract.Assert(i == 20);
+            Contract.Assert(i == 21);
         }
 
         public void test3()
@@ -66,6 +74,7 @@ namespace Test
             catch (Exception ex)
             {
                 i = 10;
+                Contract.Assert(false);
             }
             finally
             {
@@ -102,6 +111,7 @@ namespace Test
 
         }
 
+        // works
         public void test5()
         {
             int i = 0;
@@ -114,10 +124,12 @@ namespace Test
 
             } catch (Exception ex)
             {
-
+                i = i + 5;
             }
 
-            i = 10;
+            i = i+ 10;
+
+            Contract.Assert(i == 15);
         }
 
         public void test6()
@@ -125,7 +137,7 @@ namespace Test
             int i = 0;
             try
             {
-                throw new ExceptionB();
+                throw new ExceptionSubB();
             }
             catch (ExceptionA ex)
             {

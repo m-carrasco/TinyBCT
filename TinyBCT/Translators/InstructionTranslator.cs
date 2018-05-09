@@ -398,7 +398,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(CatchInstruction instruction)
             {
-                sb.AppendLine(String.Format("\t\tif (!$Subtype($DynamicType($ExceptionType), T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
+                sb.AppendLine(String.Format("\t\tif (!$Subtype($ExceptionType, T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
                 sb.AppendLine("\t\t{");
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
