@@ -107,16 +107,39 @@ namespace TinyBCT
                 }
                 else
                     return 1;
-                if (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(a.ContainingType.ResolvedType, b.ContainingType.ResolvedType))
-                    return 0;
-                else
-                    return 1;
             }
         }
         public static bool IsSubtypeOrImplements(ITypeReference t1, ITypeReference t2)
         {
-            return (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(t1.ResolvedType, t2.ResolvedType)) 
-                || TypeHelper.Type1ImplementsType2(t1.ResolvedType,t2);
+            return (Type1DerivesFromOrIsTheSameAsType2ForGenerics(t1.ResolvedType, t2.ResolvedType)) 
+                || Type1ImplementsType2ForGenerics(t1.ResolvedType,t2);
+        }
+        public static bool Type1DerivesFromOrIsTheSameAsType2ForGenerics(ITypeReference t1, ITypeReference t2)
+        {
+            // TODO: Check if generics
+            var resolvedT1 = t1.ResolvedType;
+            var unspecializedT2 = TypeHelper.UninstantiateAndUnspecialize(t2);
+            foreach (var i in resolvedT1.BaseClasses)
+            {
+                var unspecializedInterface = TypeHelper.UninstantiateAndUnspecialize(i);
+                if (unspecializedInterface.InternedKey == unspecializedT2.InternedKey)
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool Type1ImplementsType2ForGenerics(ITypeReference t1, ITypeReference t2)
+        {
+            // TODO: Check if generics
+            var resolvedT1 = t1.ResolvedType;
+            var unspecializedT2 = TypeHelper.UninstantiateAndUnspecialize(t2);
+            foreach (var i in resolvedT1.Interfaces)
+            {
+                var unspecializedInterface = TypeHelper.UninstantiateAndUnspecialize(i);
+                if (unspecializedInterface.InternedKey == unspecializedT2.InternedKey)
+                    return true;
+            }
+            return false;
         }
 
         public static IList<IMethodReference> PotentialCalleesUsingCHA(MethodCallInstruction invocation, ClassHierarchyAnalysis CHA)
@@ -159,15 +182,18 @@ namespace TinyBCT
         public static IMethodReference FindMethodImplementation(this ITypeReference receiverType, IMethodReference method)
         {
             var result = method;
+            if(method.ToString().Contains("Current"))
+            {
 
-            while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType))
+            }
+            while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType ))
             {
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
 
                 //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value.EndsWith(method.Name.Value) && MemberHelper.SignaturesAreEqual(m, method));
-
+                var unspecializedMethod = MemberHelper.UninstantiateAndUnspecialize(method);
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value==method.Name.Value && ParametersAreEquals(m, method));
 
                 if (matchingMethod != null)
                 {
@@ -183,6 +209,22 @@ namespace TinyBCT
 
             return result;
         }
+
+
+        public static bool ParametersAreEquals(IMethodReference m1, IMethodReference m2)
+        {
+            if (m1.ParameterCount != m2.ParameterCount)
+                return false;
+            for(var i=0; i<m1.ParameterCount; i++)
+            {
+                var m1Pi = TypeHelper.UninstantiateAndUnspecialize(m1.Parameters.ElementAt(i).Type);
+                var m2Pi = TypeHelper.UninstantiateAndUnspecialize(m2.Parameters.ElementAt(i).Type);
+                if (m1Pi.InternedKey != m2.InternedKey)
+                    return false;
+            }
+            return true;
+        }
+
         public static bool TypeEquals(this ITypeReference type1, ITypeReference type2)
         {
             return TypeHelper.TypesAreEquivalent(type1, type2);
@@ -294,6 +336,7 @@ namespace TinyBCT
 
         public static string GetNormalizedType(ITypeReference type)
         {
+            type = TypeHelper.UninstantiateAndUnspecialize(type);
             var result = TypeHelper.GetTypeName(type.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
             var namedTypeReference = (type as INamedTypeReference);
             if (namedTypeReference != null)

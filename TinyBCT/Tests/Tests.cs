@@ -132,25 +132,25 @@ using System.Diagnostics.Contracts;
 
 namespace Test
 {
-    class List
+    class Main
     {
         public void foo()
         {
-            var l = new List<int>();
+            var l = new List2<int>();
 
             l.Add(1);
-            l.Add(2);
-            l.Add(3);
-            l.Add(4);
+            //l.Add(2);
+            //l.Add(3);
+            //l.Add(4);
 
             int acum = 0;
             foreach (var item in Elems(l))
             {
                 acum = acum + item;
             }
-            Contract.Assert(acum >= 6);
+            Contract.Assert(acum == 1);
         }
-        static IEnumerable<int> Elems(ICollection<int> list)
+        static IEnumerable<int> Elems(List2<int> list)
         {
             foreach (var elem in list)
             {
@@ -159,7 +159,42 @@ namespace Test
             }
         }
     }
-}
+    public class List2<T> : IEnumerable<T> 
+    {
+	    struct Enumerator : IEnumerator<T> {
+	          List2<T> parent;
+	          int iter;
+	          public Enumerator(List2<T> l) { 
+	              parent = l; 
+		      iter = -1; 
+	          }
+	          public bool MoveNext() { 
+	              iter = iter + 1; 
+		      return (iter < parent.Count);
+	          }
+	          public T Current { get { return parent[iter]; } }
+	          public void Dispose() {}
+	          public void Reset() { iter = -1; }
+                  object System.Collections.IEnumerator.Current { get { return this.Current; } }
+        }
+
+        public List<T> myList;
+        public List2() 
+        {
+            myList = new List<T>();
+        }
+        public void Add(T elem)
+        {
+            myList.Add(elem);
+        }
+
+        private List2(bool dontCallMe) { }
+        public IEnumerator<T> GetEnumerator() { return new Enumerator(this); }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { return this.GetEnumerator(); }
+	    public T this[int index] { get { return myList[index]; }  set { myList[index] = value;  } }
+	    public int Count { get { return myList.Count; } }
+        }
+    }
         ";
         DoTest(source, "TestYield");
     }
