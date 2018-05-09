@@ -17,6 +17,10 @@ namespace TinyBCT.Translators
         // once every type definition is processed we check if the super classes were declared 
         // we will declare the difference between parents and classes sets
         public static ISet<ITypeDefinition> parents = new HashSet<ITypeDefinition>();
+        
+        // Already added, collisions can occur with instantiations
+        // of types involving generics.
+        public static ISet<string> normalizedTypeStrings = new HashSet<string>();
 
         INamedTypeDefinition typeDef;
         public TypeDefinitionTranslator(INamedTypeDefinition namedTypeDefinition)
@@ -63,15 +67,23 @@ namespace TinyBCT.Translators
         // we are missing information of the hierarchy
         // currently this code is defining undeclared classes but there can be information missing
         // todo : improve
-        public static void DefineUndeclaredClasses(ISet<ITypeDefinition> classesParam)
+        public static void DefineUndeclaredSuperClasses()
         {
             StringBuilder sb = new StringBuilder();
-            var diff = classesParam.Except(classes);
 
+
+            HashSet<ITypeReference> diff = new HashSet<ITypeReference>();
+            diff.UnionWith(InstructionTranslator.MentionedClasses);
+            diff.UnionWith(parents);
+            diff.ExceptWith(classes);
+            
             foreach (var c in diff)
             {
                 var typeName = Helpers.GetNormalizedType(c);
+                if (normalizedTypeStrings.Contains(typeName))
+                    continue;
 
+                normalizedTypeStrings.Add(typeName);
                 // already in prelude
                 if (typeName.Equals("System.Object"))
                     continue;
@@ -92,6 +104,10 @@ namespace TinyBCT.Translators
         {
             StringBuilder sb = new StringBuilder();
             var typeName = Helpers.GetNormalizedType(typeDef);
+            if (normalizedTypeStrings.Contains(typeName))
+                return "";
+
+                normalizedTypeStrings.Add(typeName);
             var superClass = typeDef.BaseClasses.SingleOrDefault();
             sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
             sb.AppendLine(String.Format("const unique T${0} : int;", typeName));

@@ -29,10 +29,11 @@ namespace TinyBCT.Translators
         // store for methods that have not been found yet but have been called
         // Also necessary to declare them if they end up being missing
         public static ISet<IMethodReference> PotentiallyMissingMethodsCalled = new HashSet<IMethodReference>();
+
         // Type definitions might not be present in the dll because they are instantiations of generic types,
         // for example, List<int>. For these types, we will need to add the appropriate constants and axioms
         // in Boogie.
-        public static ISet<ITypeDefinition> mentionedClasses = new HashSet<ITypeDefinition>();
+        public static ISet<ITypeReference> MentionedClasses = new HashSet<ITypeReference>();
 
         Translation translation;
         Instruction lastInstruction = null;
@@ -104,6 +105,8 @@ namespace TinyBCT.Translators
 
             internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
             {
+                if (!Settings.EmitLineNumbers)
+                    return;
                 IPrimarySourceLocation location = instr.Location;
 
                 if (location == null && prevSourceLocation != null)
@@ -309,10 +312,18 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadInstruction instruction)
             {
-                //addLabel(instruction);
-                if (instruction.Operand is InstanceFieldAccess) // memory access handling
+                var instructionOperand = instruction.Operand;
+                if (instructionOperand is Reference)
                 {
-                    InstanceFieldAccess instanceFieldOp = instruction.Operand as InstanceFieldAccess;
+                    // Reference loading only found when using "default" keyword.
+                    // Ignoring translation, the actual value referenced is used by accessing
+                    // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
+                    // TODO(rcastano): check that loaded references are only used in the assumed context.
+                    instructionOperand = (instructionOperand as Reference).Value;
+                }
+                if (instructionOperand is InstanceFieldAccess) // memory access handling
+                {
+                    InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
                     String fieldName = FieldTranslator.GetFieldName(instanceFieldOp.Field);
                     if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("int"))
                         sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
@@ -320,10 +331,10 @@ namespace TinyBCT.Translators
                         // Union and Ref are alias. There is no need of Union2Ref
                         sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
                 }
-                else if (instruction.Operand is StaticFieldAccess) // memory access handling
+                else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
                     // static fields are considered global variables
-                    var staticFieldAccess = instruction.Operand as StaticFieldAccess;
+                    var staticFieldAccess = instructionOperand as StaticFieldAccess;
 
                     // code generated from (x => x * x) may have a singleton
                     // we will force to initialize the singleton every time it is used
@@ -343,22 +354,15 @@ namespace TinyBCT.Translators
 
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
                 }
-                else if (instruction.Operand is StaticMethodReference) // delegates handling
+                else if (instructionOperand is StaticMethodReference) // delegates handling
                 {
                     // see DelegateTranslation
                 }
-                else if (instruction.Operand is Reference)
-                {
-                    // Reference loading only found when using "default" keyword.
-                    // Ignoring translation, the actual value referenced is used by accessing
-                    // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
-                    // TODO(rcastano): check that loaded references are only used in the assumed context.
-                }
                 else
                 {
-                    string operand = instruction.Operand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                        Helpers.Strings.fixStringLiteral(instruction.Operand) :
-                        instruction.Operand.ToString();
+                    string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
+                        Helpers.Strings.fixStringLiteral(instructionOperand) :
+                        instructionOperand.ToString();
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, operand));
                 }
             }
@@ -427,25 +431,14 @@ namespace TinyBCT.Translators
 
                 sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
                 sb.AppendLine("\t\t{");
-
-                var firstSignature = Helpers.GetMethodName(calless.First());
-
-                if (instruction.HasResult)
-                {
-                    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, firstSignature, arguments));
-
-                }
-                else
-                {
-                    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", firstSignature, arguments));
-                }
-
+                CallMethod(instruction, arguments, calless.First());
                 sb.AppendLine("\t\t}");
+
 
                 int i = 0;
                 foreach (var impl in calless)
                 {
+                    MentionedClasses.Add(impl.ContainingType);
                     // first and last invocation are not handled in this loop
                     if (i == 0 || i == calless.Count - 1)
                     {
@@ -457,17 +450,19 @@ namespace TinyBCT.Translators
                     sb.AppendLine("\t\t{");
 
                     var midSignature = Helpers.GetMethodName(impl);
+                    CallMethod(instruction, arguments, impl);
 
-                    if (instruction.HasResult)
-                    {
-                        //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
 
-                    }
-                    else
-                    {
-                        sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
-                    }
+                    //if (instruction.HasResult)
+                    //{
+                    //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                    //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
+
+                    //}
+                    //else
+                    //{
+                    //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
+                    //}
 
                     sb.AppendLine("\t\t}");
                     i++;
@@ -498,11 +493,95 @@ namespace TinyBCT.Translators
                     ExternMethodsCalled.Add(instruction.Method);
             }
 
+            private void CallMethod(MethodCallInstruction instruction, string arguments, IMethodReference callee)
+            {
+                var signature = Helpers.GetMethodName(callee);
+
+                if (instruction.HasResult)
+                {
+                    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                    // the union depends on the type of the arguments
+                    var resType = Helpers.GetBoogieType(instruction.Result.Type);
+                    var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
+                    if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
+                    {
+                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
+                    }
+                    else
+                    {
+                        // TODO(rcastano): reuse variable
+                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false);
+                        localVar.Type = Types.Instance.PlatformType.SystemObject;
+                        instTranslator.AddedVariables.Add(localVar);
+                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", localVar, signature, arguments));
+                        resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
+                    }
+
+                }
+                else
+                {
+                    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", signature, arguments));
+                }
+            }
+
             public override void Visit(MethodCallInstruction instruction)
             {
-                var arguments = string.Join(", ", instruction.Arguments);
+                // This is check is done because an object creation is splitted into two TAC instructions
+                // This prevents to add the same instruction tag twice
+                // DIEGO: Removed after fix in analysis framewlrk 
+                // if (!Helpers.IsConstructor(instruction.Method))
+                //addLabel(instruction);
+                var arguments = "";
+                var copyArgs = new List<IVariable>();
+                List<string> toAppend = new List<string>();
 
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
+
+                // For debugging purposes, remove 
+                if (methodName.Contains("Current"))
+                {
+
+                }
+
+                var unspecializedMethod = Helpers.GetUnspecializedVersion(instruction.Method);
+                Contract.Assume(
+                    unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ||
+                    unspecializedMethod.Parameters.Count() + 1 == instruction.Arguments.Count());
+                // Instance methods, passing 'this'
+                if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
+                {
+                    copyArgs.Add(instruction.Arguments.ElementAt(0));
+                }
+                for (int i = 0; i < instruction.Method.Parameters.Count(); ++i)
+                {
+                    int arg_i =
+                        unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ?
+                        i : i + 1;
+                    var paramType = Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
+                    var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i).Type);
+                    if (!paramType.Equals(argType))
+                    {
+                        // TODO(rcastano): try to reuse variables.
+                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false);
+                        localVar.Type = Types.Instance.PlatformType.SystemObject;
+                        instTranslator.AddedVariables.Add(localVar);
+
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        toAppend.Add(String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType));
+
+                        copyArgs.Add(localVar);
+                    }
+                    else
+                    {
+                        copyArgs.Add(instruction.Arguments.ElementAt(arg_i));
+                    }
+                }
+                foreach (var line in toAppend)
+                {
+                    sb.AppendLine(line);
+                }
+                arguments = String.Join(", ", copyArgs);
 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
@@ -512,7 +591,11 @@ namespace TinyBCT.Translators
                 {
                     sb.Append(String.Format("\t\t assume {0};", arguments));
                     return;
-                } else if (instruction.Operation == MethodCallOperation.Virtual)
+                }
+                // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
+                // Our examples are compiled agains mscorlib generic types and we need to replace some method with colection stubs
+                // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
+                else if (instruction.Operation == MethodCallOperation.Virtual)
                 {
                     DynamicDispatch(instruction, arguments);
                     HandleExceptionAfterMethodCall(instruction);
@@ -521,10 +604,7 @@ namespace TinyBCT.Translators
 
                 var signature = Helpers.GetMethodName(instruction.Method);
 
-                if (instruction.HasResult)
-                    sb.AppendLine(String.Format("\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
-                else
-                    sb.AppendLine(String.Format("\t\tcall {0}({1});", signature, arguments));
+                CallMethod(instruction, arguments, instruction.Method);
 
                 HandleExceptionAfterMethodCall(instruction);
 
@@ -576,7 +656,7 @@ namespace TinyBCT.Translators
                 //addLabel(instruction);
                 sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
                 var type = Helpers.GetNormalizedType(instruction.AllocationType);
-                InstructionTranslator.mentionedClasses.Add(instruction.AllocationType.ResolvedType);
+                InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
                 sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
                 sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
             }
@@ -770,7 +850,7 @@ namespace TinyBCT.Translators
                 var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
                 DelegateStore.AddDelegatedMethodToGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType), methodRef);
-
+                
                 // invoke the correct version of create delegate
                 var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 IVariable receiverObject = instruction.Arguments[1];
@@ -1044,16 +1124,19 @@ namespace TinyBCT.Translators
             return sb.ToString();
         }
 
+        // This method has a clone? GetMethodName
         public static string GetMethodIdentifier(IMethodReference methodRef)
         {
+            var methodId = Helpers.CreateUniqueMethodName(methodRef);
+
             if (methodIdentifiers.ContainsKey(methodRef))
                 return methodIdentifiers[methodRef];
 
-            var methodName = Helpers.GetMethodName(methodRef);
-            var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
+            //var methodName = Helpers.GetMethodName(methodRef);
+            //var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
 
-            // example:  cMain2.objectParameter$System.Object;
-            var methodId = methodName + methodArity;
+            //// example:  cMain2.objectParameter$System.Object;
+            //var methodId = methodName + methodArity;
 
             methodIdentifiers.Add(methodRef, methodId);
 

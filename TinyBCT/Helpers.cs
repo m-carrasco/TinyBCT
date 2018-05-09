@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TinyBCT
@@ -52,16 +53,27 @@ namespace TinyBCT
 
             return null;
         }
-
+        public static IMethodReference GetUnspecializedVersion(IMethodReference method)
+        {
+            return MemberHelper.UninstantiateAndUnspecialize(method);
+            //var specializedMethodReference = (method as ISpecializedMethodReference);
+            //if (specializedMethodReference != null)
+            //{
+            //    return (method as ISpecializedMethodReference).UnspecializedVersion;
+            //}
+            //return method;
+        }
         public static String GetMethodName(IMethodReference methodDefinition)
         {
-            var signature = MemberHelper.GetMethodSignature(methodDefinition);
-            signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor
-            var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
-            arity = arity.Replace("[]", "array");
-            var result = signature + arity;
-            result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
-            return result;
+            return CreateUniqueMethodName(methodDefinition);
+
+            //var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
+            //signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
+            //var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
+            //arity = arity.Replace("[]", "array");
+            //var result = signature + arity;
+            //result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
+            //return result;
         }
 
         public static String GetMethodBoogieReturnType(IMethodReference methodDefinition)
@@ -89,11 +101,22 @@ namespace TinyBCT
         {
             public int Compare(IMethodReference a, IMethodReference b)
             {
+                if (IsSubtypeOrImplements(a.ContainingType, b.ContainingType))
+                {
+                    return 0;
+                }
+                else
+                    return 1;
                 if (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(a.ContainingType.ResolvedType, b.ContainingType.ResolvedType))
                     return 0;
                 else
                     return 1;
             }
+        }
+        public static bool IsSubtypeOrImplements(ITypeReference t1, ITypeReference t2)
+        {
+            return (TypeHelper.Type1DerivesFromOrIsTheSameAsType2(t1.ResolvedType, t2.ResolvedType)) 
+                || TypeHelper.Type1ImplementsType2(t1.ResolvedType,t2);
         }
 
         public static IList<IMethodReference> PotentialCalleesUsingCHA(MethodCallInstruction invocation, ClassHierarchyAnalysis CHA)
@@ -107,8 +130,16 @@ namespace TinyBCT
                     break;
                 case MethodCallOperation.Virtual:
                     var receiver = invocation.Arguments[0];
-                    var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(receiver.Type));
-                    calleeTypes.Add(receiver.Type);
+                    var type = (receiver.Type is IGenericTypeInstanceReference) ? (receiver.Type as IGenericTypeInstanceReference).GenericType : receiver.Type;
+                    if(type is IManagedPointerTypeReference)
+                    {
+                        type = (type as IManagedPointerTypeReference).TargetType;
+                        type = TypeHelper.UninstantiateAndUnspecialize(type);
+                        //type = (type is IGenericTypeInstanceReference) ? (type as IGenericTypeInstanceReference).GenericType : type;
+
+                    }
+                    var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(type));
+                    calleeTypes.Add(type);
                     var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee));
                     foreach(var candidate in candidateCalless) // improved this
                     {
@@ -129,12 +160,14 @@ namespace TinyBCT
         {
             var result = method;
 
-            while (receiverType != null && !method.ContainingType.TypeEquals(receiverType))
+            while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType))
             {
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
 
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
+                //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value.EndsWith(method.Name.Value) && MemberHelper.SignaturesAreEqual(m, method));
+
 
                 if (matchingMethod != null)
                 {
@@ -194,7 +227,7 @@ namespace TinyBCT
         // this function returns $int
         public static String GetArityWithNonBoogieTypes(IMethodReference methodRef)
         {
-            return String.Join("", methodRef.Parameters.Select(v => "$" + v.Type));
+            return String.Join("", GetUnspecializedVersion(methodRef).Parameters.Select(v => "$" + TypeHelper.UninstantiateAndUnspecialize(v.Type)));
         }
 
         public static String GetParametersWithBoogieType(IMethodReference methodRef)
@@ -230,12 +263,12 @@ namespace TinyBCT
             return false;
         }
 
-        public static Boolean IsCurrentlyMissing(IMethodDefinition methodDefinition)
+        public static Boolean IsCurrentlyMissing(IMethodReference methodReference)
         {
             // The value of this condition can change throughout the execution of the translation.
             // For that reason, it should be called at the end of the translation again to confirm
             // the method is actually missing from the binary.
-            return !methodsTranslated.Contains(Helpers.GetMethodName(methodDefinition));
+            return !methodsTranslated.Contains(Helpers.GetMethodName(methodReference));
         }
 
         // workaround
@@ -261,13 +294,79 @@ namespace TinyBCT
 
         public static string GetNormalizedType(ITypeReference type)
         {
-            var result = type.ToString();
+            var result = TypeHelper.GetTypeName(type.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
+            var namedTypeReference = (type as INamedTypeReference);
+            if (namedTypeReference != null)
+            {
+                result = TypeHelper.GetTypeName(namedTypeReference.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix);
+            }
             // Do this well 
             result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
             result = NormalizeStringForCorral(result);
 
             return result;
         }
+
+        /// <summary>
+        /// Normalize Methdod Definitions taken from original BCT
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string CreateUniqueMethodName(IMethodReference method) {
+            // We remove all type instances 
+            var unspecializedMethod = GetUnspecializedVersion(method);
+            //var containingTypeName = TypeHelper.GetTypeName(method.ContainingType, NameFormattingOptions.None);
+            var s = MemberHelper.GetMethodSignature(unspecializedMethod, NameFormattingOptions.DocumentationId);
+            s = s.Substring(2);
+            s = s.TrimEnd(')');
+            s = TurnStringIntoValidIdentifier(s);
+            return s;
+        }
+
+        public static string TurnStringIntoValidIdentifier(string s)
+        {
+
+            // Do this specially just to make the resulting string a little bit more readable.
+            // REVIEW: Just let the main replacement take care of it?
+            s = s.Replace("[0:,0:]", "2DArray"); // TODO: Do this programmatically to handle arbitrary arity
+            s = s.Replace("[0:,0:,0:]", "3DArray");
+            s = s.Replace("[0:,0:,0:,0:]", "4DArray");
+            s = s.Replace("[0:,0:,0:,0:,0:]", "5DArray");
+            s = s.Replace("[]", "array");
+
+            // The definition of a Boogie identifier is from BoogiePL.atg.
+            // Just negate that to get which characters should be replaced with a dollar sign.
+
+            // letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
+            // digit = "0123456789".
+            // special = "'~#$^_.?`".
+            // nondigit = letter + special.
+            // ident =  [ '\\' ] nondigit {nondigit | digit}.
+
+            s = Regex.Replace(s, "[^A-Za-z0-9'~#$^_.?`]", "$");
+
+            s = GetRidOfSurrogateCharacters(s);
+            return s;
+        }
+
+        /// <summary>
+        /// Unicode surrogates cannot be handled by Boogie.
+        /// http://msdn.microsoft.com/en-us/library/dd374069(v=VS.85).aspx
+        /// </summary>
+        private static string GetRidOfSurrogateCharacters(string s)
+        {
+            //  TODO this is not enough! Actually Boogie cannot support UTF8
+            var cs = s.ToCharArray();
+            var okayChars = new char[cs.Length];
+            for (int i = 0, j = 0; i < cs.Length; i++)
+            {
+                if (Char.IsSurrogate(cs[i])) continue;
+                okayChars[j++] = cs[i];
+            }
+            var raw = String.Concat(okayChars);
+            return raw.Trim(new char[] { '\0' });
+        }
+
 
         public static string NormalizeStringForCorral(string s)
         {
