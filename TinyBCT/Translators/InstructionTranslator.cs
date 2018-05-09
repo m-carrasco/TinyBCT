@@ -439,84 +439,95 @@ namespace TinyBCT.Translators
             {
                 var calless = Helpers.PotentialCalleesUsingCHA(instruction, Traverser.CHA);
 
-                // not sure what to do in zero case
-                Contract.Assert(calless.Count > 0);
-
-                var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.virtualInvokations));
-                getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
-                var receiver = instruction.Arguments[0];
-
-                instTranslator.virtualInvokations = instTranslator.virtualInvokations + 1;
-                instTranslator.AddedVariables.Add(getTypeVar);
-
-                sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
-
-                // example:if ($tmp6 == T$DynamicDispatch.Dog())
-
-                sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
-                sb.AppendLine("\t\t{");
-                CallMethod(instruction, arguments, calless.First());
-                sb.AppendLine("\t\t}");
-
-
-                int i = 0;
-                foreach (var impl in calless)
+                if (calless.Count > 0)
                 {
-                    MentionedClasses.Add(impl.ContainingType);
-                    // first and last invocation are not handled in this loop
-                    if (i == 0 || i == calless.Count - 1)
+
+                    var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.virtualInvokations));
+                    getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
+                    var receiver = instruction.Arguments[0];
+
+                    instTranslator.virtualInvokations = instTranslator.virtualInvokations + 1;
+                    instTranslator.AddedVariables.Add(getTypeVar);
+
+                    sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
+
+                    // example:if ($tmp6 == T$DynamicDispatch.Dog())
+
+                    sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
+                    sb.AppendLine("\t\t{");
+                    CallMethod(instruction, arguments, calless.First());
+                    sb.AppendLine("\t\t}");
+
+
+                    int i = 0;
+                    foreach (var impl in calless)
                     {
+                        MentionedClasses.Add(impl.ContainingType);
+                        // first and last invocation are not handled in this loop
+                        if (i == 0 || i == calless.Count - 1)
+                        {
+                            i++;
+                            continue;
+                        }
+
+                        sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
+                        sb.AppendLine("\t\t{");
+
+                        var midSignature = Helpers.GetMethodName(impl);
+                        CallMethod(instruction, arguments, impl);
+
+
+                        //if (instruction.HasResult)
+                        //{
+                        //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                        //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
+
+                        //}
+                        //else
+                        //{
+                        //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
+                        //}
+
+                        sb.AppendLine("\t\t}");
                         i++;
-                        continue;
                     }
 
-                    sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
-                    sb.AppendLine("\t\t{");
+                    if (calless.Count > 1) // last element
+                    {
+                        //sb.AppendLine(String.Format("\t\telse ({0} == {1})", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
+                        sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
+                        sb.AppendLine("\t\t{");
 
-                    var midSignature = Helpers.GetMethodName(impl);
-                    CallMethod(instruction, arguments, impl);
 
 
-                    //if (instruction.HasResult)
-                    //{
-                    //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                    //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
+                        CallMethod(instruction, arguments, calless.Last());
+                        //var lastSignature = Helpers.GetMethodName(calless.Last());
+                        //if (instruction.HasResult)
+                        //{
+                        //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                        //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, lastSignature, arguments));
 
-                    //}
-                    //else
-                    //{
-                    //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
-                    //}
+                        //}
+                        //else
+                        //{
+                        //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", lastSignature, arguments));
+                        //}
 
-                    sb.AppendLine("\t\t}");
-                    i++;
+                        sb.AppendLine("\t\t}");
+                    }
                 }
-
-                if (calless.Count > 1) // last element
+                else
                 {
-                    //sb.AppendLine(String.Format("\t\telse ({0} == {1})", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
-                    sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
-                    sb.AppendLine("\t\t{");
-
-                    
-
-                    CallMethod(instruction, arguments, calless.Last());
-                    //var lastSignature = Helpers.GetMethodName(calless.Last());
-                    //if (instruction.HasResult)
-                    //{
-                    //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                    //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, lastSignature, arguments));
-
-                    //}
-                    //else
-                    //{
-                    //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", lastSignature, arguments));
-                    //}
-
-                    sb.AppendLine("\t\t}");
+                    CallMethod(instruction, arguments, instruction.Method);
+                    AddToExternalMethods(instruction.Method);
                 }
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod) || instruction.Method.ResolvedMethod.IsAbstract)
-                    ExternMethodsCalled.Add(instruction.Method);
+                    AddToExternalMethods(instruction.Method);
+            }
+
+            public static void AddToExternalMethods(IMethodReference method)
+            {
+                ExternMethodsCalled.Add(method.ResolvedMethod);
             }
 
             private void CallMethod(MethodCallInstruction instruction, string arguments, IMethodReference callee)
@@ -635,10 +646,10 @@ namespace TinyBCT.Translators
                 HandleExceptionAfterMethodCall(instruction);
 
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
-                    ExternMethodsCalled.Add(instruction.Method);
+                    AddToExternalMethods(instruction.Method);
                 // Important not to add methods to both sets.
                 else if (Helpers.IsCurrentlyMissing(instruction.Method.ResolvedMethod))
-                    PotentiallyMissingMethodsCalled.Add(instruction.Method);
+                    PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(instruction.Method));
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)

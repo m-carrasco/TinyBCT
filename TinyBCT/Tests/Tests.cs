@@ -134,7 +134,24 @@ namespace Test
 {
     class Main
     {
-        public void foo()
+        public void l0()
+        {
+            var l = new List2<int>();
+
+            //l.Add(1);
+            //l.Add(2);
+            //l.Add(3);
+            //l.Add(4);
+
+            int acum = 0;
+            foreach (var item in Elems(l))
+            {
+                acum = acum + item;
+            }
+            Contract.Assert(acum == 0);
+        }
+
+        public void l1()
         {
             var l = new List2<int>();
 
@@ -149,6 +166,54 @@ namespace Test
                 acum = acum + item;
             }
             Contract.Assert(acum == 1);
+        }
+        public void l1Fail()
+        {
+            var l = new List2<int>();
+
+            l.Add(1);
+            //l.Add(2);
+            //l.Add(3);
+            //l.Add(4);
+
+            int acum = 0;
+            foreach (var item in Elems(l))
+            {
+                acum = acum + item;
+            }
+            Contract.Assert(acum != 1);
+        }
+        public void l2()
+        {
+            var l = new List2<int>();
+
+            l.Add(1);
+            l.Add(2);
+            //l.Add(3);
+            //l.Add(4);
+
+            int acum = 0;
+            foreach (var item in Elems(l))
+            {
+                acum = acum + item;
+            }
+            Contract.Assert(acum == 3);
+        }
+        public void l3()
+        {
+            var l = new List2<int>();
+
+            l.Add(1);
+            l.Add(2);
+            l.Add(3);
+            //l.Add(4);
+
+            int acum = 0;
+            foreach (var item in Elems(l))
+            {
+                acum = acum + item;
+            }
+            Contract.Assert(acum == 6);
         }
         static IEnumerable<int> Elems(List2<int> list)
         {

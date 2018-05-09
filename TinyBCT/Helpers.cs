@@ -83,7 +83,7 @@ namespace TinyBCT
 
         public static String GetExternalMethodDefinition(IMethodReference methodRef)
         {
-            if (Helpers.IsCurrentlyMissing(methodRef.ResolvedMethod))
+            if (Helpers.IsCurrentlyMissing(methodRef))
             {
                 // TODO(rcastano): Add logger. Print this as INFO or WARNING level.
                 Console.Write("WARNING: Creating non-deterministic definition for missing method: " + Helpers.GetMethodName(methodRef));
@@ -117,12 +117,15 @@ namespace TinyBCT
         public static bool Type1DerivesFromOrIsTheSameAsType2ForGenerics(ITypeReference t1, ITypeReference t2)
         {
             // TODO: Check if generics
-            var resolvedT1 = t1.ResolvedType;
+            var resolvedT1 = TypeHelper.UninstantiateAndUnspecialize(t1).ResolvedType;
             var unspecializedT2 = TypeHelper.UninstantiateAndUnspecialize(t2);
-            foreach (var i in resolvedT1.BaseClasses)
+            if (TypeHelper.TypesAreEquivalent(resolvedT1, unspecializedT2))
+                return true;
+            //if(resolvedT1.InternedKey == unspecializedT2.InternedKey)
+            //    return true;
+            foreach (var b in resolvedT1.BaseClasses)
             {
-                var unspecializedInterface = TypeHelper.UninstantiateAndUnspecialize(i);
-                if (unspecializedInterface.InternedKey == unspecializedT2.InternedKey)
+                if (Type1DerivesFromOrIsTheSameAsType2ForGenerics(b, t2))
                     return true;
             }
             return false;
@@ -131,12 +134,20 @@ namespace TinyBCT
         public static bool Type1ImplementsType2ForGenerics(ITypeReference t1, ITypeReference t2)
         {
             // TODO: Check if generics
-            var resolvedT1 = t1.ResolvedType;
+            var resolvedT1 = TypeHelper.UninstantiateAndUnspecialize(t1).ResolvedType;
             var unspecializedT2 = TypeHelper.UninstantiateAndUnspecialize(t2);
+
             foreach (var i in resolvedT1.Interfaces)
             {
                 var unspecializedInterface = TypeHelper.UninstantiateAndUnspecialize(i);
                 if (unspecializedInterface.InternedKey == unspecializedT2.InternedKey)
+                    return true;
+                if (Type1ImplementsType2ForGenerics(i.ResolvedType, unspecializedT2))
+                    return true;
+            }
+            foreach (var b in resolvedT1.BaseClasses)
+            {
+                if (Type1ImplementsType2ForGenerics(b.ResolvedType, unspecializedT2))
                     return true;
             }
             return false;
@@ -146,6 +157,10 @@ namespace TinyBCT
         {
             var result = new List<IMethodReference>();
             var unsolvedCallee = invocation.Method;
+            if(unsolvedCallee.Name.Value.Contains("GetEnumerator"))
+            {
+
+            }
             switch(invocation.Operation)
             {
                 case MethodCallOperation.Static:
@@ -162,14 +177,20 @@ namespace TinyBCT
 
                     }
                     var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(type));
+                    //// Hack to get the type from CollectionStubs 
+                    //var typeCHA = CHA.Types.SingleOrDefault(t => t.ToString() == type.ToString());
+                    //if (typeCHA != null)
+                    //    type = typeCHA;
+
                     calleeTypes.Add(type);
-                    var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee));
-                    foreach(var candidate in candidateCalless) // improved this
+                    var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementationForGenerics(unsolvedCallee)).Where(t => t!=null);
+                    var candidateCalless2 = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee)).Where(t => t != null);
+                    candidateCalless = candidateCalless.Union(candidateCalless2);
+                    foreach (var candidate in candidateCalless) // improved this
                     {
                         if (!result.Contains(candidate)) 
                             result.Add(candidate);
                     }
-
                     //result.AddRange(candidateCalless);
                     break;
             }
@@ -181,29 +202,78 @@ namespace TinyBCT
 
         public static IMethodReference FindMethodImplementation(this ITypeReference receiverType, IMethodReference method)
         {
-            var result = method;
+            var originalReceiverType = receiverType;
+            IMethodReference result = null;
             if(method.ToString().Contains("Current"))
             {
 
             }
+            if (method.ToString().Contains("GetEnumerator"))
+            {
+
+            }
+
             while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType ))
             {
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
 
-                //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
-                var unspecializedMethod = MemberHelper.UninstantiateAndUnspecialize(method);
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value==method.Name.Value && ParametersAreEquals(m, method));
-
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m,NameFormattingOptions.PreserveSpecialNames)
+                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames)));
+                
                 if (matchingMethod != null)
                 {
                     result = matchingMethod;
-                    break;
+                    return result;
                 }
                 else
                 {
                     receiverType = receiverTypeDef.BaseClasses.SingleOrDefault();
                 }
+
+            }
+            if(result==null)
+            {
+
+            }
+
+            return result;
+        }
+        public static IMethodReference FindMethodImplementationForGenerics(this ITypeReference receiverType, IMethodReference method)
+        {
+            var originalReceiverType = receiverType;
+            IMethodReference result = null;
+            if (method.ToString().Contains("Current"))
+            {
+
+            }
+            if (method.ToString().Contains("GetEnumerator"))
+            {
+
+            }
+
+            while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType))
+            {
+                var receiverTypeDef = receiverType.ResolvedType;
+                if (receiverTypeDef == null) break;
+
+                //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
+                var unspecializedMethod = Helpers.GetUnspecializedVersion(method);
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreEquals(m, unspecializedMethod));
+
+                if (matchingMethod != null)
+                {
+                    result = matchingMethod;
+                    return result;
+                }
+                else
+                {
+                    receiverType = receiverTypeDef.BaseClasses.SingleOrDefault();
+                }
+
+            }
+            if (result == null)
+            {
 
             }
 
@@ -213,13 +283,16 @@ namespace TinyBCT
 
         public static bool ParametersAreEquals(IMethodReference m1, IMethodReference m2)
         {
+            m1 = GetUnspecializedVersion(m1);
+
+            m2 = GetUnspecializedVersion(m2);
             if (m1.ParameterCount != m2.ParameterCount)
                 return false;
             for(var i=0; i<m1.ParameterCount; i++)
             {
                 var m1Pi = TypeHelper.UninstantiateAndUnspecialize(m1.Parameters.ElementAt(i).Type);
                 var m2Pi = TypeHelper.UninstantiateAndUnspecialize(m2.Parameters.ElementAt(i).Type);
-                if (m1Pi.InternedKey != m2.InternedKey)
+                if (!TypeEquals(m1Pi, m2Pi))
                     return false;
             }
             return true;
