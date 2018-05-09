@@ -121,7 +121,7 @@ namespace TinyBCT
             // extern method called
             foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
             {
-                var head = Helpers.GetExternalMethodDefinition(methodRef);
+                var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
                 streamWriter.WriteLine(head);
             }
             foreach (var methodRef in InstructionTranslator.PotentiallyMissingMethodsCalled)

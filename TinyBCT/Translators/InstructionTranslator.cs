@@ -328,18 +328,20 @@ namespace TinyBCT.Translators
                     sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
                     sb.AppendLine("\t\t{");
 
-                    var lastSignature = Helpers.GetMethodName(calless.Last());
+                    
 
-                    if (instruction.HasResult)
-                    {
-                        //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, lastSignature, arguments));
+                    CallMethod(instruction, arguments, calless.Last());
+                    //var lastSignature = Helpers.GetMethodName(calless.Last());
+                    //if (instruction.HasResult)
+                    //{
+                    //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
+                    //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, lastSignature, arguments));
 
-                    }
-                    else
-                    {
-                        sb.AppendLine(String.Format("\t\t\tcall {0}({1});", lastSignature, arguments));
-                    }
+                    //}
+                    //else
+                    //{
+                    //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", lastSignature, arguments));
+                    //}
 
                     sb.AppendLine("\t\t}");
                 }
@@ -511,7 +513,7 @@ namespace TinyBCT.Translators
 
                 //addLabel(instruction);
                 sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
-                var type = Helpers.GetNormalizedType(instruction.AllocationType);
+                var type = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
                 sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
                 sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
