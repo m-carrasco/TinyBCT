@@ -206,14 +206,14 @@ namespace TinyBCT.Translators
                      */
                     
                     // only encode behaviour if there was an unhandled exception
-                    sb.AppendLine("if ($Exception != null)");
-                    sb.AppendLine("{");
+                    sb.AppendLine("\t\tif ($Exception != null)");
+                    sb.AppendLine("\t\t{");
                     var target = GetThrowTarget(instruction);
                     if (String.IsNullOrEmpty(target))
-                        sb.AppendLine("return;");
+                        sb.AppendLine("\t\t\treturn;");
                     else
-                        sb.AppendLine(String.Format("goto {0};", target));
-                    sb.AppendLine("}");
+                        sb.AppendLine(String.Format("\t\t\tgoto {0};", target));
+                    sb.AppendLine("\t\t}");
 
                 }
                 //addLabel(instruction);
