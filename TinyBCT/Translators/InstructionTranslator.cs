@@ -1,5 +1,6 @@
 ﻿using Backend;
 using Backend.Model;
+using Backend.ThreeAddressCode;
 using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using Backend.Visitors;
@@ -17,6 +18,7 @@ namespace TinyBCT.Translators
     class InstructionTranslator
     {
         private ClassHierarchyAnalysis CHA;
+        private MethodBody methodBody; // currently used to get ExceptionsInformation
         // Diego: No longer required
         // public Dictionary<string, int> labels = new Dictionary<string, int>();
 
@@ -48,10 +50,11 @@ namespace TinyBCT.Translators
 
         protected IMethodDefinition method;
 
-        public InstructionTranslator(ClassHierarchyAnalysis CHA, IMethodDefinition method)
+        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody, IMethodDefinition method)
         {
             this.CHA = CHA;
             this.method = method;
+            this.methodBody = methodBody;
         }
 
         public string Translate(IList<Instruction> instructions, int idx)
@@ -67,8 +70,6 @@ namespace TinyBCT.Translators
 
             return translation.Result();
         }
-
-        
 
         void SetState(IList<Instruction> instructions, int idx)
         {
@@ -123,6 +124,62 @@ namespace TinyBCT.Translators
                 {
                     sb.AppendLine(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", "Empty", 0));
                 }
+            }
+
+            // if $Exception is not null, the method call instruction is handled as if it was a throw instruction
+            // nearest catch handler is searched otherwise exit method.
+            protected void HandleExceptionAfterMethodCall(Instruction ins)
+            {
+                sb.AppendLine("\t\tif ($Exception != null)");
+                sb.AppendLine("\t\t{");
+                var label = GetThrowTarget(ins);
+                if (String.IsNullOrEmpty(label))
+                    sb.AppendLine("\t\t\treturn;");
+                else
+                    sb.AppendLine(String.Format("\t\t\tgoto {0};", label));
+                sb.AppendLine("\t\t}");
+            }
+
+            // retrieves all succesors blocks of the block that contains the throw instruction (it could be a method call instruction)
+            // we want to jump to the nearest catch handler, so we get the block with the nearest label.
+            // if there is none, we should exit the method
+            protected string GetThrowTarget(Instruction instruction)
+            {
+                var node = Traverser.CFG.Nodes.Where((x => x.Instructions.Contains(instruction))).First();
+                var successors = node.Successors.Where(block => block.Instructions.Any(ins => ins is CatchInstruction || ins is FinallyInstruction) && block.Instructions.First().Label != null);
+
+                if (successors.Count() == 0)
+                {
+                    return string.Empty;
+                }
+
+                var offsetToBlock = successors.ToLookup(block => block.Instructions.First().Offset);
+                var minOffset = successors.Select(block => block.Instructions.First().Offset).Min();
+
+                return offsetToBlock[minOffset].First().Instructions.First().Label;
+            }
+
+            // next handler if current catch is not compatible with the exception type
+            protected string GetNextHandlerIfCurrentCatchNotMatch(Instruction instruction)
+            {
+                var node = Traverser.CFG.Nodes.Where((x => x.Instructions.Contains(instruction))).First();
+
+                // predecessors of a catch is a try - exceptional cfg add edges to the block that make a try not the catch blocks.
+                var successors = node.Predecessors.SelectMany(n => n.Successors).Where(n => n != node && n.Kind != CFGNodeKind.Exit);
+
+                var possibleHandlers = successors.Where(block => block.Instructions.Any(ins => ins is CatchInstruction || ins is FinallyInstruction) 
+                                                                            && block.Instructions.First().Label != null && // is target of something
+                                                                            block.Instructions.First().Offset > instruction.Offset); // handlers after this one.
+                
+                if (possibleHandlers.Count() == 0)
+                {
+                    return string.Empty;
+                }
+                
+                var offsetToBlock = possibleHandlers.ToLookup(block => block.Instructions.First().Offset);
+                var minOffset = possibleHandlers.Select(block => block.Instructions.First().Offset).Min();
+
+                return offsetToBlock[minOffset].First().Instructions.First().Label;
             }
         }
 
@@ -185,7 +242,64 @@ namespace TinyBCT.Translators
 
             public override void Visit(UnconditionalBranchInstruction instruction)
             {
-                //addLabel(instruction);
+                if (instruction.IsLeaveProtectedBlock)
+                {
+                    // this is a special goto statement
+                    // it is used to exit a try or a catch
+
+                    // we should check if there is a finally statement in the same try where this instruction is located
+                    // if there is one, we jump to it.
+
+                    // remember that there can be a finally when there are no catches or viceversa
+
+                    var branchOffset = instruction.Offset;
+
+                    // check if it is inside a catch handler
+                    var catchContaining = from pb in instTranslator.methodBody.ExceptionInformation
+                                     where
+                                        branchOffset >= Convert.ToInt32(pb.Handler.Start.Substring(2),16) 
+                                        && branchOffset <= Convert.ToInt32(pb.Handler.End.Substring(2), 16)
+                                        && pb.Handler.Kind == ExceptionHandlerBlockKind.Catch
+                                           orderby Convert.ToInt32(pb.Start.Substring(2), 16) descending
+                                           select pb;
+
+                    // check if it is in a try
+                    var tryContaining = from pb in instTranslator.methodBody.ExceptionInformation
+                                          where
+                                             branchOffset >= Convert.ToInt32(pb.Start.Substring(2), 16)
+                                             && branchOffset <= Convert.ToInt32(pb.End.Substring(2), 16)
+                                             //&& pb.Handler.Kind != ExceptionHandlerBlockKind.Catch
+                                          orderby Convert.ToInt32(pb.Start.Substring(2), 16) descending
+                                          select pb;
+
+                    ProtectedBlock containingBlock = null;
+
+                    if (catchContaining.Count() > 0 && tryContaining.Count() == 0)
+                        containingBlock = catchContaining.First();
+                    else if (catchContaining.Count() == 0 && tryContaining.Count() > 0)
+                        containingBlock = tryContaining.First();
+                    else if (catchContaining.Count() > 0 && tryContaining.Count() > 0)
+                    {
+                        var cStart = Convert.ToInt32(catchContaining.First().Start.Substring(2), 16);
+                        var tStart = Convert.ToInt32(tryContaining.First().Start.Substring(2), 16);
+                        containingBlock = cStart > tStart ? catchContaining.First() : tryContaining.First();
+                    }
+
+                    // we know where the protected block starts, we look for a finally handler in the same level.
+                    var target = from pb in instTranslator.methodBody.ExceptionInformation
+                                 where
+                                     pb.Start == containingBlock.Start && pb.Handler.Kind == ExceptionHandlerBlockKind.Finally
+                                 orderby Convert.ToInt32(pb.Start.Substring(2), 16) descending
+                                 select pb.Handler.Start;
+
+                    if (target.Count() > 0) // is there a finally?
+                    {
+                        sb.Append(String.Format("\t\tgoto {0};", target.First()));
+                        return;
+                    }
+
+                }
+
                 sb.Append(String.Format("\t\tgoto {0};", instruction.Target));
             }
 
@@ -255,14 +369,46 @@ namespace TinyBCT.Translators
 
             public override void Visit(TryInstruction instruction)
             {
-                // now that we can type reference (so exceptions), we could implement try catch structures
-                sb.Append("// TryInstruction not implemented yet.");
+                // nothing is done for this type of instruciton
+            }
+
+            public override void Visit(CatchInstruction instruction)
+            {
+                sb.AppendLine(String.Format("\t\tif (!$Subtype($DynamicType($ExceptionType), T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
+                sb.AppendLine("\t\t{");
+                // we jump to next catch handler, finally handler or exit method with return.
+                var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
+                if (String.IsNullOrEmpty(nextHandler))
+                    sb.AppendLine("\t\t\treturn;");
+                else
+                    sb.AppendLine(String.Format("\t\t\tgoto {0};", nextHandler));
+
+                sb.AppendLine("\t\t}");
+
+                //sb.AppendLine(String.Format());
+
+                // Exception is handled we reset global variables
+                sb.AppendLine(String.Format("\t\t{0} := $Exception;", instruction.Result));
+                sb.AppendLine("\t\t$Exception := null;");
+                sb.AppendLine("\t\t$ExceptionType := null;");
+            }
+
+            public override void Visit(ThrowInstruction instruction)
+            {
+                sb.AppendLine(String.Format("\t\tcall $ExceptionType := System.Object.GetType({0});", instruction.Operand));
+                sb.AppendLine(String.Format("\t\t$Exception := {0};", instruction.Operand));
+
+                var target = GetThrowTarget(instruction);
+
+                if (String.IsNullOrEmpty(target))
+                    sb.AppendLine("\t\treturn;");
+                else
+                    sb.AppendLine(String.Format("\t\tgoto {0};", target));
             }
 
             public override void Visit(FinallyInstruction instruction)
             {
-                // now that we can type reference (so exceptions), we could implement try catch structures
-                sb.Append("// FinallyInstruction not implemented yet.");
+                // we need to modify the last instruction
             }
 
             private void DynamicDispatch(MethodCallInstruction instruction, string arguments)
@@ -465,6 +611,7 @@ namespace TinyBCT.Translators
                 else if (instruction.Operation == MethodCallOperation.Virtual)
                 {
                     DynamicDispatch(instruction, arguments);
+                    HandleExceptionAfterMethodCall(instruction);
                     return;
                 }
 
@@ -472,11 +619,8 @@ namespace TinyBCT.Translators
 
                 CallMethod(instruction, arguments, instruction.Method);
 
-                //if (instruction.HasResult)
-                //    sb.Append(String.Format("\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
-                //else
-                //    sb.Append(String.Format("\t\tcall {0}({1});", signature, arguments));
-                
+                HandleExceptionAfterMethodCall(instruction);
+
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
                     AddToExternalMethods(instruction.Method);
                 // Important not to add methods to both sets.
@@ -555,7 +699,8 @@ namespace TinyBCT.Translators
                     {
                         //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
                         // Union y Ref son el mismo type, forman un alias.
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/opStr));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/
+                opStr));
                     }
                     else
                     {
@@ -723,6 +868,8 @@ namespace TinyBCT.Translators
                 var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 IVariable receiverObject = instruction.Arguments[1];
                 sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
+
+                HandleExceptionAfterMethodCall(instruction);
 
                 loadIns = null;
                 createObjIns = null;

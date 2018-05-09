@@ -41,7 +41,7 @@ namespace TinyBCT
             StringBuilder insSb = new StringBuilder();
 
             int idx = 0;
-            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodDefinition);
+            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody, methodDefinition);
             methodBody.Instructions
                 .Select(ins =>
                 {
