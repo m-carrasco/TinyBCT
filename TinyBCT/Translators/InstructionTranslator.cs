@@ -629,10 +629,6 @@ namespace TinyBCT.Translators
                 {
                     sb.Append(String.Format("\t\t assume {0};", arguments));
                     return;
-                } else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
-                {
-                    sb.Append(String.Format("\t\t assume {0};", arguments));
-                    return;
                 }
                 // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
                 // Our examples are compiled agains mscorlib generic types and we need to replace some method with colection stubs
