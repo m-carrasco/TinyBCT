@@ -463,8 +463,8 @@ namespace TinyBCT.Translators
                     foreach (var impl in calless)
                     {
                         MentionedClasses.Add(impl.ContainingType);
-                        // first and last invocation are not handled in this loop
-                        if (i == 0 || i == calless.Count - 1)
+                        // first // and last invocation are not handled in this loop
+                        if (i == 0) // || i == calless.Count - 1)
                         {
                             i++;
                             continue;
@@ -492,15 +492,16 @@ namespace TinyBCT.Translators
                         i++;
                     }
 
-                    if (calless.Count > 1) // last element
+                    //if (calless.Count > 1) // last element
                     {
                         //sb.AppendLine(String.Format("\t\telse ({0} == {1})", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
                         sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
                         sb.AppendLine("\t\t{");
 
+                        sb.AppendLine("\t\t assert false;");
 
 
-                        CallMethod(instruction, arguments, calless.Last());
+                        //CallMethod(instruction, arguments, calless.Last());
                         //var lastSignature = Helpers.GetMethodName(calless.Last());
                         //if (instruction.HasResult)
                         //{
