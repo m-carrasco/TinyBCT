@@ -28,40 +28,18 @@ public partial class TestsHelpers
         Assert.IsTrue(corralResult.SyntaxErrors());
     }
     [TestMethod]
+    [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultNoBugsSyntaxErrorCausesException()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
-        try
-        {
-            corralResult.NoBugs();
-            Assert.Fail();
-        }
-        catch (Test.TestUtils.CorralResult.CorralOutputException)
-        {
-            // This is the expected code path, since there is a syntax error in the BPL file.
-        }
-        catch (Exception)
-        {
-            Assert.Fail();
-        }
+        corralResult.NoBugs();
     }
     [TestMethod]
+    [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultAssertionFailsSyntaxErrorCausesException()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
-        try
-        {
-            corralResult.AssertionFails();
-            Assert.Fail();
-        }
-        catch (Test.TestUtils.CorralResult.CorralOutputException)
-        {
-            // This is the expected code path, since there is a syntax error in the BPL file.
-        }
-        catch (Exception)
-        {
-            Assert.Fail();
-        }
+        corralResult.AssertionFails();
     }
 }
 
