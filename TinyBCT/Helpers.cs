@@ -333,7 +333,7 @@ namespace TinyBCT
 
         public static bool IsMain(IMethodReference methodRef)
 		{
-			if (methodRef.Name == null) return false;
+			if (methodRef.Name == null|| !methodRef.IsStatic) return false;
 			return methodRef.Name.Value=="Main";
 		}
 

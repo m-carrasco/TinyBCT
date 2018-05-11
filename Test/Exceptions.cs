@@ -184,5 +184,28 @@ namespace Test
 
             Contract.Assert(i == 50);
         }
+
+        public void test8()
+        {
+            int i = 0;
+            try
+            {
+                i++;
+            }
+            finally
+            {
+                if (i == 5)
+                {
+                    if (i == 6)
+                    {
+                        i = 7;
+                    }
+                    else
+                        i = 9;
+                }
+                else
+                    i = 10;
+            }
+        }
     }
 }

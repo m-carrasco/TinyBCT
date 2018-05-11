@@ -107,6 +107,22 @@ namespace TinyBCT
 
                 ProcessFiles(translateMethodDefinitions);
 
+                Action<string> translateCallsToStaticConstructors = (String inputFile) =>
+                {
+                    using (var assembly = new Assembly(host))
+                    {
+                        // analysis-net setup
+                        assembly.Load(inputFile);
+                        Types.Initialize(host);
+
+                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
+                        visitor.AddMethodDefinitionAction(StaticInitializer.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
+                        visitor.Traverse(assembly.Module);
+                    }
+                };
+
+                //ProcessFiles(translateCallsToStaticConstructors);
+
                 // TypeDefinitionTranslator.TypeAxioms(); diego's axioms
                 // information stored from previous steps is used
                 TypeDefinitionTranslator.DefineUndeclaredSuperClasses();
@@ -118,6 +134,7 @@ namespace TinyBCT
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
             streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
 
+            
             // extern method called
             foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
             {

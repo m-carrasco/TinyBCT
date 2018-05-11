@@ -202,6 +202,7 @@
     <Compile Include="Translators\FieldTranslator.cs" />
     <Compile Include="Translators\InstructionTranslator.cs" />
     <Compile Include="Translators\MethodTranslator.cs" />
+    <Compile Include="Translators\StaticInitializer.cs" />
     <Compile Include="Translators\TypeDefinitionTranslator.cs" />
     <Compile Include="Traverser\Traverser.cs" />
     <Compile Include="Program.cs" />
