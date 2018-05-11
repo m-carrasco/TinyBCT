@@ -121,7 +121,9 @@ namespace TinyBCT
                     }
                 };
 
-                //ProcessFiles(translateCallsToStaticConstructors);
+                ProcessFiles(translateCallsToStaticConstructors);
+                streamWriter.WriteLine(StaticInitializer.CreateInitializeGlobals());
+                streamWriter.WriteLine(StaticInitializer.CreateMainWrappers());
 
                 // TypeDefinitionTranslator.TypeAxioms(); diego's axioms
                 // information stored from previous steps is used

@@ -10,8 +10,6 @@ namespace TinyBCT.Translators
 {
     class StaticInitializer
     {
-        private static StringBuilder sb 
-            = new StringBuilder();
         private static ISet<IMethodDefinition> mainMethods 
             = new HashSet<IMethodDefinition>();
         private static ISet<IMethodDefinition> staticConstructors 
@@ -30,7 +28,8 @@ namespace TinyBCT.Translators
 
         public static string CreateMainWrappers()
         {
-
+            StringBuilder sb
+            = new StringBuilder();
             foreach (var mainMethod in mainMethods)
             {
                 var methodName = Helpers.GetMethodName(mainMethod);
@@ -50,13 +49,19 @@ namespace TinyBCT.Translators
                     variables = String.Format("this", mainMethod.ParameterCount > 0 ? "," : String.Empty, parameters);
 
                 variables = Helpers.NormalizeStringForCorral(variables);
-                sb.AppendLine(String.Format("\tcall {0}({1});", methodName, variables));
 
+                sb.AppendLine("\tcall $initialize_globals();");
+                if (String.IsNullOrEmpty(returnType))
+                    sb.AppendLine(String.Format("\tcall {0}({1});", methodName, variables));
+                else
+                    sb.AppendLine(String.Format("\tcall $result := {0}({1});", methodName, variables));
 
                 sb.AppendLine("\tif ($Exception != null)");
+                sb.AppendLine("\t{");
                 sb.AppendLine("\t\treturn;");
-
                 sb.AppendLine("\t}");
+
+                sb.AppendLine("}");
 
             }
 
@@ -65,6 +70,8 @@ namespace TinyBCT.Translators
 
         public static string CreateInitializeGlobals()
         {
+            StringBuilder sb
+            = new StringBuilder();
             sb.AppendLine("procedure $initialize_globals()");
             sb.AppendLine("{");
             sb.AppendLine("\t//this procedure initializes global exception variables and calls static constructors");
@@ -76,10 +83,12 @@ namespace TinyBCT.Translators
                 var signature = Helpers.GetMethodName(staticConstructor);
                 sb.AppendLine(String.Format("\tcall {0}();", signature));
                 sb.AppendLine("\tif ($Exception != null)");
+                sb.AppendLine("\t{");
                 sb.AppendLine("\t\treturn;");
+                sb.AppendLine("\t}");
             }
 
-            sb.AppendLine("\t}");
+            sb.AppendLine("}");
             return sb.ToString();
         }
     }
