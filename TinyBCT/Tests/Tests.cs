@@ -2,8 +2,82 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 [TestClass]
+public partial class TestsHelpers
+{
+    private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TestUtilsAux\");
+    [TestMethod]
+    public void TestsCorralResultNoBugs()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"no_bugs.bpl"));
+        Assert.IsTrue(corralResult.NoBugs());
+        Assert.IsFalse(corralResult.AssertionFails());
+        Assert.IsFalse(corralResult.SyntaxErrors());
+    }
+    [TestMethod]
+    public void TestsCorralResultAssertionFails()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"assertion_failure.bpl"));
+        Assert.IsFalse(corralResult.NoBugs());
+        Assert.IsTrue(corralResult.AssertionFails());
+        Assert.IsFalse(corralResult.SyntaxErrors());
+    }
+    [TestMethod]
+    public void TestsCorralResultSyntaxError()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        Assert.IsTrue(corralResult.SyntaxErrors());
+    }
+    [TestMethod]
+    public void TestsCorralResultNoBugsSyntaxErrorCausesException()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        try
+        {
+            corralResult.NoBugs();
+            Assert.Fail();
+        }
+        catch (Test.TestUtils.CorralResult.CorralOutputException)
+        {
+            // This is the expected code path, since there is a syntax error in the BPL file.
+        }
+        catch (Exception)
+        {
+            Assert.Fail();
+        }
+    }
+    [TestMethod]
+    public void TestsCorralResultAssertionFailsSyntaxErrorCausesException()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        try
+        {
+            corralResult.AssertionFails();
+            Assert.Fail();
+        }
+        catch (Test.TestUtils.CorralResult.CorralOutputException)
+        {
+            // This is the expected code path, since there is a syntax error in the BPL file.
+        }
+        catch (Exception)
+        {
+            Assert.Fail();
+        }
+    }
+}
+
+[TestClass]
 public partial class Tests
 {
+    [TestMethod]
+    public void TestsCorralIsPresent()
+    {
+        Console.WriteLine();
+        Assert.IsTrue(
+            System.IO.File.Exists(Test.TestUtils.corralPath),
+            "This is not an actual test but a configuration check. Tests require corral.exe to be present. Configure Test.TestUtils.corralPath appropriately.");
+    }
+
+
     [TestMethod]
     public void SimpleTest()
     {
