@@ -76,7 +76,9 @@ namespace TinyBCT
 
         String TranslateAttr()
         {
-            return Helpers.IsMain(methodDefinition) ? " {:entrypoint}" : String.Empty;
+            // commented entrypoint tag - this is only added to the wrappers
+            // check StaticInitializer
+            return /*Helpers.IsMain(methodDefinition) ? " {:entrypoint}" :*/ String.Empty;
 
         }
 
