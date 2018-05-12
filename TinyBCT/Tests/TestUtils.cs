@@ -53,13 +53,18 @@ namespace Test
             public bool SyntaxErrors()
             {
                 SanityCheck(this.output, this.err, checkSyntaxError: false);
-                return this.output.Contains(": error:");
+                return this.output.Contains(": error:") || this.err.Contains("Parse errors");
+            }
+            public string getOutput()
+            {
+                SanityCheck(this.output, this.err);
+                return output;
             }
         }
         
         public static CorralResult CallCorral(int recursionBound, string path, string additionalArguments = "")
         {
-            System.Diagnostics.Contracts.Contract.Assume(System.IO.File.Exists(path));
+            System.Diagnostics.Contracts.Contract.Assert(System.IO.File.Exists(path));
 
             System.Diagnostics.Process pProcess = new System.Diagnostics.Process();
             pProcess.StartInfo.FileName = corralPath;
@@ -68,13 +73,38 @@ namespace Test
             pProcess.StartInfo.RedirectStandardOutput = true;
             pProcess.StartInfo.RedirectStandardError = true;
             pProcess.Start();
-            pProcess.WaitForExit();
             string output = pProcess.StandardOutput.ReadToEnd();
             string err = pProcess.StandardError.ReadToEnd();
+            pProcess.WaitForExit();
+            pProcess.Dispose();
             return new CorralResult(output, err);
         }
 
-        public static bool CreateAssemblyDefinition(string code, string name, string[] references = null)
+        private static HashSet<string> usedDirs = new HashSet<string>();
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        public static string getFreshDir(string prefix)
+        {
+            Func<string, int, string> make_name = (string x, int y) => x + "_" + y.ToString();
+            int suffix_n = usedDirs.Count;
+            while (usedDirs.Contains(make_name(prefix, suffix_n)))
+            {
+                ++suffix_n;
+            }
+            usedDirs.Add(make_name(prefix, suffix_n));
+            return make_name(prefix, suffix_n);
+        }
+
+        public static void DeleteAllFiles(string dir)
+        {
+            // There shouldn't be any directories within this temporary directory.
+            foreach (var file in System.IO.Directory.EnumerateFiles(dir))
+            {
+                System.IO.File.Delete(file);
+            }
+        }
+
+        public static bool CreateAssemblyDefinition(string code, string name, string[] references = null, string prefixDir = "")
         {
             var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL");
             var syntaxTree = CSharpSyntaxTree.ParseText(code, options: parseOptions);
@@ -99,8 +129,8 @@ namespace Test
             //using (var dllStream = new MemoryStream())
             //using (var pdbStream = new MemoryStream())
             {
-                var outputPath = Path.ChangeExtension(name, "dll");
-                var pdbPath = Path.ChangeExtension(name, "pdb");
+                var outputPath = Path.Combine(prefixDir, Path.ChangeExtension(name, "dll"));
+                var pdbPath = Path.Combine(prefixDir, Path.ChangeExtension(name, "pdb"));
                 var emitResult = compilation.Emit(outputPath, pdbPath);
                 //var emitResult = compilation.Emit(dllStream, pdbStream);
                 if (!emitResult.Success)

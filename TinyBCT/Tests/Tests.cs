@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using Backend.ThreeAddressCode.Values;
+using Microsoft.Cci;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 [TestClass]
@@ -40,6 +43,14 @@ public partial class TestsHelpers
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
         corralResult.AssertionFails();
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
+    public void TestsCorralResultGetOutputSyntaxErrorCausesException()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        corralResult.getOutput();
     }
 }
 
@@ -386,16 +397,96 @@ namespace Test
         DoTest(source, "TestCollection");
     }
 
-
-    private void DoTest(string source, string assemblyName)
+    [TestClass]
+    public partial class AvRegressionTests
     {
+        [ClassInitialize()]
+        public static void ClassInit(TestContext context)
+        {
+            Console.WriteLine(context.TestName);
+            // Create temporary directory
+            System.IO.Directory.CreateDirectory(pathTempDir);
+            Test.TestUtils.DeleteAllFiles(pathTempDir);
+            foreach (var dir in System.IO.Directory.EnumerateDirectories(pathTempDir))
+            {
+                Test.TestUtils.DeleteAllFiles(dir);
+                System.IO.Directory.Delete(dir);
+            }
+        }
 
+
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
+            TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+            TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
+            TinyBCT.Translators.InstructionTranslator.PotentiallyMissingMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
+            TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
+            TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
+
+            TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, string>();
+            TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
+
+            TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();
+            TinyBCT.Translators.TypeDefinitionTranslator.parents = new HashSet<ITypeDefinition>();
+            TinyBCT.Translators.TypeDefinitionTranslator.normalizedTypeStrings = new HashSet<string>();
+
+            TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
+            TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
+        }
+
+        private 
+            string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
+        private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
+        [TestMethod]
+        public void TestAsSimple()
+        {
+            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsSimple.cs"));
+            var uniqueDir = DoTest(source, "AsSimple", prefixDir: pathTempDir);
+            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSimple.bpl"), additionalArguments: "/main:TestAs.Main");
+            Assert.IsTrue(corralResult.NoBugs());
+        }
+        [TestMethod]
+        public void TestAsNotSubtype()
+        {
+            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsNotSubtype.cs"));
+            var uniqueDir = DoTest(source, "AsNotSubtype", prefixDir: pathTempDir);
+            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsNotSubtype.bpl"), additionalArguments: "/main:TestAs.Main");
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+        [TestMethod]
+        public void TestAsSubtypeOk()
+        {
+            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsSubtypeOk.cs"));
+            var uniqueDir = DoTest(source, "AsSubtypeOk", prefixDir: pathTempDir);
+            Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, @"AsSubtypeOk.bpl")));
+            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSubtypeOk.bpl"), additionalArguments: "/main:TestAs.Main");
+            Assert.IsTrue(corralResult.NoBugs());
+        }
+        [TestMethod]
+        public void TestAsSubtypeFails()
+        {
+            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsSubtypeFails.cs"));
+            var uniqueDir = DoTest(source, "AsSubtypeFails", prefixDir: pathTempDir);
+            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSubtypeFails.bpl"), additionalArguments: "/main:TestAs.Main");
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+    }
+
+    private static string DoTest(string source, string assemblyName, string prefixDir = "")
+    {
+        System.Diagnostics.Contracts.Contract.Assume(
+            prefixDir.Equals("") ||
+            System.IO.Directory.Exists(prefixDir));
+        string uniqueDir = System.IO.Path.Combine(prefixDir, Test.TestUtils.getFreshDir(assemblyName));
+        System.IO.Directory.CreateDirectory(uniqueDir);
         string[] references = null;
         // Didn't work because there are conflitcs with mscorelib...
         // var references = new string[] { "CollectionStubs.dll" };
-        if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references))
+        if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir))
         {
-            TinyBCT.Program.Main(new string[] { "-i", assemblyName+".dll",
+            TinyBCT.Program.Main(new string[] { "-i", System.IO.Path.Combine(uniqueDir, assemblyName)+".dll",
                 @"..\..\Dependencies\CollectionStubs.dll",
                 "-l", "true",
                 "-b", @"..\..\Dependencies\poirot_stubs.bpl" });
@@ -404,5 +495,6 @@ namespace Test
         {
             Assert.Fail();
         }
+        return uniqueDir;
     }
 }

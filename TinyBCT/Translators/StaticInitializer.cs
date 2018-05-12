@@ -6,13 +6,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT.Translators
 {
     class StaticInitializer
     {
-        private static ISet<IMethodDefinition> mainMethods 
+        internal static ISet<IMethodDefinition> mainMethods 
             = new HashSet<IMethodDefinition>();
-        private static ISet<IMethodDefinition> staticConstructors 
+        internal static ISet<IMethodDefinition> staticConstructors 
             = new HashSet<IMethodDefinition>();
 
         public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)

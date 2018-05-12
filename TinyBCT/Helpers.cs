@@ -10,12 +10,12 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT
 {
     static class Helpers
     {
-        private static ISet<string> methodsTranslated = new HashSet<string>();
+        internal static ISet<string> methodsTranslated = new HashSet<string>();
         public static bool IsInstructionImplemented(Instruction inst)
         {
             if (inst is MethodCallInstruction ||
@@ -86,7 +86,7 @@ namespace TinyBCT
             if (Helpers.IsCurrentlyMissing(methodRef))
             {
                 // TODO(rcastano): Add logger. Print this as INFO or WARNING level.
-                Console.Write("WARNING: Creating non-deterministic definition for missing method: " + Helpers.GetMethodName(methodRef));
+                Console.WriteLine("WARNING: Creating non-deterministic definition for missing method: " + Helpers.GetMethodName(methodRef));
             }
             var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
@@ -497,11 +497,10 @@ namespace TinyBCT
         {
             return method.Name.Value == ".ctor";
         }
-
-
+        
         public static class Strings
         {
-            static ISet<string> stringLiterals = new HashSet<string>();
+            internal static ISet<string> stringLiterals = new HashSet<string>();
             public static string varNameForStringLiteral(string literal)
             {
                 // String literal will start and end with '"'.
