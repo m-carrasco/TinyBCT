@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static Test.TestUtils;
 
 [TestClass]
 public partial class TestsHelpers
@@ -452,39 +453,58 @@ namespace Test
         [TestMethod]
         public void TestAsSimple()
         {
-            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsSimple.cs"));
-            var uniqueDir = DoTest(source, "AsSimple", prefixDir: pathTempDir);
-            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSimple.bpl"), additionalArguments: "/main:TestAs.Main");
+            var corralResult = CorralTestHelper("AsSimple", "TestAs.Main", 10);
             Assert.IsTrue(corralResult.NoBugs());
         }
         [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsNotSubtype()
         {
-            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsNotSubtype.cs"));
-            var uniqueDir = DoTest(source, "AsNotSubtype", prefixDir: pathTempDir);
-            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsNotSubtype.bpl"), additionalArguments: "/main:TestAs.Main");
+            var corralResult = CorralTestHelper("AsNotSubtype", "TestAs.Main", 10);
             Assert.IsTrue(corralResult.AssertionFails());
         }
         [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsSubtypeOk()
         {
-            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsSubtypeOk.cs"));
-            var uniqueDir = DoTest(source, "AsSubtypeOk", prefixDir: pathTempDir);
-            Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, @"AsSubtypeOk.bpl")));
-            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSubtypeOk.bpl"), additionalArguments: "/main:TestAs.Main");
+            var corralResult = CorralTestHelper("AsSubtypeOk", "TestAs.Main", 10);
             Assert.IsTrue(corralResult.NoBugs());
         }
         [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsSubtypeFails()
         {
-            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, @"AsSubtypeFails.cs"));
-            var uniqueDir = DoTest(source, "AsSubtypeFails", prefixDir: pathTempDir);
-            var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSubtypeFails.bpl"), additionalArguments: "/main:TestAs.Main");
+            var corralResult = CorralTestHelper("AsSubtypeFails", "TestAs.Main", 10);
             Assert.IsTrue(corralResult.AssertionFails());
         }
+
+        [TestCategory("Av-Regressions")]
+        [TestMethod]
+        public void TestForeachOK()
+        {
+            var corralResult = CorralTestHelper("ForEachOK", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.NoBugs());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+
+        public void TestForeach2Bug()
+        {
+            var corralResult = CorralTestHelper("ForEach2Bug", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        private CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
+        {
+            var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
+            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
+            var uniqueDir = DoTest(source, testName, prefixDir: pathTempDir);
+            Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
+            var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
+            return corralResult;
+        }
+
     }
 
     private static string DoTest(string source, string assemblyName, string prefixDir = "")

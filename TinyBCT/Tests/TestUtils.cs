@@ -109,22 +109,45 @@ namespace Test
             var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL");
             var syntaxTree = CSharpSyntaxTree.ParseText(code, options: parseOptions);
 
-            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithOptimizationLevel(OptimizationLevel.Debug);
+            var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                .WithOptimizationLevel(OptimizationLevel.Debug);
 
             var metadataRefences = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) };
-            //if (references != null)
-            //{
-            //    metadataRefences = new[] {
-            //        MetadataReference.CreateFromFile(references[0]),
-            //        MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            //                                }; 
-            //}
+
+            var assemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
+            IEnumerable<string> defaultNamespaces = new[]
+             {
+                "System",
+                "System.IO",
+                "System.Net",
+                "System.Linq",
+                "System.Text",
+                "System.Text.RegularExpressions",
+                "System.Collections.Generic"
+            };
+            IEnumerable<MetadataReference> defaultReferences = new[]
+            {
+                MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "mscorlib.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Core.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Runtime.dll")),
+            };
+
+            //CSharpCompilationOptions defaultCompilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+            //            .WithOverflowChecks(true).WithOptimizationLevel(OptimizationLevel.Release)
+            //            .WithUsings(defaultNamespaces);
 
             CSharpCompilation compilation = CSharpCompilation.Create(
                 name,
-                new[] { syntaxTree },
-                metadataRefences,
-                options);
+                syntaxTrees: new[] { syntaxTree },
+                references: defaultReferences,
+                options: options);
+
+            //CSharpCompilation compilation = CSharpCompilation.Create(
+            //                                name,
+            //                                new[] { syntaxTree },
+            //                                metadataRefences,
+            //                                options);
 
             //using (var dllStream = new MemoryStream())
             //using (var pdbStream = new MemoryStream())
