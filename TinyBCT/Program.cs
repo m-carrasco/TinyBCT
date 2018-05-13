@@ -12,7 +12,7 @@ using Backend.Model;
 
 namespace TinyBCT
 {
-    class Program : MarshalByRefObject
+    class Program 
     {
         public static StreamWriter streamWriter;
 

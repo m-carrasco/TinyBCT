@@ -9,6 +9,7 @@ public partial class TestsHelpers
 {
     private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TestUtilsAux\");
     [TestMethod]
+    [TestCategory("Call-Corral")]
     public void TestsCorralResultNoBugs()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"no_bugs.bpl"));
@@ -16,6 +17,7 @@ public partial class TestsHelpers
         Assert.IsFalse(corralResult.AssertionFails());
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
+    [TestCategory("Call-Corral")]
     [TestMethod]
     public void TestsCorralResultAssertionFails()
     {
@@ -24,12 +26,14 @@ public partial class TestsHelpers
         Assert.IsTrue(corralResult.AssertionFails());
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
+    [TestCategory("Call-Corral")]
     [TestMethod]
     public void TestsCorralResultSyntaxError()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
         Assert.IsTrue(corralResult.SyntaxErrors());
     }
+    [TestCategory("Call-Corral")]
     [TestMethod]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultNoBugsSyntaxErrorCausesException()
@@ -37,6 +41,7 @@ public partial class TestsHelpers
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
         corralResult.NoBugs();
     }
+    [TestCategory("Call-Corral")]
     [TestMethod]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultAssertionFailsSyntaxErrorCausesException()
@@ -45,6 +50,7 @@ public partial class TestsHelpers
         corralResult.AssertionFails();
     }
 
+    [TestCategory("Call-Corral")]
     [TestMethod]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultGetOutputSyntaxErrorCausesException()
@@ -58,6 +64,7 @@ public partial class TestsHelpers
 public partial class Tests
 {
     [TestMethod]
+    [TestCategory("Call-Corral")]
     public void TestsCorralIsPresent()
     {
         Console.WriteLine();
@@ -400,6 +407,7 @@ namespace Test
     [TestClass]
     public partial class AvRegressionTests
     {
+        [TestCategory("Av-Regressions")]
         [ClassInitialize()]
         public static void ClassInit(TestContext context)
         {
@@ -439,6 +447,8 @@ namespace Test
         private 
             string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
         private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
+
+        [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsSimple()
         {
@@ -447,6 +457,7 @@ namespace Test
             var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSimple.bpl"), additionalArguments: "/main:TestAs.Main");
             Assert.IsTrue(corralResult.NoBugs());
         }
+        [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsNotSubtype()
         {
@@ -455,6 +466,7 @@ namespace Test
             var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsNotSubtype.bpl"), additionalArguments: "/main:TestAs.Main");
             Assert.IsTrue(corralResult.AssertionFails());
         }
+        [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsSubtypeOk()
         {
@@ -464,6 +476,7 @@ namespace Test
             var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(uniqueDir, @"AsSubtypeOk.bpl"), additionalArguments: "/main:TestAs.Main");
             Assert.IsTrue(corralResult.NoBugs());
         }
+        [TestCategory("Av-Regressions")]
         [TestMethod]
         public void TestAsSubtypeFails()
         {
