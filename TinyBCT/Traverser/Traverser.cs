@@ -50,10 +50,12 @@ namespace TinyBCT
             var newLocalToNewParam = new Dictionary<IVariable, IVariable>();
             foreach (var variable in methodBody.Parameters)
             {
-                var newParameter = new LocalVariable(String.Format("${0}_param", variable.Name), true);
+                // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
+                var newParameter = new LocalVariable(String.Format("${0}_param", variable.Name), true, methodBody.MethodDefinition);
                 newParameters.Add(newParameter);
                 newParameter.Type = variable.Type;
-                var newLocal = new LocalVariable(variable.Name, false);
+                // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
+                var newLocal = new LocalVariable(variable.Name, false, methodBody.MethodDefinition);
                 newLocal.Type = variable.Type;
                 oldParamToNewLocal.Add(variable, newLocal);
                 methodBody.Variables.Add(newLocal);
@@ -84,7 +86,7 @@ namespace TinyBCT
             //var cfg = cfAnalysis.GenerateNormalControlFlow();
             CFG = cfAnalysis.GenerateExceptionalControlFlow();
 
-            var splitter = new WebAnalysis(CFG);
+            var splitter = new WebAnalysis(CFG, methodBody.MethodDefinition);
             splitter.Analyze();
             splitter.Transform();
 
