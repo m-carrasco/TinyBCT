@@ -488,12 +488,44 @@ namespace Test
 
         [TestMethod]
         [TestCategory("Av-Regressions")]
-
         public void TestForeach2Bug()
         {
             var corralResult = CorralTestHelper("ForEach2Bug", "PoirotMain.Main", 10);
             Assert.IsTrue(corralResult.AssertionFails());
         }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestComplexExprBug()
+        {
+            var corralResult = CorralTestHelper("ComplexExpr", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestDoubleQuestionBug()
+        {
+            var corralResult = CorralTestHelper("DoubleQuestion", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestEx1()
+        {
+            var corralResult = CorralTestHelper("ex1", "cMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestEx2()
+        {
+            var corralResult = CorralTestHelper("ex2", "cMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
 
         private CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
         {
