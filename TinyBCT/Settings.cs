@@ -20,6 +20,7 @@ namespace TinyBCT
         public static string OutputFile;
 
         public static bool EmitLineNumbers = false;
+        public static bool Exceptions = true;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -53,6 +54,10 @@ namespace TinyBCT
             .SetDefault(false)
             .WithDescription("Emit line numbers from source code in .bpl file. By default is true");
 
+            p.Setup<bool>('e', "exceptions")
+             .Callback(b => Exceptions = b)
+             .SetDefault(true)
+             .WithDescription("Enable translation of exceptions handling.");
 
             var result = p.Parse(args);
 
