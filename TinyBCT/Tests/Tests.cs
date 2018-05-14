@@ -1,9 +1,80 @@
 ﻿using System;
+using System.Collections.Generic;
+using Backend.ThreeAddressCode.Values;
+using Microsoft.Cci;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static Test.TestUtils;
+
+[TestClass]
+public partial class TestsHelpers
+{
+    private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TestUtilsAux\");
+    [TestMethod]
+    [TestCategory("Call-Corral")]
+    public void TestsCorralResultNoBugs()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"no_bugs.bpl"));
+        Assert.IsTrue(corralResult.NoBugs());
+        Assert.IsFalse(corralResult.AssertionFails());
+        Assert.IsFalse(corralResult.SyntaxErrors());
+    }
+    [TestCategory("Call-Corral")]
+    [TestMethod]
+    public void TestsCorralResultAssertionFails()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"assertion_failure.bpl"));
+        Assert.IsFalse(corralResult.NoBugs());
+        Assert.IsTrue(corralResult.AssertionFails());
+        Assert.IsFalse(corralResult.SyntaxErrors());
+    }
+    [TestCategory("Call-Corral")]
+    [TestMethod]
+    public void TestsCorralResultSyntaxError()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        Assert.IsTrue(corralResult.SyntaxErrors());
+    }
+    [TestCategory("Call-Corral")]
+    [TestMethod]
+    [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
+    public void TestsCorralResultNoBugsSyntaxErrorCausesException()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        corralResult.NoBugs();
+    }
+    [TestCategory("Call-Corral")]
+    [TestMethod]
+    [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
+    public void TestsCorralResultAssertionFailsSyntaxErrorCausesException()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        corralResult.AssertionFails();
+    }
+
+    [TestCategory("Call-Corral")]
+    [TestMethod]
+    [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
+    public void TestsCorralResultGetOutputSyntaxErrorCausesException()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
+        corralResult.getOutput();
+    }
+}
 
 [TestClass]
 public partial class Tests
 {
+    [TestMethod]
+    [TestCategory("Call-Corral")]
+    public void TestsCorralIsPresent()
+    {
+        Console.WriteLine();
+        Assert.IsTrue(
+            System.IO.File.Exists(Test.TestUtils.corralPath),
+            "This is not an actual test but a configuration check. Tests require corral.exe to be present. Configure Test.TestUtils.corralPath appropriately.");
+    }
+
+
     [TestMethod]
     public void SimpleTest()
     {
@@ -334,16 +405,153 @@ namespace Test
         DoTest(source, "TestCollection");
     }
 
-
-    private void DoTest(string source, string assemblyName)
+    [TestClass]
+    public partial class AvRegressionTests
     {
+        [TestCategory("Av-Regressions")]
+        [ClassInitialize()]
+        public static void ClassInit(TestContext context)
+        {
+            Console.WriteLine(context.TestName);
+            // Create temporary directory
+            System.IO.Directory.CreateDirectory(pathTempDir);
+            Test.TestUtils.DeleteAllFiles(pathTempDir);
+            foreach (var dir in System.IO.Directory.EnumerateDirectories(pathTempDir))
+            {
+                Test.TestUtils.DeleteAllFiles(dir);
+                System.IO.Directory.Delete(dir);
+            }
+        }
 
+
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
+            TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+            TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
+            TinyBCT.Translators.InstructionTranslator.PotentiallyMissingMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
+            TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
+            TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
+
+            TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, string>();
+            TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
+
+            TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();
+            TinyBCT.Translators.TypeDefinitionTranslator.parents = new HashSet<ITypeDefinition>();
+            TinyBCT.Translators.TypeDefinitionTranslator.normalizedTypeStrings = new HashSet<string>();
+
+            TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
+            TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
+        }
+
+        private 
+            string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
+        private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
+
+        [TestCategory("Av-Regressions")]
+        [TestMethod]
+        public void TestAsSimple()
+        {
+            var corralResult = CorralTestHelper("AsSimple", "TestAs.Main", 10);
+            Assert.IsTrue(corralResult.NoBugs());
+        }
+        [TestCategory("Av-Regressions")]
+        [TestMethod]
+        public void TestAsNotSubtype()
+        {
+            var corralResult = CorralTestHelper("AsNotSubtype", "TestAs.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+        [TestCategory("Av-Regressions")]
+        [TestMethod]
+        public void TestAsSubtypeOk()
+        {
+            var corralResult = CorralTestHelper("AsSubtypeOk", "TestAs.Main", 10);
+            Assert.IsTrue(corralResult.NoBugs());
+        }
+        [TestCategory("Av-Regressions")]
+        [TestMethod]
+        public void TestAsSubtypeFails()
+        {
+            var corralResult = CorralTestHelper("AsSubtypeFails", "TestAs.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestCategory("Av-Regressions")]
+        [TestMethod]
+        public void TestForeachOK()
+        {
+            var corralResult = CorralTestHelper("ForEachOK", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.NoBugs());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestForeach2Bug()
+        {
+            var corralResult = CorralTestHelper("ForEach2Bug", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestComplexExprBug()
+        {
+            var corralResult = CorralTestHelper("ComplexExpr", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestDoubleQuestionBug()
+        {
+            var corralResult = CorralTestHelper("DoubleQuestion", "PoirotMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestEx1()
+        {
+            var corralResult = CorralTestHelper("ex1", "cMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+        [TestMethod]
+        [TestCategory("Av-Regressions")]
+        public void TestEx2()
+        {
+            var corralResult = CorralTestHelper("ex2", "cMain.Main", 10);
+            Assert.IsTrue(corralResult.AssertionFails());
+        }
+
+
+        private CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
+        {
+            var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
+            string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
+            var uniqueDir = DoTest(source, testName, prefixDir: pathTempDir);
+            Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
+            var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
+            return corralResult;
+        }
+
+    }
+
+    private static string DoTest(string source, string assemblyName, string prefixDir = "")
+    {
+        System.Diagnostics.Contracts.Contract.Assume(
+            prefixDir.Equals("") ||
+            System.IO.Directory.Exists(prefixDir));
+        string uniqueDir = System.IO.Path.Combine(prefixDir, Test.TestUtils.getFreshDir(assemblyName));
+        System.IO.Directory.CreateDirectory(uniqueDir);
         string[] references = null;
         // Didn't work because there are conflitcs with mscorelib...
         // var references = new string[] { "CollectionStubs.dll" };
-        if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references))
+        if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir))
         {
-            TinyBCT.Program.Main(new string[] { "-i", assemblyName+".dll",
+            TinyBCT.Program.Main(new string[] { "-i", System.IO.Path.Combine(uniqueDir, assemblyName)+".dll",
                 @"..\..\Dependencies\CollectionStubs.dll",
                 "-l", "true",
                 "-b", @"..\..\Dependencies\poirot_stubs.bpl" });
@@ -352,5 +560,6 @@ namespace Test
         {
             Assert.Fail();
         }
+        return uniqueDir;
     }
 }

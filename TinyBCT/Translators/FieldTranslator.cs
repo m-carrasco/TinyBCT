@@ -5,12 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT.Translators
 {
     class FieldTranslator
     {
         IFieldReference fieldRef;
-        private static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
+        internal static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
 
         public static IList<String> GetFieldDefinitions()
         {

@@ -6,13 +6,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT.Translators
 {
     class StaticInitializer
     {
-        private static ISet<IMethodDefinition> mainMethods 
+        internal static ISet<IMethodDefinition> mainMethods 
             = new HashSet<IMethodDefinition>();
-        private static ISet<IMethodDefinition> staticConstructors 
+        internal static ISet<IMethodDefinition> staticConstructors 
             = new HashSet<IMethodDefinition>();
 
         public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)
@@ -35,7 +36,7 @@ namespace TinyBCT.Translators
                 var methodName = Helpers.GetMethodName(mainMethod);
                 var parameters = Helpers.GetParametersWithBoogieType(mainMethod);
                 var returnType = Helpers.GetMethodBoogieReturnType(mainMethod) == null ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(mainMethod) + ")");
-                sb.AppendLine(String.Format("procedure $Main_Wrapper_{0}({1}) {2}",methodName, parameters, returnType));
+                sb.AppendLine(String.Format("procedure {{:entrypoint}} $Main_Wrapper_{0}({1}) {2}", methodName, parameters, returnType));
                 sb.AppendLine("{");
 
                 var variables = String.Empty;
@@ -76,7 +77,7 @@ namespace TinyBCT.Translators
             sb.AppendLine("{");
             sb.AppendLine("\t//this procedure initializes global exception variables and calls static constructors");
             sb.AppendLine("\t$Exception := null;");
-            sb.AppendLine("\t$ExceptionType := null");
+            sb.AppendLine("\t$ExceptionType := null;");
 
             foreach (var staticConstructor in staticConstructors)
             {

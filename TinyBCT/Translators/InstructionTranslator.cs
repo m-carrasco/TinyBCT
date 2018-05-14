@@ -1000,7 +1000,7 @@ namespace TinyBCT.Translators
 
     public class DelegateStore
     {
-        static IDictionary<IMethodReference, string> methodIdentifiers =
+        internal static IDictionary<IMethodReference, string> methodIdentifiers =
                 new Dictionary<IMethodReference, string>();
 
         public static IDictionary<string, ISet<IMethodReference>> MethodGrouping

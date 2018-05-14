@@ -260,3 +260,4 @@ paket-files/
 __pycache__/
 *.pyc
 /TinyBCT/Dependencies/CollectionStubs.dll_tac_output.txt
+/Test/TempDirForTests
