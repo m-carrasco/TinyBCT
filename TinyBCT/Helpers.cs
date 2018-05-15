@@ -218,9 +218,12 @@ namespace TinyBCT
                 var receiverTypeDef = receiverType.ResolvedType;
                 if (receiverTypeDef == null) break;
 
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m,NameFormattingOptions.PreserveSpecialNames)
-                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames)));
-                
+                //                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m,NameFormattingOptions.PreserveSpecialNames)
+                //                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames)));
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m, NameFormattingOptions.PreserveSpecialNames)
+                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames))
+                                                                                && ParametersAreCompatible(m,method));
+
                 if (matchingMethod != null)
                 {
                     result = matchingMethod;
@@ -259,7 +262,7 @@ namespace TinyBCT
 
                 //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
                 var unspecializedMethod = Helpers.GetUnspecializedVersion(method);
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreEquals(m, unspecializedMethod));
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreCompatible(m, unspecializedMethod));
 
                 if (matchingMethod != null)
                 {
@@ -281,7 +284,7 @@ namespace TinyBCT
         }
 
 
-        public static bool ParametersAreEquals(IMethodReference m1, IMethodReference m2)
+        public static bool ParametersAreCompatible(IMethodReference m1, IMethodReference m2)
         {
             m1 = GetUnspecializedVersion(m1);
 
@@ -292,8 +295,9 @@ namespace TinyBCT
             {
                 var m1Pi = TypeHelper.UninstantiateAndUnspecialize(m1.Parameters.ElementAt(i).Type);
                 var m2Pi = TypeHelper.UninstantiateAndUnspecialize(m2.Parameters.ElementAt(i).Type);
-                if (!TypeEquals(m1Pi, m2Pi))
+                if (!TypeEquals(m1Pi, m2Pi) && !Type1DerivesFromOrIsTheSameAsType2ForGenerics(m1Pi, m2Pi))
                     return false;
+
             }
             return true;
         }
