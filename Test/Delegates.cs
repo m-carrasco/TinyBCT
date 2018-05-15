@@ -64,10 +64,17 @@ namespace Test
 
         }
 
-        public static void invoke1(Func<int, int> f)
+        public static int invoke1(Func<int, int> f)
         {
             // it should invoke plus or return a no deterministic value.
             var r = f(1);
+            return r;
+        }
+
+        public static void invoke_invoke1_plus()
+        {
+            var r = invoke1(plus);
+            Contract.Assert(r == 2);
         }
 
         public static void invoke2(DelegateIntInt f)
