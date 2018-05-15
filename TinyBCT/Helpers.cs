@@ -514,7 +514,6 @@ namespace TinyBCT
             }
             public static string fixStringLiteral(IValue v)
             {
-                System.Diagnostics.Contracts.Contract.Assume(v.Type.TypeCode.Equals(PrimitiveTypeCode.String));
                 string vStr = v.ToString();
                 if (v is Constant)
                 {
@@ -532,6 +531,20 @@ namespace TinyBCT
                         String.Format("\tvar {0} : Ref;", Helpers.Strings.varNameForStringLiteral(lit))
                         );
                 }
+            }
+
+            // TODO(rcastano): pick better name
+            public static string GetBinaryMethod(BinaryOperation op)
+            {
+                string method = "";
+                switch (op)
+                {
+                    case BinaryOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
+                    case BinaryOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
+                    case BinaryOperation.Add: method = "System.String.Concat$System.String$System.String"; break;
+
+                }
+                return method;
             }
         }
     }

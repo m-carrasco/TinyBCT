@@ -92,8 +92,6 @@ public class TestsBase
             System.IO.Directory.Delete(dir);
         }
     }
-
-
     [TestInitialize]
     public void TestInitialize()
     {
@@ -114,7 +112,6 @@ public class TestsBase
         TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
         TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
     }
-
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
 
@@ -567,7 +564,45 @@ public partial class AvRegressionTests : TestsBase
         var corralResult = CorralTestHelper("ex2", "cMain.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestMethod]
+    [TestCategory("Av-Regressions-NotImplementedYet")]
+    public void TestAbstractClassDLL()
+    {
+        var corralResult = CorralTestHelper("AbstractClassDLL", "Test.doStuff", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
+    [TestMethod]
+    [TestCategory("Av-Regressions-NotImplementedYet")]
+    public void TestArgs()
+    {
+        var corralResult = CorralTestHelper("Args", "Test.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator1()
+    {
+        var corralResult = CorralTestHelper("stringEq", "Test.ShouldFail", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator2()
+    {
+        var corralResult = CorralTestHelper("stringEq", "Test.ShouldPass", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator3()
+    {
+        var corralResult = CorralTestHelper("stringEq", "Test.ShouldPass2", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 }
 
 

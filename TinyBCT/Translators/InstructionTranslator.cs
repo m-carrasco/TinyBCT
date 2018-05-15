@@ -149,42 +149,57 @@ namespace TinyBCT.Translators
                 IVariable left = instruction.LeftOperand;
                 IVariable right = instruction.RightOperand;
 
-                // Binary operations get translated into method calls:
-                // ops:
-                //     + : System.String.Concat$System.String$System.String
-                System.Diagnostics.Contracts.Contract.Assume(
-                    !left.Type.TypeCode.Equals(PrimitiveTypeCode.String) && !right.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
-                String operation = String.Empty;
-
-                switch (instruction.Operation)
+                if (left.Type.TypeCode.Equals(PrimitiveTypeCode.String) ||
+                    right.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
-                    case BinaryOperation.Add: operation = "+"; break;
-                    case BinaryOperation.Sub: operation = "-"; break;
-                    case BinaryOperation.Mul: operation = "*"; break;
-                    case BinaryOperation.Div: operation = "/"; break;
-                    // not implemented yet
-                    /*case BinaryOperation.Rem: operation = "%"; break;
-                    case BinaryOperation.And: operation = "&"; break;
-                    case BinaryOperation.Or: operation = "|"; break;
-                    case BinaryOperation.Xor: operation = "^"; break;
-                    case BinaryOperation.Shl: operation = "<<"; break;
-                    case BinaryOperation.Shr: operation = ">>"; break;*/
-                    case BinaryOperation.Eq: operation = "=="; break;
-                    case BinaryOperation.Neq: operation = "!="; break;
-                    case BinaryOperation.Gt:
-                        operation = ">";
-                        // hack: I don't know why is saying > when is comparing referencies
-                        if (!left.Type.IsValueType || right.Type.IsValueType)
-                        {
-                            operation = "!=";
-                        }
-                        break;
-                    case BinaryOperation.Ge: operation = ">="; break;
-                    case BinaryOperation.Lt: operation = "<"; break;
-                    case BinaryOperation.Le: operation = "<="; break;
+                    string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
+
+                    var tempVar = new LocalVariable(String.Format("tempVarStringBinOp_{0}", instTranslator.AddedVariables.Count), instTranslator.method);
+                    tempVar.Type = instruction.Result.Type;
+                    instTranslator.AddedVariables.Add(tempVar);
+                    
+                    sb.AppendLine(
+                        String.Format(
+                            "\t\tcall {0} := {1}({2}, {3});",
+                            tempVar,
+                            methodName,
+                            Helpers.Strings.fixStringLiteral(left),
+                            Helpers.Strings.fixStringLiteral(right)));
+                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, tempVar));
+                } else
+                {
+                    String operation = String.Empty;
+
+                    switch (instruction.Operation)
+                    {
+                        case BinaryOperation.Add: operation = "+"; break;
+                        case BinaryOperation.Sub: operation = "-"; break;
+                        case BinaryOperation.Mul: operation = "*"; break;
+                        case BinaryOperation.Div: operation = "/"; break;
+                        // not implemented yet
+                        /*case BinaryOperation.Rem: operation = "%"; break;
+                        case BinaryOperation.And: operation = "&"; break;
+                        case BinaryOperation.Or: operation = "|"; break;
+                        case BinaryOperation.Xor: operation = "^"; break;
+                        case BinaryOperation.Shl: operation = "<<"; break;
+                        case BinaryOperation.Shr: operation = ">>"; break;*/
+                        case BinaryOperation.Eq: operation = "=="; break;
+                        case BinaryOperation.Neq: operation = "!="; break;
+                        case BinaryOperation.Gt:
+                            operation = ">";
+                            // hack: I don't know why is saying > when is comparing referencies
+                            if (!left.Type.IsValueType || right.Type.IsValueType)
+                            {
+                                operation = "!=";
+                            }
+                            break;
+                        case BinaryOperation.Ge: operation = ">="; break;
+                        case BinaryOperation.Lt: operation = "<"; break;
+                        case BinaryOperation.Le: operation = "<="; break;
+                    }
+                    sb.Append(String.Format("\t\t{0} {1} {2} {3} {4};", instruction.Result, ":=", left, operation, right));
                 }
-                sb.Append(String.Format("\t\t{0} {1} {2} {3} {4};", instruction.Result, ":=", left, operation, right));
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
