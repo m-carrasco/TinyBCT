@@ -8,7 +8,7 @@ namespace Test
 {
     class Arrays
     {
-        static void Main(string[] args)
+        /*static void Main(string[] args)
         {
             Foo f = new Foo();
             f.i = 5;
@@ -17,9 +17,24 @@ namespace Test
             x = x + 1;
 
             f.p = args[0];
+        }*/
+
+        static void arrayLoad(int[][] a)
+        {
+            var p = a[1][1];
         }
 
-        /*static void arrayTest1(Foo[] a)
+        static void arrayLoad1(int[,] a)
+        {
+            var p = a[1,1];
+        }
+
+        static void arrayStore(int[][] a)
+        {
+            a[1][1] = 0;
+        }
+
+        static void arrayTest1(Foo[] a)
         {
             int l0 = a.GetLength(0);
             int l1 = a.GetLength(1);
@@ -28,9 +43,9 @@ namespace Test
 
             Object v1 = a.GetValue(0); // this causes an exception in tinybct
             Foo v2 = a[0];
-        }*/
+        }
 
-        static void arrayTest2(Foo[][] a)
+        /*static void arrayTest2(Foo[][] a)
         {
             Foo v2 = a[0][2];
         }
@@ -58,6 +73,18 @@ namespace Test
             var a = new int[510];
             a[0] = 30;
         }
+
+        static void arrayTest7(Foo[,] a)
+        {
+            Foo v2 = null;
+            a[0,2] = v2;
+        }*/
+
+        /*static void arrayTest8()
+        {
+            var a = new int[510, 10];
+            a[1, 0] = 1 ;
+        }*/
     }
 
     class Foo

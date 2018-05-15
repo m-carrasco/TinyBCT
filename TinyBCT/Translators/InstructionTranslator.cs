@@ -79,6 +79,8 @@ namespace TinyBCT.Translators
                 translation = new DelegateCreationTranslation(this);
             else if (ExceptionTranslation.IsExceptionTranslation(instructions, idx))
                 translation = new ExceptionTranslation(this);
+            //else if (ArrayTranslation.IsArrayTranslation(instructions, idx))
+            //    translation = new ArrayTranslation(this);
             else
                 translation = new SimpleTranslation(this);
         }
@@ -665,6 +667,125 @@ namespace TinyBCT.Translators
                         }
                     }
                 }
+            }
+        }
+
+        protected class ArrayTranslation : Translation
+        {
+            public ArrayTranslation(InstructionTranslator p) : base(p)
+            {
+            }
+
+            public static bool IsArrayTranslation(IList<Instruction> instructions, int idx)
+            {
+                Instruction ins = instructions[idx];
+
+                if (ins is CreateArrayInstruction)
+                    return true;
+
+                var load = ins as LoadInstruction;
+                if (load != null && (load.Operand is ArrayElementAccess || load.Operand is ArrayLengthAccess))
+                    return true;
+
+                var store = ins as StoreInstruction;
+                if (store != null && (store.Result is ArrayElementAccess /*|| store.Result is ArrayLengthAccess*/))
+                    return true;
+
+                return false;
+            }
+
+            public override void Visit(CreateArrayInstruction instruction)
+            {
+                /*
+                    call $tmp0 := Alloc();
+                    assume $ArrayLength($tmp0) == 1 * 510;
+                    assume (forall $tmp1: int :: $ArrayContents[$tmp0][$tmp1] == null);
+                */
+
+                sb.AppendLine(String.Format("call {0} := Alloc();", instruction.Result));
+                sb.AppendLine(String.Format("assume $ArrayLength({0}) == {1};", instruction.Result, string.Join<IVariable>(" * ",instruction.UsedVariables.ToArray())));
+                sb.AppendLine(String.Format("assume (forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null);",instruction.Result));
+            }
+
+            public override void Visit(LoadInstruction instruction)
+            {
+                /*
+                    assume a != null;
+                    assume $ArrayContents[a][0] != null;
+                    v2_Ref := $ArrayContents[$ArrayContents[a][0]][2];
+                */
+
+                ArrayElementAccess op = instruction.Operand as ArrayElementAccess;
+                // no estamos soportando el length
+                if (op != null)
+                    return;
+
+                sb.AppendLine(String.Format("{0} != null", op.Array));
+                // multi-dimensional arrays (note that it is not an array of arrays)
+                if (op.Indices.Count > 1)
+                {
+                    // TODO: implementar el Int2(, Int3( etc
+                    return;
+                    //for (int i = 0; i < op.Indices.Count-1; i++)
+                    //{
+                    //    var arrayContents = ArrayContentsLoad(op.Array, op.Indices.Take(i + 1).ToList());
+                    //    sb.AppendLine(String.Format("assume {0} != null;", arrayContents));
+                    //}
+                }
+
+                var argType = Helpers.GetBoogieType(op.Type);
+                if (!argType.Equals("Ref")) // Ref and Union are alias
+                {
+                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                    sb.AppendLine(String.Format("{0}:= Union2{2}({1});", instruction.Result, ArrayContentsLoad(op.Array, op.Indices), argType));
+                } else
+                    sb.AppendLine(String.Format("{0}:= {1};", instruction.Result, ArrayContentsLoad(op.Array, op.Indices)));
+            }
+
+            private string ArrayContentsLoad(IVariable array, IList<IVariable> indices)
+            {
+                Contract.Assert(indices.Count > 0);
+
+                if (indices.Count == 1)
+                {
+                    return String.Format("$ArrayContents[{0}][{1}]", array, indices[0]);
+                }
+
+                var rec = ArrayContentsLoad(array, indices.Take(indices.Count - 1).ToList());
+                return String.Format("$ArrayContents[{0}][{1}]", rec, indices.Last());
+            }
+
+            public override void Visit(StoreInstruction instruction)
+            {
+                // analysis-net esta crasheando para el store con arreglo multi-dimensionales.
+                ArrayElementAccess res = instruction.Result as ArrayElementAccess;
+
+                // no estamos soportando el length
+                // creo que con el store nunca deberia ocurrir.
+                if (res != null)
+                    return;
+
+
+                /*
+                    $ArrayContents := $ArrayContents[$tmp0 := $ArrayContents[$tmp0][0 := $tmp2]];
+                    assert {:sourceFile "c:\users\manuel\documents\visual studio 2015\Projects\ConsoleApplication3\ConsoleApplication3\Program.cs"} {:sourceLine 51} true;
+                    call {:cexpr "a"} boogie_si_record_Ref($tmp0);
+                    a_Ref := $tmp0;
+                */
+
+                var argType = Helpers.GetBoogieType(res.Type);
+                if (!argType.Equals("Ref")) // Ref and Union are alias
+                {
+                    /*
+                        assume Union2Int(Int2Union(0)) == 0;
+                        $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
+                    */
+                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+
+                    sb.AppendLine(String.Format("assume Union2{0}({0}2Union({1})) == {1}", argType, instruction.Operand));
+                    sb.AppendLine(String.Format("$ArrayContents := $ArrayContents[{0} := $ArrayContents[{0}][{1} := {3}2Union({2})]];", res.Array, res.Indices[0], instruction.Operand, argType));
+                } else
+                    sb.AppendLine(String.Format("$ArrayContents := $ArrayContents[{0} := $ArrayContents[{0}][{1} := {2}]];", res.Array, res.Indices[0], instruction.Operand));
             }
         }
 

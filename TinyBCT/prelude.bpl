@@ -106,3 +106,7 @@ implementation System.String.op_Inequality$System.String$System.String(a$in: Ref
 
 var $Exception : Ref;
 var $ExceptionType : Ref;
+
+var $ArrayContents: [Ref][int]Union;
+function $ArrayLength(Ref) : int;
+
