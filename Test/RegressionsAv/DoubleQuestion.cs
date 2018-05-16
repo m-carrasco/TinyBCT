@@ -14,6 +14,14 @@ class PoirotMain {
       F(ic);
       F(null);
   }
+  public static void ShouldPass() {
+      var ic = new IntContainer(3);
+      F(ic);
+  }
+  public static void ShouldFail(IntContainer x) {
+      var ic = x ?? new IntContainer(4);
+      Contract.Assert(ic.val == 4);
+  }
 
   public static void F(IntContainer x) {
     IntContainer ic;

@@ -550,9 +550,23 @@ public partial class AvRegressionTests : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
-    public void TestDoubleQuestionBug()
+    public void TestDoubleQuestion1()
     {
         var corralResult = CorralTestHelper("DoubleQuestion", "PoirotMain.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestDoubleQuestion2()
+    {
+        var corralResult = CorralTestHelper("DoubleQuestion", "PoirotMain.ShouldPass", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestDoubleQuestionBug()
+    {
+        var corralResult = CorralTestHelper("DoubleQuestion", "PoirotMain.ShouldFail$IntContainer", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -641,7 +655,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestStringEqWithEquals2()
     {
