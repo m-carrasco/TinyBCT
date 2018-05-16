@@ -9,7 +9,7 @@ using static Test.TestUtils;
 public partial class TestsHelpers
 {
     private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TestUtilsAux\");
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Call-Corral")]
     public void TestsCorralResultNoBugs()
     {
@@ -19,7 +19,7 @@ public partial class TestsHelpers
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
     [TestCategory("Call-Corral")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestsCorralResultAssertionFails()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"assertion_failure.bpl"));
@@ -28,14 +28,14 @@ public partial class TestsHelpers
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
     [TestCategory("Call-Corral")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestsCorralResultSyntaxError()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
         Assert.IsTrue(corralResult.SyntaxErrors());
     }
     [TestCategory("Call-Corral")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultNoBugsSyntaxErrorCausesException()
     {
@@ -43,7 +43,7 @@ public partial class TestsHelpers
         corralResult.NoBugs();
     }
     [TestCategory("Call-Corral")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultAssertionFailsSyntaxErrorCausesException()
     {
@@ -52,7 +52,7 @@ public partial class TestsHelpers
     }
 
     [TestCategory("Call-Corral")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultGetOutputSyntaxErrorCausesException()
     {
@@ -64,7 +64,7 @@ public partial class TestsHelpers
 [TestClass]
 public partial class Tests
 {
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Call-Corral")]
     public void TestsCorralIsPresent()
     {
@@ -153,7 +153,7 @@ public class TestsBase
 [TestClass]
 public class SimpleTests : TestsBase
 {
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void SimpleTest()
     {
         var source = @"
@@ -213,7 +213,7 @@ class TestAs
         }
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void GenericsTest()
     {
         var source = @"
@@ -272,7 +272,7 @@ class GenericsMain {
             Assert.Fail();
         }
     }
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestsYield()
     {
         var source = @"
@@ -412,7 +412,7 @@ namespace Test
         ";
         DoTest(source, "TestYield");
     }
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestsCollection()
     {
         var source = @"
@@ -489,28 +489,28 @@ public partial class AvRegressionTests : TestsBase
 {
 
     [TestCategory("Av-Regressions")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestAsSimple()
     {
         var corralResult = CorralTestHelper("AsSimple", "TestAs.Main", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [TestCategory("Av-Regressions")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestAsNotSubtype()
     {
         var corralResult = CorralTestHelper("AsNotSubtype", "TestAs.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [TestCategory("Av-Regressions")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestAsSubtypeOk()
     {
         var corralResult = CorralTestHelper("AsSubtypeOk", "TestAs.Main", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [TestCategory("Av-Regressions")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestAsSubtypeFails()
     {
         var corralResult = CorralTestHelper("AsSubtypeFails", "TestAs.Main", 10);
@@ -518,14 +518,14 @@ public partial class AvRegressionTests : TestsBase
     }
 
     [TestCategory("Av-Regressions")]
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     public void TestForeachOK()
     {
         var corralResult = CorralTestHelper("ForEachOK", "PoirotMain.Main", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestForeach2Bug()
     {
@@ -533,7 +533,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestComplexExprBug()
     {
@@ -541,7 +541,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestDoubleQuestionBug()
     {
@@ -549,7 +549,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestEx1()
     {
@@ -557,14 +557,14 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestEx2()
     {
         var corralResult = CorralTestHelper("ex2", "cMain.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions-NotImplementedYet")]
     public void TestAbstractClassDLL()
     {
@@ -572,7 +572,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions-NotImplementedYet")]
     public void TestArgs()
     {
@@ -580,7 +580,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestStringEqOperator1()
     {
@@ -588,7 +588,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestStringEqOperator2()
     {
@@ -596,11 +596,57 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
     public void TestStringEqOperator3()
     {
         var corralResult = CorralTestHelper("stringEq", "Test.ShouldPass2", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator4()
+    {
+        var corralResult = CorralTestHelper("stringEq", "Test.IneqShouldFail", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator5()
+    {
+        var corralResult = CorralTestHelper("stringEq", "Test.IneqShouldPass", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator6()
+    {
+        var corralResult = CorralTestHelper("stringEq", "Test.IneqShouldPass2", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqWithEquals1()
+    {
+        var corralResult = CorralTestHelper("stringEqWithEquals", "Test.ShouldFail", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqWithEquals2()
+    {
+        var corralResult = CorralTestHelper("stringEqWithEquals", "Test.ShouldPass", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqWithEquals3()
+    {
+        var corralResult = CorralTestHelper("stringEqWithEquals", "Test.ShouldPass2", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
 }
@@ -609,14 +655,14 @@ public partial class AvRegressionTests : TestsBase
 [TestClass]
 public class TestsManu : TestsBase
 {
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
     public void Delegates1()
     {
         var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.creation_invoke1", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
-    [TestMethod]
+    [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
     public void Delegates2()
     {

@@ -505,7 +505,7 @@ namespace TinyBCT
         public static class Strings
         {
             internal static ISet<string> stringLiterals = new HashSet<string>();
-            public static string varNameForStringLiteral(string literal)
+            public static string ConstNameForStringLiteral(string literal)
             {
                 // String literal will start and end with '"'.
                 System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
@@ -517,7 +517,7 @@ namespace TinyBCT
                 string vStr = v.ToString();
                 if (v is Constant)
                 {
-                    vStr = varNameForStringLiteral(vStr);
+                    vStr = ConstNameForStringLiteral(vStr);
                     stringLiterals.Add(v.ToString());
                 }
                 return vStr;
@@ -528,7 +528,7 @@ namespace TinyBCT
                 foreach (var lit in stringLiterals)
                 {
                     sw.WriteLine(
-                        String.Format("\tvar {0} : Ref;", Helpers.Strings.varNameForStringLiteral(lit))
+                        String.Format("\tvar {0} : Ref;", Helpers.Strings.ConstNameForStringLiteral(lit))
                         );
                 }
             }

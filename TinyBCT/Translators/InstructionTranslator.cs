@@ -327,6 +327,15 @@ namespace TinyBCT.Translators
                         instructionOperand.ToString();
                     sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, operand));
                 }
+
+
+                if (instruction.Result is IVariable &&
+                    instruction.Result.Type.TypeCode.Equals(PrimitiveTypeCode.String))
+                {
+                    MentionedClasses.Add(instruction.Result.Type);
+                    sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, instruction.Result.Type));
+                    sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, instruction.Result.Type));
+                }
             }
 
             private void DynamicDispatch(MethodCallInstruction instruction, string arguments)
