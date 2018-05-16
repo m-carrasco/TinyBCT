@@ -17,8 +17,22 @@ class PoirotMain
                        );
         bool y = ( (a1 == b2) || 
             (!(c1 == c2)) );
-    Contract.Assert(x);
     Contract.Assert(y);
+    } 
+    public static void ShouldPass()
+    {
+        a2 = "Hello";
+        b2 = "World";
+        a1 = a2;
+        b1 = b2;
+        c1 = c2;
+	bool x = ( (a1 == a2) &&
+                           (b1 == b2) &&
+                           (c1 == c2)
+                       );
+        bool y = ( (a1 == b2) || 
+            (!(c1 == c2)) );
+    Contract.Assert(x);
     } 
 
 }

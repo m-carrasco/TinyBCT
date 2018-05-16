@@ -540,6 +540,13 @@ public partial class AvRegressionTests : TestsBase
         var corralResult = CorralTestHelper("ComplexExpr", "PoirotMain.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestComplexExpr2()
+    {
+        var corralResult = CorralTestHelper("ComplexExpr", "PoirotMain.ShouldPass", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
