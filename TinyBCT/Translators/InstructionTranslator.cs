@@ -269,7 +269,7 @@ namespace TinyBCT.Translators
             {
                 //addLabel(instruction);
                 if (instruction.HasOperand)
-                    sb.Append(String.Format("\t\tr := {0};", instruction.Operand.Name));
+                    sb.Append(String.Format("\t\t$result := {0};", instruction.Operand.Name));
             }
 
             public override void Visit(LoadInstruction instruction)

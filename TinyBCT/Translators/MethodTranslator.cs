@@ -87,7 +87,7 @@ namespace TinyBCT
             if (methodDefinition.Type.TypeCode != PrimitiveTypeCode.Void)
             {
                 var returnType = Helpers.GetMethodBoogieReturnType(methodDefinition);
-                return String.Format("returns (r : {0})", returnType);
+                return String.Format("returns ($result : {0})", returnType);
             }
 
             return String.Empty;
