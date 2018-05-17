@@ -19,6 +19,13 @@ namespace Test
             Contract.Assert(x == 5);
         }
 
+        /*public static int condInc<T>(int x,T y )
+        {
+            if(y!=null)
+                return x + 1;
+            return 0;
+        }*/
+
         public static int plus(int x)
         {
             return x+1;
@@ -88,8 +95,8 @@ namespace Test
         {
             // it should invoke plus
             Func<int, int> f = plus;
-            var r = f(5);
-            Contract.Assert(r == 6);
+            var p = f(5);
+            Contract.Assert(p == 6);
         }
 
         public static void creation_invoke2()

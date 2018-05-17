@@ -91,9 +91,29 @@ namespace Test
 
         static void arrayLength(int[] a)
         {
+            var x = a[5];
+
+
             var l = a.Length;
             l = l + 1;
             Contract.Assert(a.Length + 1 == l);
+        }
+
+        static void arrayFor()
+        {
+            var a = new int[3];
+            Contract.Assert(a.Length == 3);
+            for (int i = 0; i<a.Length; i++)
+            {
+                a[i] = 2;
+            }
+            var c = 0;
+            for (int i = 0; i < a.Length; i++)
+            {
+                c = c + a[i];
+            }
+
+            Contract.Assert(c == 6);
         }
     }
 
