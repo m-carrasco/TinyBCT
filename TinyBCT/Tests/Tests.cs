@@ -688,7 +688,7 @@ public class TestsManu : TestsBase
     public void Delegates2()
     {
         var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.invoke_invoke1_plus", 10);
-        Assert.IsTrue(corralResult.AssertionFails());
+        Assert.IsTrue(corralResult.NoBugs());
     }
 
     // ************************************* ARRAYS ******************************
@@ -774,6 +774,15 @@ public class TestsManu : TestsBase
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayLength$System.Int32array", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayLengthIteration()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayFor", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
 
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
     {
