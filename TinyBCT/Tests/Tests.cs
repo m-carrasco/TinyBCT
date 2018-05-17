@@ -691,10 +691,93 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
+    // ************************************* ARRAYS ******************************
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayStoreLoad1()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayStoreLoad2()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad2", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayStoreLoad3()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayStoreLoad4()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad4", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
+    // to be implemented
+    /*[TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayStoreLoad3()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad3", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }*/
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayCreate1()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate1", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayCreate2()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate2", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayOfArrays1()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayOfArrays2()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayLength()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayLength$System.Int32array", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\");
         return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalOptions);
     }
-
  }

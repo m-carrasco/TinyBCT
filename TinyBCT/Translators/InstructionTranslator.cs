@@ -79,8 +79,8 @@ namespace TinyBCT.Translators
                 translation = new DelegateCreationTranslation(this);
             else if (ExceptionTranslation.IsExceptionTranslation(instructions, idx))
                 translation = new ExceptionTranslation(this);
-            //else if (ArrayTranslation.IsArrayTranslation(instructions, idx))
-            //    translation = new ArrayTranslation(this);
+            else if (ArrayTranslation.IsArrayTranslation(instructions, idx))
+                translation = new ArrayTranslation(this);
             else
                 translation = new SimpleTranslation(this);
         }
@@ -708,8 +708,24 @@ namespace TinyBCT.Translators
                     return true;
 
                 var load = ins as LoadInstruction;
-                if (load != null && (load.Operand is ArrayElementAccess || load.Operand is ArrayLengthAccess))
+                if (load != null && (load.Operand is ArrayElementAccess))
                     return true;
+
+                // Length Access returns an UintPtr
+                // we will avoid the conversion from ptr to int by directly returning the length
+
+                // Load/Length Convert
+                if (load != null && (load.Operand is ArrayLengthAccess) &&
+                    idx+1 <= instructions.Count-1 && instructions[idx+1] is ConvertInstruction)
+                    return true;
+
+                // Load/Length Convert
+                if (ins is ConvertInstruction && idx-1 >= 0 && instructions[idx-1] is LoadInstruction)
+                {
+                    var op = (instructions[idx - 1] as LoadInstruction).Operand as ArrayLengthAccess;
+                    if (op != null)
+                        return true;
+                }
 
                 var store = ins as StoreInstruction;
                 if (store != null && (store.Result is ArrayElementAccess /*|| store.Result is ArrayLengthAccess*/))
@@ -731,39 +747,63 @@ namespace TinyBCT.Translators
                 sb.AppendLine(String.Format("assume (forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null);",instruction.Result));
             }
 
+            private static LoadInstruction arrayLengthAccess = null;
+
+            public override void Visit(ConvertInstruction instruction)
+            {
+                Contract.Assert(arrayLengthAccess != null);
+
+                var op = arrayLengthAccess.Operand as ArrayLengthAccess;
+                sb.AppendLine(String.Format("{0} := $ArrayLength({1});", instruction.Result, op.Instance));
+                arrayLengthAccess = null;
+            }
+
             public override void Visit(LoadInstruction instruction)
             {
-                /*
-                    assume a != null;
-                    assume $ArrayContents[a][0] != null;
-                    v2_Ref := $ArrayContents[$ArrayContents[a][0]][2];
-                */
+                ArrayElementAccess elementAccess = instruction.Operand as ArrayElementAccess;
+                ArrayLengthAccess lengthAccess = instruction.Operand as ArrayLengthAccess;
 
-                ArrayElementAccess op = instruction.Operand as ArrayElementAccess;
-                // no estamos soportando el length
-                if (op != null)
-                    return;
-
-                sb.AppendLine(String.Format("{0} != null", op.Array));
-                // multi-dimensional arrays (note that it is not an array of arrays)
-                if (op.Indices.Count > 1)
+                if (lengthAccess != null)
                 {
-                    // TODO: implementar el Int2(, Int3( etc
+                    // Length Access returns an UintPtr
+                    // we will avoid the conversion from ptr to int by directly returning the length
+                    // check ConvertInstruction
+                    arrayLengthAccess = instruction;
                     return;
-                    //for (int i = 0; i < op.Indices.Count-1; i++)
-                    //{
-                    //    var arrayContents = ArrayContentsLoad(op.Array, op.Indices.Take(i + 1).ToList());
-                    //    sb.AppendLine(String.Format("assume {0} != null;", arrayContents));
-                    //}
                 }
 
-                var argType = Helpers.GetBoogieType(op.Type);
-                if (!argType.Equals("Ref")) // Ref and Union are alias
-                {
-                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                    sb.AppendLine(String.Format("{0}:= Union2{2}({1});", instruction.Result, ArrayContentsLoad(op.Array, op.Indices), argType));
-                } else
-                    sb.AppendLine(String.Format("{0}:= {1};", instruction.Result, ArrayContentsLoad(op.Array, op.Indices)));
+                if (elementAccess != null){
+
+                    /*
+                        assume a != null;
+                        assume $ArrayContents[a][0] != null;
+                        v2_Ref := $ArrayContents[$ArrayContents[a][0]][2];
+                    */
+
+                    sb.AppendLine(String.Format("assume {0} != null;", elementAccess.Array));
+                    // multi-dimensional arrays (note that it is not an array of arrays)
+                    if (elementAccess.Indices.Count > 1)
+                    {
+                        // TODO: implementar el Int2(, Int3( etc
+                        return;
+                        //for (int i = 0; i < op.Indices.Count-1; i++)
+                        //{
+                        //    var arrayContents = ArrayContentsLoad(op.Array, op.Indices.Take(i + 1).ToList());
+                        //    sb.AppendLine(String.Format("assume {0} != null;", arrayContents));
+                        //}
+                    }
+
+                    var argType = Helpers.GetBoogieType(elementAccess.Type);
+                    if (!argType.Equals("Ref")) // Ref and Union are alias
+                    {
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("{0}:= Union2{2}({1});", instruction.Result, ArrayContentsLoad(elementAccess.Array, elementAccess.Indices), argType));
+                    }
+                    else
+                        sb.AppendLine(String.Format("{0}:= {1};", instruction.Result, ArrayContentsLoad(elementAccess.Array, elementAccess.Indices)));
+
+                    return;
+                }
             }
 
             private string ArrayContentsLoad(IVariable array, IList<IVariable> indices)
@@ -786,8 +826,8 @@ namespace TinyBCT.Translators
 
                 // no estamos soportando el length
                 // creo que con el store nunca deberia ocurrir.
-                if (res != null)
-                    return;
+                //if (res == null)
+                //    return;
 
 
                 /*
@@ -806,7 +846,7 @@ namespace TinyBCT.Translators
                     */
                     argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
 
-                    sb.AppendLine(String.Format("assume Union2{0}({0}2Union({1})) == {1}", argType, instruction.Operand));
+                    sb.AppendLine(String.Format("assume Union2{0}({0}2Union({1})) == {1};", argType, instruction.Operand));
                     sb.AppendLine(String.Format("$ArrayContents := $ArrayContents[{0} := $ArrayContents[{0}][{1} := {3}2Union({2})]];", res.Array, res.Indices[0], instruction.Operand, argType));
                 } else
                     sb.AppendLine(String.Format("$ArrayContents := $ArrayContents[{0} := $ArrayContents[{0}][{1} := {2}]];", res.Array, res.Indices[0], instruction.Operand));

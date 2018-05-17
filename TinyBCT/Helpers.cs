@@ -6,6 +6,7 @@ using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -38,7 +39,12 @@ namespace TinyBCT
         }
         public static String GetBoogieType(ITypeReference type)
         {
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Int32))
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Int32) || type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
+                return "int";
+
+            // not sure about this
+            // appeared when accessing anArray.Length
+            if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
                 return "int";
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
@@ -50,6 +56,8 @@ namespace TinyBCT
             // hack 
             if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive) || type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                 return "Ref";
+
+            // void type will return null
 
             return null;
         }

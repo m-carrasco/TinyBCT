@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,87 +9,100 @@ namespace Test
 {
     class Arrays
     {
-        /*static void Main(string[] args)
+        static void arrayStoreLoad1()
         {
-            Foo f = new Foo();
-            f.i = 5;
-
-            int x = f.i;
-            x = x + 1;
-
-            f.p = args[0];
-        }*/
-
-        static void arrayLoad(int[][] a)
-        {
-            var p = a[1][1];
+            var a = new int[10];
+            a[5] = 10;
+            Contract.Assert(a[5] == 10);
         }
 
-        static void arrayLoad1(int[,] a)
+        static void arrayStoreLoad2()
         {
-            var p = a[1,1];
+            var a = new int[10];
+            a[5] = 10;
+            Contract.Assert(a[5] == 9);
         }
 
-        static void arrayStore(int[][] a)
+        static void arrayStoreLoad3()
         {
-            a[1][1] = 0;
+            var a = new Foo[10];
+            a[5] = new Foo(9);
+            Contract.Assert(a[5].i == 9);
         }
 
-        static void arrayTest1(Foo[] a)
+        static void arrayStoreLoad4()
         {
-            int l0 = a.GetLength(0);
-            int l1 = a.GetLength(1);
-            int l2 = a.Count();
-            int l3 = a.Length;
-
-            Object v1 = a.GetValue(0); // this causes an exception in tinybct
-            Foo v2 = a[0];
+            var a = new Foo[10];
+            a[5] = new Foo(11);
+            Contract.Assert(a[5].i == 9);
         }
 
-        /*static void arrayTest2(Foo[][] a)
+        // corral should detect an exception here
+        // a could be null or index out of range
+        // not yet implemented
+        static void arrayStoreLoad3(int[] a)
         {
-            Foo v2 = a[0][2];
+            a[5] = 9;
         }
 
-        static void arrayTest3()
+        static void arrayOfArrays1()
         {
-            var a = new Foo[510, 10];
-            Foo v2 = a[0, 2];
+            var a = new int[10][][];
+            a[0] = new int[1][];
+            a[0][0] = new int[100];
+
+            a[0][0][99] = 10;
+
+            Contract.Assert(a[0][0][99] == 10);
         }
 
-        static void arrayTest4()
+        static void arrayOfArrays2()
         {
-            var a = new Foo[510];
-            Foo v2 = a[0];
+            var a = new int[10][][];
+            a[0] = new int[1][];
+            a[0][0] = new int[100];
+
+            a[0][0][99] = 10;
+
+            Contract.Assert(a[0][0][99] != 10);
         }
 
-        static void arrayTest5()
+        static void arrayCreate1()
         {
-            var a = new Foo[510];
-            a[0] = new Foo();
+            var a = new int[10];
+            Contract.Assert(a == null);
         }
 
-        static void arrayTest6()
+        static void arrayCreate2()
         {
-            var a = new int[510];
-            a[0] = 30;
+            var a = new int[10];
+            Contract.Assert(a != null);
         }
 
-        static void arrayTest7(Foo[,] a)
+        static void arrayLoad1()
         {
-            Foo v2 = null;
-            a[0,2] = v2;
-        }*/
+            var a = new int[10][];
+            a[0] = new int[10];
 
-        /*static void arrayTest8()
+            a[0][9] = 10;
+
+            Contract.Assert(a[0][9] == 10);
+        }
+
+        static void arrayLength(int[] a)
         {
-            var a = new int[510, 10];
-            a[1, 0] = 1 ;
-        }*/
+            var l = a.Length;
+            l = l + 1;
+            Contract.Assert(a.Length + 1 == l);
+        }
     }
 
     class Foo
     {
+        public Foo(int x)
+        {
+            i = x;
+        }
         public int i;
         public string p;
     }
