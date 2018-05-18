@@ -67,6 +67,30 @@ namespace Test
             Contract.Assert(a[0][0][99] != 10);
         }
 
+        static void arrayOfArrays3()
+        {
+            var a = new Foo[10][][];
+            a[0] = new Foo[1][];
+            a[0][0] = new Foo[100];
+
+            a[0][0][99] = new Foo(10);
+
+            Contract.Assert(a[0][0][99].i
+                 == 10);
+        }
+
+        static void arrayOfArrays4()
+        {
+            var a = new Foo[10][][];
+            a[0] = new Foo[1][];
+            a[0][0] = new Foo[100];
+
+            a[0][0][99] = new Foo(10);
+
+            Contract.Assert(a[0][0][99].i
+                 != 10);
+        }
+
         static void arrayCreate1()
         {
             var a = new int[10];

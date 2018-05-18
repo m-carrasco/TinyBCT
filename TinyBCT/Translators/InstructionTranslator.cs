@@ -774,70 +774,58 @@ namespace TinyBCT.Translators
 
                 if (elementAccess != null){
 
-                    /*
-                        assume a != null;
-                        assume $ArrayContents[a][0] != null;
-                        v2_Ref := $ArrayContents[$ArrayContents[a][0]][2];
-                    */
-
-                    sb.AppendLine(String.Format("assume {0} != null;", elementAccess.Array));
                     // multi-dimensional arrays (note that it is not an array of arrays)
-                    if (elementAccess.Indices.Count > 1)
-                    {
-                        // TODO: implementar el Int2(, Int3( etc
-                        return;
-                        //for (int i = 0; i < op.Indices.Count-1; i++)
-                        //{
-                        //    var arrayContents = ArrayContentsLoad(op.Array, op.Indices.Take(i + 1).ToList());
-                        //    sb.AppendLine(String.Format("assume {0} != null;", arrayContents));
-                        //}
-                    }
+                    // analysis-net is not working correctly with them
+                    Contract.Assert(elementAccess.Indices.Count == 1);
 
                     var argType = Helpers.GetBoogieType(elementAccess.Type);
-                    if (!argType.Equals("Ref")) // Ref and Union are alias
-                    {
-                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        sb.AppendLine(String.Format("{0}:= Union2{2}({1});", instruction.Result, ArrayContentsLoad(elementAccess.Array, elementAccess.Indices), argType));
-                    }
-                    else
-                        sb.AppendLine(String.Format("{0}:= {1};", instruction.Result, ArrayContentsLoad(elementAccess.Array, elementAccess.Indices)));
-
+                    Contract.Assert(!String.IsNullOrEmpty(argType));
+                    ReadArrayContent(instruction.Result, elementAccess.Array, elementAccess.Indices, argType);
                     return;
                 }
             }
 
-            private string ArrayContentsLoad(IVariable array, IList<IVariable> indices)
+            // result is the original result variable of the instruction
+            private void ReadArrayContent(IVariable insResult, IVariable array, IList<IVariable> indexes, string boogieType)
             {
-                Contract.Assert(indices.Count > 0);
-
-                if (indices.Count == 1)
+                if (indexes.Count == 1)
                 {
-                    return String.Format("$ArrayContents[{0}][{1}]", array, indices[0]);
-                }
+                    // we access the last array of the chain - this one returns the element we want
+                    // that element could be a Union (Ref alias) or a non Union type. In the last case we must perform a cast.
+                    if (boogieType.Equals("Ref"))
+                    {
+                        sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});",  insResult, array, indexes.First()));
+                    }
+                    else
+                    {
+                        // Store Union element and then cast it to the correct type
+                        boogieType = boogieType.First().ToString().ToUpper() + boogieType.Substring(1).ToLower();
 
-                var rec = ArrayContentsLoad(array, indices.Take(indices.Count - 1).ToList());
-                return String.Format("$ArrayContents[{0}][{1}]", rec, indices.Last());
+                        var tempVar = new LocalVariable(String.Format("$arrayElement{0}", instTranslator.AddedVariables.Count), instTranslator.method);
+                        tempVar.Type = Types.Instance.PlatformType.SystemObject; // we want Union
+                        instTranslator.AddedVariables.Add(tempVar);
+                        sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});", tempVar, array, indexes.First()));
+                        sb.AppendLine(String.Format("{0} := Union2{2}({1});", insResult, tempVar, boogieType));
+                    }
+                } else
+                {
+                    var tempVar = new LocalVariable(String.Format("$arrayElement{0}", instTranslator.AddedVariables.Count), instTranslator.method);
+                    tempVar.Type = Types.Instance.PlatformType.SystemObject; // we want Union
+                    instTranslator.AddedVariables.Add(tempVar);
+                    sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});", insResult, array, indexes.First()));
+                    ReadArrayContent(insResult, tempVar, indexes.Skip(1).ToList(), boogieType);
+                }
             }
 
             public override void Visit(StoreInstruction instruction)
             {
-                // analysis-net esta crasheando para el store con arreglo multi-dimensionales.
+                // multi-dimensional arrays are not supported yet - analysis-net is not working correctly
                 ArrayElementAccess res = instruction.Result as ArrayElementAccess;
 
-                // no estamos soportando el length
-                // creo que con el store nunca deberia ocurrir.
-                //if (res == null)
-                //    return;
-
-
-                /*
-                    $ArrayContents := $ArrayContents[$tmp0 := $ArrayContents[$tmp0][0 := $tmp2]];
-                    assert {:sourceFile "c:\users\manuel\documents\visual studio 2015\Projects\ConsoleApplication3\ConsoleApplication3\Program.cs"} {:sourceLine 51} true;
-                    call {:cexpr "a"} boogie_si_record_Ref($tmp0);
-                    a_Ref := $tmp0;
-                */
-
+                Contract.Assert(res != null);
                 var argType = Helpers.GetBoogieType(res.Type);
+                Contract.Assert(!String.IsNullOrEmpty(argType));
+
                 if (!argType.Equals("Ref")) // Ref and Union are alias
                 {
                     /*
@@ -847,9 +835,9 @@ namespace TinyBCT.Translators
                     argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
 
                     sb.AppendLine(String.Format("assume Union2{0}({0}2Union({1})) == {1};", argType, instruction.Operand));
-                    sb.AppendLine(String.Format("$ArrayContents := $ArrayContents[{0} := $ArrayContents[{0}][{1} := {3}2Union({2})]];", res.Array, res.Indices[0], instruction.Operand, argType));
+                    sb.AppendLine(String.Format("call $WriteArrayElement({0}, {1}, {3}2Union({2}));", res.Array, res.Indices[0], instruction.Operand, argType));
                 } else
-                    sb.AppendLine(String.Format("$ArrayContents := $ArrayContents[{0} := $ArrayContents[{0}][{1} := {2}]];", res.Array, res.Indices[0], instruction.Operand));
+                    sb.AppendLine(String.Format("call $WriteArrayElement({0}, {1}, {2});", res.Array, res.Indices[0], instruction.Operand));
             }
         }
 

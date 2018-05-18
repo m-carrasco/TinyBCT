@@ -116,3 +116,16 @@ var $ExceptionType : Ref;
 var $ArrayContents: [Ref][int]Union;
 function $ArrayLength(Ref) : int;
 
+procedure $ReadArrayElement(array: Ref, index : int) returns ($result: Union);
+implementation $ReadArrayElement(array: Ref, index : int) returns ($result: Union)
+{
+    assert $ArrayLength(array) > index && index >= 0;
+	$result := $ArrayContents[array][index];
+}
+
+procedure $WriteArrayElement(array: Ref, index : int, data : Union);
+implementation $WriteArrayElement(array: Ref, index : int, data : Union)
+{
+    assert $ArrayLength(array) > index && index >= 0;
+	$ArrayContents := $ArrayContents[array := $ArrayContents[array][index := data]];
+}

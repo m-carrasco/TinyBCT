@@ -769,10 +769,26 @@ public class TestsManu : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
+    public void ArrayOfArrays3()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArrayOfArrays4()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
     public void ArrayLength()
     {
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayLength$System.Int32array", 10);
-        Assert.IsTrue(corralResult.NoBugs());
+        Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [TestMethod, Timeout(10000)]
