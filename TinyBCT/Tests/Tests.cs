@@ -691,6 +691,39 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates3()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates4()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics2", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates5()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates6()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics4", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
     // ************************************* ARRAYS ******************************
 
     [TestMethod, Timeout(10000)]

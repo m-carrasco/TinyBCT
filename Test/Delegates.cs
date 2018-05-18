@@ -9,8 +9,62 @@ namespace Test
 {
     class Delegates
     {
+        class Generic<T>
+        {
+            T identity(T t)
+            {
+                return t;
+            }
+
+            public T test(T t)
+            {
+                Func<T, T> f = identity;
+                return f(t);
+            }
+        }
+
+        // anda
+        public void generics1()
+        {
+            var g = new Generic<int>();
+            Contract.Assert(g.test(1) == 1);
+
+           // Func<int, int> f = g.test;
+           // Contract.Assert(g.test(5) == 5);
+        }
+
+        // falla
+        public void generics2()
+        {
+            var g = new Generic<int>();
+            Contract.Assert(g.test(1) != 1);
+
+            // Func<int, int> f = g.test;
+            // Contract.Assert(g.test(5) == 5);
+        }
+
+        // anda
+        public void generics3()
+        {
+            var g = new Generic<int>();
+            //Contract.Assert(g.test(1) != 1);
+
+             Func<int, int> f = g.test;
+             Contract.Assert(g.test(5) == 5);
+        }
+
+        // falla
+        public void generics4()
+        {
+            var g = new Generic<int>();
+            //Contract.Assert(g.test(1) != 1);
+
+            Func<int, int> f = g.test;
+            Contract.Assert(g.test(5) != 5);
+        }
+
         /*           EXAMPLES OF SUPPORTED CODE              */
-        
+
         public delegate int DelegateIntInt(int num);
 
         public static void foo()
@@ -18,13 +72,6 @@ namespace Test
             var x = 5;
             Contract.Assert(x == 5);
         }
-
-        /*public static int condInc<T>(int x,T y )
-        {
-            if(y!=null)
-                return x + 1;
-            return 0;
-        }*/
 
         public static int plus(int x)
         {
