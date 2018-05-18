@@ -23,7 +23,6 @@ namespace Test
             }
         }
 
-        // anda
         public void generics1()
         {
             var g = new Generic<int>();
@@ -33,7 +32,6 @@ namespace Test
            // Contract.Assert(g.test(5) == 5);
         }
 
-        // falla
         public void generics2()
         {
             var g = new Generic<int>();
@@ -43,7 +41,6 @@ namespace Test
             // Contract.Assert(g.test(5) == 5);
         }
 
-        // anda
         public void generics3()
         {
             var g = new Generic<int>();
@@ -53,7 +50,6 @@ namespace Test
              Contract.Assert(g.test(5) == 5);
         }
 
-        // falla
         public void generics4()
         {
             var g = new Generic<int>();
