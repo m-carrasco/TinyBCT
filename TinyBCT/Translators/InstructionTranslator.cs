@@ -474,7 +474,6 @@ namespace TinyBCT.Translators
                 // if (!Helpers.IsConstructor(instruction.Method))
                 //addLabel(instruction);
                 var arguments = "";
-                var copyArgs = new List<IVariable>();
                 List<string> toAppend = new List<string>();
 
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
@@ -484,6 +483,50 @@ namespace TinyBCT.Translators
                 {
 
                 }
+                var copyArgs = ComputeArguments(instruction, toAppend);
+                arguments = String.Join(", ", copyArgs);
+
+                foreach (var line in toAppend)
+                {
+                    sb.AppendLine(line);
+                }
+
+                if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
+                {
+                    sb.Append(String.Format("\t\t assert {0};", arguments));
+                    return;
+                }
+                else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
+                {
+                    sb.Append(String.Format("\t\t assume {0};", arguments));
+                    return;
+                }
+                // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
+                // Our examples are compiled agains mscorlib generic types and we need to replace some method with colection stubs
+                // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
+                else if (instruction.Operation == MethodCallOperation.Virtual)
+                {
+                    DynamicDispatch(instruction, arguments);
+                    ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+                    return;
+                }
+
+                var signature = Helpers.GetMethodName(instruction.Method);
+
+                CallMethod(instruction, arguments, instruction.Method);
+
+                ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+
+                if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
+                    AddToExternalMethods(instruction.Method);
+                // Important not to add methods to both sets.
+                else if (Helpers.IsCurrentlyMissing(instruction.Method.ResolvedMethod))
+                    PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(instruction.Method));
+            }
+
+            private List<IVariable> ComputeArguments(MethodCallInstruction instruction,  List<string> toAppend)
+            {
+                var copyArgs = new List<IVariable>();
 
                 var unspecializedMethod = Helpers.GetUnspecializedVersion(instruction.Method);
                 Contract.Assume(
@@ -518,42 +561,7 @@ namespace TinyBCT.Translators
                         copyArgs.Add(instruction.Arguments.ElementAt(arg_i));
                     }
                 }
-                foreach (var line in toAppend)
-                {
-                    sb.AppendLine(line);
-                }
-                arguments = String.Join(", ", copyArgs);
-
-                if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
-                {
-                    sb.Append(String.Format("\t\t assert {0};", arguments));
-                    return;
-                } else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
-                {
-                    sb.Append(String.Format("\t\t assume {0};", arguments));
-                    return;
-                }
-                // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
-                // Our examples are compiled agains mscorlib generic types and we need to replace some method with colection stubs
-                // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
-                else if (instruction.Operation == MethodCallOperation.Virtual)
-                {
-                    DynamicDispatch(instruction, arguments);
-                    ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
-                    return;
-                }
-
-                var signature = Helpers.GetMethodName(instruction.Method);
-
-                CallMethod(instruction, arguments, instruction.Method);
-
-                ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
-
-                if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
-                    AddToExternalMethods(instruction.Method);
-                // Important not to add methods to both sets.
-                else if (Helpers.IsCurrentlyMissing(instruction.Method.ResolvedMethod))
-                    PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(instruction.Method));
+                return copyArgs;
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
