@@ -21,10 +21,12 @@ namespace Test
 
             private string output;
             private string err;
-            public CorralResult(string pOutput, string pErr)
+            private string cmd;
+            public CorralResult(string pOutput, string pErr, string pCmd)
             {
                 output = pOutput;
                 err = pErr;
+                cmd = pCmd;
             }
             private static void SanityCheck(string output, string err, bool checkSyntaxError = true)
             {
@@ -72,12 +74,13 @@ namespace Test
             pProcess.StartInfo.UseShellExecute = false;
             pProcess.StartInfo.RedirectStandardOutput = true;
             pProcess.StartInfo.RedirectStandardError = true;
+            var cmd = corralPath + " " + pProcess.StartInfo.Arguments;
             pProcess.Start();
             string output = pProcess.StandardOutput.ReadToEnd();
             string err = pProcess.StandardError.ReadToEnd();
             pProcess.WaitForExit();
             pProcess.Dispose();
-            return new CorralResult(output, err);
+            return new CorralResult(output, err, cmd);
         }
 
         private static HashSet<string> usedDirs = new HashSet<string>();
