@@ -54,6 +54,11 @@ namespace TinyBCT
             using (var host = new PeReader.DefaultHost())
             {
                 var CHAnalysis = CreateCHAnalysis(host);
+                Types.Initialize(host);
+
+                // This can be used to obtain the allocated types and delegates
+                var allocationsAndDelelegatesAnalysis = new TypesAndDelegatesCollector(host);
+                allocationsAndDelelegatesAnalysis.Analyze();
 
                 Action<string> writeTAC = (String inputFile) =>
                 {
@@ -61,7 +66,6 @@ namespace TinyBCT
                     {
                         // analysis-net setup
                         assembly.Load(inputFile);
-                        Types.Initialize(host);
 
                         TACWriter.Open(inputFile);
                         var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
