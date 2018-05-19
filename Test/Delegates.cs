@@ -9,6 +9,8 @@ namespace Test
 {
     class Delegates
     {
+        /*           EXAMPLES OF SUPPORTED CODE              */
+
         class Generic<T>
         {
             T identity(T t)
@@ -47,7 +49,7 @@ namespace Test
             //Contract.Assert(g.test(1) != 1);
 
              Func<int, int> f = g.test;
-             Contract.Assert(g.test(5) == 5);
+             Contract.Assert(f(5) == 5);
         }
 
         public void generics4()
@@ -56,10 +58,9 @@ namespace Test
             //Contract.Assert(g.test(1) != 1);
 
             Func<int, int> f = g.test;
-            Contract.Assert(g.test(5) != 5);
+            Contract.Assert(f(5) != 5);
         }
 
-        /*           EXAMPLES OF SUPPORTED CODE              */
 
         public delegate int DelegateIntInt(int num);
 
