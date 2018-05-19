@@ -1173,10 +1173,11 @@ namespace TinyBCT.Translators
                 var methodRef = loadDelegateStmt.Method;
                 var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
-                DelegateStore.AddDelegatedMethodToGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType), methodRef);
-                
+                // I WANT THE SPECIALIZED TYPE
+                DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, methodRef);
+
                 // invoke the correct version of create delegate
-                var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 IVariable receiverObject = instruction.Arguments[1];
                 sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
 
@@ -1204,10 +1205,10 @@ namespace TinyBCT.Translators
                 instTranslator.AddedVariables.Add(localVar);
 
                 // create if it doesnt exist yet
-                DelegateStore.CreateDelegateGroup(Helpers.GetNormalizedType(instruction.Method.ContainingType));
+                // i want the specialized type
+                // hashing types is not working good
+                DelegateStore.CreateDelegateGroup(Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString()));
 
-                // todo: this depends on the arguments types
-                // todo: this must  be generalized because different types can casted to union
                 foreach (var argument in instruction.Arguments.Skip(1)) // first argument is the delegate object
                 {
                     var argType = Helpers.GetBoogieType(argument.Type);
@@ -1248,7 +1249,7 @@ namespace TinyBCT.Translators
                 var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
 
                 // invoke the correct version of invoke delegate
-                var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 if (instruction.HasResult)
                     sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
                 else
@@ -1292,14 +1293,15 @@ namespace TinyBCT.Translators
         public static IDictionary<string, ISet<IMethodReference>> MethodGrouping
             = new Dictionary<string, ISet<IMethodReference>>();
 
-        public static void AddDelegatedMethodToGroup(string tRef, IMethodReference mRef)
+        public static void AddDelegatedMethodToGroup(ITypeReference tRef, IMethodReference mRef)
         {
-            if (MethodGrouping.ContainsKey(tRef))
-                MethodGrouping[tRef].Add(mRef);
+            var k = Helpers.NormalizeStringForCorral(tRef.ToString());
+            if (MethodGrouping.ContainsKey(k))
+                MethodGrouping[k].Add(mRef);
             else
             {
-                MethodGrouping[tRef] = new HashSet<IMethodReference>();
-                MethodGrouping[tRef].Add(mRef);
+                MethodGrouping[k] = new HashSet<IMethodReference>();
+                MethodGrouping[k].Add(mRef);
             }
         }
 
@@ -1311,7 +1313,7 @@ namespace TinyBCT.Translators
             MethodGrouping[containingType] = new HashSet<IMethodReference>();
         }
 
-        public static string CreateDelegateMethod(String typeRef)
+        public static string CreateDelegateMethod(string typeRef)
         {
             var sb = new StringBuilder();
             var normalizedType = typeRef;// Helpers.GetNormalizedType(typeRef);
@@ -1384,23 +1386,13 @@ namespace TinyBCT.Translators
             if (hasReturnVariable)
                 sb.AppendLine(String.Format("\tvar resultRealType: {0};", Helpers.GetBoogieType(methodRef.Type)));
 
-            foreach (var method in MethodGrouping[typeRef])
+            foreach (var m in MethodGrouping[typeRef])
             {
-                var id = methodIdentifiers[method];
+                var id = methodIdentifiers[m];
 
+                var method = Helpers.GetUnspecializedVersion(m);
                 sb.AppendLine(String.Format("\tif ($RefToDelegateMethod({0}, $this))", id));
                 sb.AppendLine("\t{");
-                // every argument is casted to Union (if they are Ref it is not necessary, they are alias)
-                foreach (var v in methodRef.Parameters)
-                {
-                    var argType = Helpers.GetBoogieType(v.Type);
-                    if (argType.Equals("Ref")) // Ref and Union are alias
-                        sb.AppendLine(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
-                    else {
-                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType));
-                    }
-                }
 
                 // we may have to add the receiver object for virtual methods
                 var args = new List<string>();
@@ -1409,17 +1401,59 @@ namespace TinyBCT.Translators
                     var receiverObject = String.Format("$RefToDelegateReceiver({0}, $this)", id);
                     args.Add(receiverObject);
                 }
-                foreach (var v in methodRef.Parameters)
-                    args.Add(String.Format("local{0}", v.Index));
+
+                // every argument is casted to Union (if they are Ref it is not necessary, they are alias)
+                // we need the unspecialized version because that's how generics are handled
+                foreach (var v in method.Parameters)
+                {
+                    var argType = Helpers.GetBoogieType(v.Type);
+                    Contract.Assert(!String.IsNullOrEmpty(argType));
+                    //if (argType.Equals("Ref")) // Ref and Union are alias
+                    //    sb.AppendLine(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
+                    if (!argType.Equals("Ref"))
+                    {
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType));
+                        args.Add(String.Format("local{0}", v.Index));
+                    }
+                    else
+                    {
+                        args.Add(String.Format("arg{0}$in", v.Index));
+                    }
+                }
+
+                //foreach (var v in method.Parameters)
+                //    args.Add(String.Format("local{0}", v.Index));
+
 
                 if (hasReturnVariable)
+                {
+                    Contract.Assert(!String.IsNullOrEmpty(Helpers.GetBoogieType(method.Type)));
+
+                    if (Helpers.GetBoogieType(method.Type).Equals("Ref"))
+                    {
+                        sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                    } else
+                    {
+                        var argType = Helpers.GetBoogieType(methodRef.Type);
+                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                        sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                        sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType));
+                        sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType));
+                    }
+                } else
+                {
+                    sb.AppendLine(String.Format("\t\tcall {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                }
+
+                /*if (hasReturnVariable)
                     sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
                 else
                     sb.AppendLine(String.Format("\t\tcall {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
 
                 if (hasReturnVariable)
                 {
-                    if (Helpers.GetBoogieType(methodRef.Type).Equals("Ref"))
+                    if (Helpers.GetBoogieType(method.Type).Equals("Ref"))
                         sb.AppendLine("\t\t$r := resultRealType;");
                     else
                     {
@@ -1428,7 +1462,7 @@ namespace TinyBCT.Translators
                         sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType));
                         sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType));
                     }
-                }
+                }*/
 
                 sb.AppendLine("\t\treturn;");
                 sb.AppendLine("\t}");
