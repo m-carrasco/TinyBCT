@@ -586,10 +586,10 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [TestMethod, Timeout(10000)]
-    [TestCategory("Av-Regressions-NotImplementedYet")]
+    [TestCategory("Av-Regressions")]
     public void TestAbstractClassDLL()
     {
-        var corralResult = CorralTestHelper("AbstractClassDLL", "Test.doStuff", 10);
+        var corralResult = CorralTestHelper("AbstractClassDLL", "Test.doStuff$Int$System.Int32", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
