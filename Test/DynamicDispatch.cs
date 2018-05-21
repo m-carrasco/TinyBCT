@@ -197,6 +197,24 @@ namespace DynamicDispatch
             int r = i.SampleMethod();
         }
 
+        static void test7(Animal a)
+        {
+            if (a is Dog)
+            {
+
+            } else if (a is Reptile)
+            {
+
+            } else if (a is Mammal)
+            {
+
+            }
+            else
+            {
+                Contract.Assert(false);
+            }
+        }
+
     }
 
     abstract class Animal

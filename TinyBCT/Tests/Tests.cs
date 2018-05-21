@@ -676,6 +676,15 @@ public partial class AvRegressionTests : TestsBase
 [TestClass]
 public class TestsManu : TestsBase
 {
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Subtype()
+    {
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test7$DynamicDispatch.Animal", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
     public void Delegates1()
