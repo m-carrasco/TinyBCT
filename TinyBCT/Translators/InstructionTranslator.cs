@@ -708,6 +708,9 @@ namespace TinyBCT.Translators
             {
             }
 
+            // hacky solution - I want to know if we are dealing with only a length instruction or length + convert
+            private static bool onlyLengthNoConvert = false;
+
             public static bool IsArrayTranslation(IList<Instruction> instructions, int idx)
             {
                 Instruction ins = instructions[idx];
@@ -719,8 +722,8 @@ namespace TinyBCT.Translators
                 if (load != null && (load.Operand is ArrayElementAccess))
                     return true;
 
-                // Length Access returns an UintPtr
-                // we will avoid the conversion from ptr to int by directly returning the length
+                // Length Access returns an uint
+                // we will avoid the conversion from uint to int by directly returning the length
 
                 // Load/Length Convert
                 if (load != null && (load.Operand is ArrayLengthAccess) &&
@@ -733,6 +736,13 @@ namespace TinyBCT.Translators
                     var op = (instructions[idx - 1] as LoadInstruction).Operand as ArrayLengthAccess;
                     if (op != null)
                         return true;
+                }
+
+                // no convert instruction is also acceptable.
+                if (load != null && (load.Operand is ArrayLengthAccess))
+                {
+                    onlyLengthNoConvert = true;
+                    return true;
                 }
 
                 var store = ins as StoreInstruction;
@@ -773,10 +783,19 @@ namespace TinyBCT.Translators
 
                 if (lengthAccess != null)
                 {
-                    // Length Access returns an UintPtr
-                    // we will avoid the conversion from ptr to int by directly returning the length
-                    // check ConvertInstruction
-                    arrayLengthAccess = instruction;
+                    if (!onlyLengthNoConvert)
+                    {
+                        // Length Access returns an uint
+                        // we will avoid the conversion from ptr to int by directly returning the length
+                        // check ConvertInstruction
+                        arrayLengthAccess = instruction;
+                    }
+                    else
+                    {
+                        sb.AppendLine(String.Format("{0} := $ArrayLength({1});", instruction.Result, lengthAccess.Instance));
+                        onlyLengthNoConvert = false;
+                    }
+
                     return;
                 }
 

@@ -594,10 +594,10 @@ public partial class AvRegressionTests : TestsBase
     }
 
     [TestMethod, Timeout(10000)]
-    [TestCategory("Av-Regressions-NotImplementedYet")]
+    [TestCategory("Av-Regressions")]
     public void TestArgs()
     {
-        var corralResult = CorralTestHelper("Args", "Test.Main", 10);
+        var corralResult = CorralTestHelper("Args", "Test.Main$System.Stringarray", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -830,6 +830,14 @@ public class TestsManu : TestsBase
     {
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayFor", 10);
         Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ArgsLength()
+    {
+        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
     }
 
 

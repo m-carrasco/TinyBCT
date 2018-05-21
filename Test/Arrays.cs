@@ -139,6 +139,14 @@ namespace Test
 
             Contract.Assert(c == 6);
         }
+
+        public static void ArgsLength(string[] args)
+        {
+            if (args.Length > 0)
+            {
+                Contract.Assert(args[0] != null);
+            }
+        }
     }
 
     class Foo
