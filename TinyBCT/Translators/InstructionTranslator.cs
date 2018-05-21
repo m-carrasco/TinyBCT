@@ -631,6 +631,16 @@ namespace TinyBCT.Translators
                         sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
                         sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", opStr)));
                     }
+                    else if (Helpers.GetBoogieType(op.Type).Equals("real"))
+                    {
+                        sb.AppendLine(String.Format("\t\tassume Union2Real(Real2Union({0})) == {0};", opStr));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Real2Union({0})", opStr)));
+                    }
+                    else if (Helpers.GetBoogieType(op.Type).Equals("bool"))
+                    {
+                        sb.AppendLine(String.Format("\t\tassume Union2Bool(Bool2Union({0})) == {0};", opStr));
+                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Bool2Union({0})", opStr)));
+                    }
                     else if (Helpers.GetBoogieType(op.Type).Equals("Ref"))
                     {
                         //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
