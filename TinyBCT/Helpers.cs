@@ -161,21 +161,22 @@ namespace TinyBCT
             return false;
         }
 
-        public static IList<IMethodReference> PotentialCalleesUsingCHA(MethodCallInstruction invocation, ClassHierarchyAnalysis CHA)
+        public static IList<IMethodReference> PotentialCalleesUsingCHA(IMethodReference unsolvedCallee, IVariable receiver,  
+                                                                       MethodCallOperation operation,  ClassHierarchyAnalysis CHA)
         {
             var result = new List<IMethodReference>();
-            var unsolvedCallee = invocation.Method;
+            // var unsolvedCallee = invocation.Method;
             if(unsolvedCallee.Name.Value.Contains("GetEnumerator"))
             {
 
             }
-            switch(invocation.Operation)
+            switch(operation)
             {
                 case MethodCallOperation.Static:
                     result.Add(unsolvedCallee);
                     break;
                 case MethodCallOperation.Virtual:
-                    var receiver = invocation.Arguments[0];
+                    //var receiver = invocation.Arguments[0];
                     var type = (receiver.Type is IGenericTypeInstanceReference) ? (receiver.Type as IGenericTypeInstanceReference).GenericType : receiver.Type;
                     if(type is IManagedPointerTypeReference)
                     {

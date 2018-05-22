@@ -340,7 +340,7 @@ namespace TinyBCT.Translators
 
             private void DynamicDispatch(MethodCallInstruction instruction, string arguments)
             {
-                var calless = Helpers.PotentialCalleesUsingCHA(instruction, Traverser.CHA);
+                var calless = Helpers.PotentialCalleesUsingCHA(instruction.Method,instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Operation, Traverser.CHA);
 
                 if (calless.Count > 0)
                 {
@@ -1183,6 +1183,67 @@ namespace TinyBCT.Translators
                 // continues in MethodCallInstruction
             }
 
+            private void DynamicDispatch1(IMethodReference method, IVariable receiver,  MethodCallOperation operation, Action<IMethodReference> f)
+            {
+                var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
+
+                if (calless.Count > 0)
+                {
+                    // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
+                    var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.virtualInvokations), instTranslator.method);
+                    getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
+                    //var receiver = instruction.Arguments[0];
+
+                    instTranslator.virtualInvokations = instTranslator.virtualInvokations + 1;
+                    instTranslator.AddedVariables.Add(getTypeVar);
+
+                    sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
+
+                    // example:if ($tmp6 == T$DynamicDispatch.Dog())
+
+                    sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
+                    sb.AppendLine("\t\t{");
+
+                    //sb.AppendLine(f(null));
+                    f(calless.First());
+                    sb.AppendLine("\t\t}");
+
+                    int i = 0;
+                    foreach (var impl in calless)
+                    {
+                        MentionedClasses.Add(impl.ContainingType);
+                        // first // and last invocation are not handled in this loop
+                        if (i == 0) // || i == calless.Count - 1)
+                        {
+                            i++;
+                            continue;
+                        }
+
+                        sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
+                        sb.AppendLine("\t\t{");
+
+                        f(impl);
+
+                        sb.AppendLine("\t\t}");
+                        i++;
+                    }
+
+                    sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
+                    sb.AppendLine("\t\t{");
+                    sb.AppendLine("\t\t assert false;");
+                    sb.AppendLine("\t\t}");
+                }
+                else
+                {
+                    // hacer delegate al metodo directamente
+                    f(method); 
+                    SimpleTranslation.AddToExternalMethods(method);
+                }
+
+                if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
+                    SimpleTranslation.AddToExternalMethods(method);
+            }
+
             public override void Visit(MethodCallInstruction instruction)
             {
                 Contract.Assert(loadIns != null && createObjIns != null);
@@ -1192,15 +1253,19 @@ namespace TinyBCT.Translators
                 var methodRef = loadDelegateStmt.Method;
                 var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
-                // I WANT THE SPECIALIZED TYPE
-                DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, methodRef);
-
-                // invoke the correct version of create delegate
-                var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 IVariable receiverObject = instruction.Arguments[1];
-                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
 
-                ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+                Action<IMethodReference> d = (potentialMethod) =>
+                {
+                    // I WANT THE SPECIALIZED TYPE
+                    DelegateStore.AddDelegatedMethodToGroup(potentialMethod.ContainingType, potentialMethod);
+                    // invoke the correct version of create delegate
+                    var normalizedType = Helpers.NormalizeStringForCorral(potentialMethod.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                    sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
+                    ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+                };
+
+                DynamicDispatch1(methodRef, receiverObject, methodRef.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, d);
 
                 loadIns = null;
                 createObjIns = null;
