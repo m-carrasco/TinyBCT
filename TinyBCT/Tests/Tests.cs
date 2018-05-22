@@ -685,32 +685,17 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
-    [TestCategory("Manu")]
-    public void Delegates1()
-    {
-        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.creation_invoke1", 10);
-        Assert.IsTrue(corralResult.NoBugs());
-    }
-    [TestMethod, Timeout(10000)]
-    [TestCategory("Manu")]
-    public void Delegates2()
-    {
-        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.invoke_invoke1_plus", 10);
-        Assert.IsTrue(corralResult.NoBugs());
-    }
-
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
-    public void Delegates3()
+    public void DelegatesGenerics1()
     {
         var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics1", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
-    public void Delegates4()
+    public void DelegatesGenerics2()
     {
         var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics2", 10);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -718,7 +703,7 @@ public class TestsManu : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
-    public void Delegates5()
+    public void DelegatesGenerics3()
     {
         var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics3", 10);
         Assert.IsTrue(corralResult.NoBugs());
@@ -726,11 +711,178 @@ public class TestsManu : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
-    public void Delegates6()
+    public void DelegatesGenerics4()
     {
         var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.generics4", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegateEmptyGroup()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.EmtpyGroup$Test.Delegates.DelegateEmpty", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates1_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates1_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates2_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates2_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates3_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates3_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates4_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates4_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates5_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates5_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates6_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates6_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates1_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates1_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates2_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates2_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates3_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates3_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates4_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates4_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates5_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates5_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void Delegates6_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.Delegates6_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch1_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch1_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch2_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch2_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch3_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch3_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch4_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch4_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch1_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch1_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch2_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch2_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch3_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch3_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch4_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch4_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DelegatesDynamicDispatch5_Bugged()
+    {
+        var corralResult = CorralTestHelper("Delegates", @"Test.Delegates.DelegatesDynamicDispatch5_Bugged$Test.Delegates.Dog", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
 
 
     // ************************************* ARRAYS ******************************
