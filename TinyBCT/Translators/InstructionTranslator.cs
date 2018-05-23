@@ -129,6 +129,62 @@ namespace TinyBCT.Translators
                     sb.AppendLine(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", "Empty", 0));
                 }
             }
+
+            protected void DynamicDispatch(IMethodReference method, IVariable receiver, MethodCallOperation operation, Action<IMethodReference> actionOnPotentialCallee)
+            {
+                var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
+
+                if (calless.Count > 1)
+                {
+                    // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
+                    var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.AddedVariables.Count()), instTranslator.method);
+                    getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
+                    instTranslator.AddedVariables.Add(getTypeVar);
+
+                    sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
+
+                    // example:if ($tmp6 == T$DynamicDispatch.Dog())
+
+                    sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
+                    sb.AppendLine("\t\t{");
+
+                    actionOnPotentialCallee(calless.First());
+                    sb.AppendLine("\t\t}");
+
+                    int i = 0;
+                    foreach (var impl in calless)
+                    {
+                        MentionedClasses.Add(impl.ContainingType);
+                        // first  invocation is not handled in this loop
+                        if (i == 0)
+                        {
+                            i++;
+                            continue;
+                        }
+
+                        sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
+                        sb.AppendLine("\t\t{");
+
+                        actionOnPotentialCallee(impl);
+
+                        sb.AppendLine("\t\t}");
+                        i++;
+                    }
+
+                    sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
+                    sb.AppendLine("\t\t{");
+                    sb.AppendLine("\t\t assert false;");
+                    sb.AppendLine("\t\t}");
+                }
+                else
+                {
+                    actionOnPotentialCallee(method);
+                    SimpleTranslation.AddToExternalMethods(method);
+                }
+
+                if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
+                    SimpleTranslation.AddToExternalMethods(method);
+            }
         }
 
         // translates each instruction independently 
@@ -338,97 +394,6 @@ namespace TinyBCT.Translators
                 }
             }
 
-            private void DynamicDispatch(MethodCallInstruction instruction, string arguments)
-            {
-                var calless = Helpers.PotentialCalleesUsingCHA(instruction.Method,instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Operation, Traverser.CHA);
-
-                if (calless.Count > 0)
-                {
-                    // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                    var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.virtualInvokations), instTranslator.method);
-                    getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
-                    var receiver = instruction.Arguments[0];
-
-                    instTranslator.virtualInvokations = instTranslator.virtualInvokations + 1;
-                    instTranslator.AddedVariables.Add(getTypeVar);
-
-                    sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
-
-                    // example:if ($tmp6 == T$DynamicDispatch.Dog())
-
-                    sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
-                    sb.AppendLine("\t\t{");
-                    CallMethod(instruction, arguments, calless.First());
-                    sb.AppendLine("\t\t}");
-
-
-                    int i = 0;
-                    foreach (var impl in calless)
-                    {
-                        MentionedClasses.Add(impl.ContainingType);
-                        // first // and last invocation are not handled in this loop
-                        if (i == 0) // || i == calless.Count - 1)
-                        {
-                            i++;
-                            continue;
-                        }
-
-                        sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
-                        sb.AppendLine("\t\t{");
-
-                        var midSignature = Helpers.GetMethodName(impl);
-                        CallMethod(instruction, arguments, impl);
-
-
-                        //if (instruction.HasResult)
-                        //{
-                        //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                        //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, midSignature, arguments));
-
-                        //}
-                        //else
-                        //{
-                        //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", midSignature, arguments));
-                        //}
-
-                        sb.AppendLine("\t\t}");
-                        i++;
-                    }
-
-                    //if (calless.Count > 1) // last element
-                    {
-                        //sb.AppendLine(String.Format("\t\telse ({0} == {1})", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
-                        sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
-                        sb.AppendLine("\t\t{");
-
-                        sb.AppendLine("\t\t assert false;");
-
-
-                        //CallMethod(instruction, arguments, calless.Last());
-                        //var lastSignature = Helpers.GetMethodName(calless.Last());
-                        //if (instruction.HasResult)
-                        //{
-                        //    //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
-                        //    sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, lastSignature, arguments));
-
-                        //}
-                        //else
-                        //{
-                        //    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", lastSignature, arguments));
-                        //}
-
-                        sb.AppendLine("\t\t}");
-                    }
-                }
-                else
-                {
-                    CallMethod(instruction, arguments, instruction.Method);
-                    AddToExternalMethods(instruction.Method);
-                }
-                if (Helpers.IsExternal(instruction.Method.ResolvedMethod) || instruction.Method.ResolvedMethod.IsAbstract)
-                    AddToExternalMethods(instruction.Method);
-            }
-
             public static void AddToExternalMethods(IMethodReference method)
             {
                 ExternMethodsCalled.Add(method.ResolvedMethod);
@@ -506,7 +471,8 @@ namespace TinyBCT.Translators
                 // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
                 else if (instruction.Operation == MethodCallOperation.Virtual)
                 {
-                    DynamicDispatch(instruction, arguments);
+                    Action<IMethodReference> onPotentialCallee = (potential => CallMethod(instruction, arguments, potential));
+                    DynamicDispatch(instruction.Method, instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Method.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, onPotentialCallee);
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
                     return;
                 }
@@ -1191,67 +1157,6 @@ namespace TinyBCT.Translators
                 // continues in MethodCallInstruction
             }
 
-            private void DynamicDispatch1(IMethodReference method, IVariable receiver,  MethodCallOperation operation, Action<IMethodReference> f)
-            {
-                var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
-
-                if (calless.Count > 1)
-                {
-                    // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                    var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.virtualInvokations), instTranslator.method);
-                    getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
-                    //var receiver = instruction.Arguments[0];
-
-                    instTranslator.virtualInvokations = instTranslator.virtualInvokations + 1;
-                    instTranslator.AddedVariables.Add(getTypeVar);
-
-                    sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
-
-                    // example:if ($tmp6 == T$DynamicDispatch.Dog())
-
-                    sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
-                    sb.AppendLine("\t\t{");
-
-                    //sb.AppendLine(f(null));
-                    f(calless.First());
-                    sb.AppendLine("\t\t}");
-
-                    int i = 0;
-                    foreach (var impl in calless)
-                    {
-                        MentionedClasses.Add(impl.ContainingType);
-                        // first  invocation is not handled in this loop
-                        if (i == 0) // || i == calless.Count - 1)
-                        {
-                            i++;
-                            continue;
-                        }
-
-                        sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
-                        sb.AppendLine("\t\t{");
-
-                        f(impl);
-
-                        sb.AppendLine("\t\t}");
-                        i++;
-                    }
-
-                    sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
-                    sb.AppendLine("\t\t{");
-                    sb.AppendLine("\t\t assert false;");
-                    sb.AppendLine("\t\t}");
-                }
-                else
-                {
-                    // hacer delegate al metodo directamente
-                    f(method); 
-                    SimpleTranslation.AddToExternalMethods(method);
-                }
-
-                if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
-                    SimpleTranslation.AddToExternalMethods(method);
-            }
-
             public override void Visit(MethodCallInstruction instruction)
             {
                 Contract.Assert(loadIns != null && createObjIns != null);
@@ -1274,7 +1179,7 @@ namespace TinyBCT.Translators
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
                 };
 
-                DynamicDispatch1(methodRef, receiverObject, methodRef.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, d);
+                DynamicDispatch(methodRef, receiverObject, methodRef.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, d);
 
                 loadIns = null;
                 createObjIns = null;

@@ -29,7 +29,7 @@ namespace DynamicDispatch
               L_000C:  $r3 = local_1;
               L_000D:  return $r3;
          */
-        public static int test1()
+        public static int test1_NoBugs()
         {
             // correct order of checks 
             // fist check mammal
@@ -47,7 +47,6 @@ namespace DynamicDispatch
                 Contract.Assert(oxy == old_oxy + 1);
             else
                 Contract.Assert(false);
-
 
             a = new Dog();
 
@@ -75,6 +74,52 @@ namespace DynamicDispatch
             return oxy;
         }
 
+        public static int test1_Bugged()
+        {
+            // correct order of checks 
+            // fist check mammal
+            // second check reptil
+            // third abstract version animal
+
+            Animal a = new Mammal();
+
+            int old_oxy = a.oxygen;
+            int oxy = a.Breathe();
+
+            if (a is Mammal)
+                Contract.Assert(oxy == old_oxy * 2);
+            else if (a is Reptile)
+                Contract.Assert(oxy == old_oxy + 1);
+            else
+                Contract.Assert(false);
+
+            a = new Dog();
+
+            old_oxy = a.oxygen;
+            oxy = a.Breathe();
+
+            if (a is Mammal)
+                Contract.Assert(oxy == old_oxy * 2);
+            else if (a is Reptile)
+                Contract.Assert(oxy == old_oxy + 1);
+            else
+                Contract.Assert(false);
+
+            a = new Reptile();
+            old_oxy = a.oxygen;
+            oxy = a.Breathe();
+
+            if (a is Mammal)
+                Contract.Assert(oxy == old_oxy * 2);
+            else if (a is Reptile)
+                Contract.Assert(oxy == old_oxy + 1);
+            else
+                Contract.Assert(false);
+
+            Contract.Assert(false);
+
+            return oxy;
+        }
 
         /*      TAC
               parameter Dog d;
@@ -98,7 +143,7 @@ namespace DynamicDispatch
 
          */
 
-        public static int test2()
+        public static int test2_NoBugs()
         {
             // correct order of checks 
             // fist check mammal
@@ -111,6 +156,24 @@ namespace DynamicDispatch
             int oxy = d.Breathe();
 
             Contract.Assert(old_oxy * 2 == oxy);
+
+            return oxy;
+        }
+
+        public static int test2_Bugged()
+        {
+            // correct order of checks 
+            // fist check mammal
+            // second check reptil
+            // third abstract version animal
+
+            // this order could be more precise, the only possible method is the mammal implementation
+            Dog d = new Dog();
+            int old_oxy = d.oxygen;
+            int oxy = d.Breathe();
+
+            Contract.Assert(old_oxy * 2 == oxy);
+            Contract.Assert(false);
 
             return oxy;
         }
@@ -136,7 +199,7 @@ namespace DynamicDispatch
               L_000D:  return $r3;
          */
 
-        public static int test3()
+        public static int test3_NoBugs()
         {
             // mammal
             // dog
@@ -168,7 +231,41 @@ namespace DynamicDispatch
             return hair;
         }
 
-        void test4()
+        public static int test3_Bugged()
+        {
+            // mammal
+            // dog
+            Mammal m = new Mammal();
+
+
+            int old_hair = m.hair;
+            int hair = m.GrowHair();
+
+            if (m is Dog)
+                Contract.Assert(old_hair * old_hair == hair);
+            else if (m is Mammal)
+                Contract.Assert(old_hair + 1 == hair);
+            else
+                Contract.Assert(false);
+
+            m = new Dog();
+
+            old_hair = m.hair;
+            hair = m.GrowHair();
+
+            if (m is Dog)
+                Contract.Assert(old_hair * old_hair == hair);
+            else if (m is Mammal)
+                Contract.Assert(old_hair + 1 == hair);
+            else
+                Contract.Assert(false);
+
+            Contract.Assert(false);
+
+            return hair;
+        }
+
+        void test4_NoBugs()
         {
             Reptile a = new Reptile();
 
@@ -176,12 +273,24 @@ namespace DynamicDispatch
                 Contract.Assert(false);
         }
 
-        void test5()
+        void test4_Bugged()
+        {
+            Reptile a = new Reptile();
+
+            if (a.SampleMethod() == 1)
+                Contract.Assert(false);
+        }
+
+        void test5_NoBugs()
         {
             Mammal a = new Dog();
+            Contract.Assert(a.SampleMethod() == 2);
+        }
 
-            if (a.SampleMethod() != 2)
-                Contract.Assert(false);
+        void test5_Bugged()
+        {
+            Mammal a = new Dog();
+            Contract.Assert(a.SampleMethod() != 2);
         }
 
         void test6()
