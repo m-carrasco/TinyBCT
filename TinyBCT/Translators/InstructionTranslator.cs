@@ -137,9 +137,7 @@ namespace TinyBCT.Translators
                 if (calless.Count > 1)
                 {
                     // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                    var getTypeVar = new LocalVariable(String.Format("DynamicDispatch_Type_{0}", instTranslator.AddedVariables.Count()), instTranslator.method);
-                    getTypeVar.Type = Types.Instance.PlatformType.SystemObject; // must be translated to Ref
-                    instTranslator.AddedVariables.Add(getTypeVar);
+                    var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
 
                     sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
 
@@ -185,6 +183,16 @@ namespace TinyBCT.Translators
                 if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
                     SimpleTranslation.AddToExternalMethods(method);
             }
+
+            public IVariable AddNewLocalVariableToMethod(string name, ITypeReference type, bool isParameter = false)
+            {
+                string variableName = String.Format("{0}{1}", name, instTranslator.AddedVariables.Count);
+                var tempVar = new LocalVariable(variableName, isParameter, instTranslator.method);
+                tempVar.Type = type;
+                instTranslator.AddedVariables.Add(tempVar);
+
+                return tempVar;
+            }
         }
 
         // translates each instruction independently 
@@ -211,9 +219,7 @@ namespace TinyBCT.Translators
                 {
                     string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
 
-                    var tempVar = new LocalVariable(String.Format("tempVarStringBinOp_{0}", instTranslator.AddedVariables.Count), instTranslator.method);
-                    tempVar.Type = instruction.Result.Type;
-                    instTranslator.AddedVariables.Add(tempVar);
+                    var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", instruction.Result.Type);
                     
                     sb.AppendLine(
                         String.Format(
@@ -416,9 +422,7 @@ namespace TinyBCT.Translators
                     else
                     {
                         // TODO(rcastano): reuse variable
-                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false, instTranslator.method);
-                        localVar.Type = Types.Instance.PlatformType.SystemObject;
-                        instTranslator.AddedVariables.Add(localVar);
+                        var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
                         sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", localVar, signature, arguments));
                         resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
                         sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
@@ -513,9 +517,7 @@ namespace TinyBCT.Translators
                     if (!paramType.Equals(argType))
                     {
                         // TODO(rcastano): try to reuse variables.
-                        var localVar = new LocalVariable(String.Format("$temp_var_{0}", instTranslator.AddedVariables.Count), false, instTranslator.method);
-                        localVar.Type = Types.Instance.PlatformType.SystemObject;
-                        instTranslator.AddedVariables.Add(localVar);
+                        var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
 
                         argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
                         toAppend.Add(String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType));
@@ -804,17 +806,13 @@ namespace TinyBCT.Translators
                         // Store Union element and then cast it to the correct type
                         boogieType = boogieType.First().ToString().ToUpper() + boogieType.Substring(1).ToLower();
 
-                        var tempVar = new LocalVariable(String.Format("$arrayElement{0}", instTranslator.AddedVariables.Count), instTranslator.method);
-                        tempVar.Type = Types.Instance.PlatformType.SystemObject; // we want Union
-                        instTranslator.AddedVariables.Add(tempVar);
+                        var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
                         sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});", tempVar, array, indexes.First()));
                         sb.AppendLine(String.Format("{0} := Union2{2}({1});", insResult, tempVar, boogieType));
                     }
                 } else
                 {
-                    var tempVar = new LocalVariable(String.Format("$arrayElement{0}", instTranslator.AddedVariables.Count), instTranslator.method);
-                    tempVar.Type = Types.Instance.PlatformType.SystemObject; // we want Union
-                    instTranslator.AddedVariables.Add(tempVar);
+                    var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
                     sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});", insResult, array, indexes.First()));
                     ReadArrayContent(insResult, tempVar, indexes.Skip(1).ToList(), boogieType);
                 }
@@ -1197,10 +1195,7 @@ namespace TinyBCT.Translators
                 // this local variable will hold the InvokeDelegate result 
                 // the intent is to translate its type to Union (or Ref they are alias)
                 // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                var localVar = new LocalVariable(String.Format("$delegate_res_{0}", instTranslator.delegateInvokations), false, instTranslator.method);
-                instTranslator.delegateInvokations =  1 + instTranslator.delegateInvokations;
-                localVar.Type = Types.Instance.PlatformType.SystemObject;
-                instTranslator.AddedVariables.Add(localVar);
+                var localVar = AddNewLocalVariableToMethod("$delegate_res_", Types.Instance.PlatformType.SystemObject, false);
 
                 // create if it doesnt exist yet
                 // i want the specialized type
