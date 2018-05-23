@@ -678,7 +678,7 @@ public class TestsManu : TestsBase
 {
 
     [TestMethod, Timeout(10000)]
-    [TestCategory("Manu")]
+    [TestCategory("NotImplemented")]
     public void Subtype()
     {
         var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test7$DynamicDispatch.Animal", 10);
