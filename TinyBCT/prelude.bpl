@@ -35,6 +35,8 @@ function Union2Bool(u: Union) : bool;
 
 function Union2Int(u: Union) : int;
 
+function Union2Real(u: Union) : real;
+
 function Bool2Union(boolValue: bool) : Union;
 
 function Int2Union(intValue: int) : Union;
@@ -43,7 +45,7 @@ function Real2Union(realValue: real) : Union;
 
 axiom Union2Int(null) == 0;
 
-axiom Union2Real(null) == 0;
+axiom Union2Real(null) == 0.0;
 
 axiom Union2Bool(null) == false;
 
@@ -55,7 +57,7 @@ axiom Int2Bool(0) == false;
 
 axiom(forall i:int :: {  Int2Union(i) } Union2Int(Int2Union(i)) == i);
 
-axiom(forall i:int :: {  Real2Union(i) } Union2Real(Real2Union(i)) == i);
+axiom(forall i:real :: {  Real2Union(i) } Union2Real(Real2Union(i)) == i);
 
 axiom(forall b:bool :: {  Bool2Union(b) } Union2Bool(Bool2Union(b)) == b);
 
