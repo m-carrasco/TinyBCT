@@ -39,7 +39,7 @@ namespace TinyBCT
         }
         public static String GetBoogieType(ITypeReference type)
         {
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Int32) || type.TypeCode.Equals(PrimitiveTypeCode.Int64) || type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Int32) || type.TypeCode.Equals(PrimitiveTypeCode.Int64) /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
                 return "int";
 
             // not sure about this
