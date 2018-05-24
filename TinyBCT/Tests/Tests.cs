@@ -633,9 +633,16 @@ public partial class AvRegressionTests : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
-    public void TestArgs()
+    public void TestArgsBug1()
     {
         var corralResult = CorralTestHelper("Args", "Test.Main$System.Stringarray", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestArgsBug2()
+    {
+        var corralResult = CorralTestHelper("Args", "Test.Main2$System.Stringarray", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 

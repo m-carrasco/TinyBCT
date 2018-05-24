@@ -320,7 +320,7 @@ namespace DynamicDispatch
             }
             else
             {
-                Contract.Assert(false);
+                Contract.Assert(a == null);
             }
         }
 

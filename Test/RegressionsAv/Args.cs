@@ -7,4 +7,7 @@ class Test {
           Contract.Assert(args[0] != null);
       }
   }
+  public static void Main2(string[] args) {
+      Contract.Assert(args.Length == 0);
+  }
 }
