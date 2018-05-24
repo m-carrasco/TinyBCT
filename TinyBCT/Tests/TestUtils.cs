@@ -62,6 +62,16 @@ namespace Test
                 SanityCheck(this.output, this.err);
                 return output;
             }
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+
+                sb.AppendLine("stdout:");
+                sb.AppendLine(output);
+                sb.AppendLine("stderr:");
+                sb.AppendLine(err);
+                return sb.ToString();
+            }
         }
         
         public static CorralResult CallCorral(int recursionBound, string path, string additionalArguments = "")
