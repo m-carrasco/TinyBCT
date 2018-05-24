@@ -246,10 +246,12 @@ namespace TinyBCT.Translators
                         case BinaryOperation.Neq: operation = "!="; break;
                         case BinaryOperation.Gt:
                             operation = ">";
-                            // hack: I don't know why is saying > when is comparing referencies
-                            if (!left.Type.IsValueType || right.Type.IsValueType)
+                            var leftAsConstant = left as Constant;
+                            var rightAsConstant = right as Constant;
+                            if (leftAsConstant != null && rightAsConstant != null)
                             {
-                                operation = "!=";
+                                // There was a bug when comparing references, checking that this doesn't show up again.
+                                Contract.Assume(leftAsConstant.Value != null && rightAsConstant.Value != null);
                             }
                             break;
                         case BinaryOperation.Ge: operation = ">="; break;

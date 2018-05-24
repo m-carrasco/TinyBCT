@@ -8,9 +8,9 @@ namespace Poirot {
   using System;
 
   public class Poirot {
-    public static int NondetInt() { return 0; }
-    public static string NondetString() { return null; }
-    public static Object NondetObject() { return null; }
+    public static extern int NondetInt();
+    public static extern string NondetString();
+    public static extern Object NondetObject();
   }
 
 }

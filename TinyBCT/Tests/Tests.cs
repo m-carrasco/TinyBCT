@@ -115,15 +115,18 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
 
-
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
-    {
+    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, string additionalOptions = "") {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
-        string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
         var uniqueDir = DoTest(source, testName, prefixDir: pathTempDir);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
+        Console.WriteLine(corralResult.ToString());
         return corralResult;
+    }
+    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, string additionalOptions = "")
+    {
+        string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
+        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalOptions: additionalOptions);
     }
     protected static string DoTest(string source, string assemblyName, string prefixDir = "")
     {
@@ -137,6 +140,7 @@ public class TestsBase
         // var references = new string[] { "CollectionStubs.dll" };
         if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir))
         {
+            // If we need to recompile, use: csc /target:library /debug /D:DEBUG /D:CONTRACTS_FULL CollectionStubs.cs
             TinyBCT.Program.Main(new string[] { "-i", System.IO.Path.Combine(uniqueDir, assemblyName)+".dll",
                 @"..\..\Dependencies\CollectionStubs.dll",
                 "-l", "true",
@@ -482,6 +486,23 @@ namespace Test
         ";
         DoTest(source, "TestCollection");
     }
+    [TestMethod, Timeout(10000)]
+    public void TestRef()
+    {
+        string source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class A {
+  public static void Main() {
+    var a = new A();
+    Contract.Assert(a != null);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("Ref", "A.Main", 10, source);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 }
 
 [TestClass]
@@ -612,9 +633,16 @@ public partial class AvRegressionTests : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
-    public void TestArgs()
+    public void TestArgsBug1()
     {
         var corralResult = CorralTestHelper("Args", "Test.Main$System.Stringarray", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestArgsBug2()
+    {
+        var corralResult = CorralTestHelper("Args", "Test.Main2$System.Stringarray", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -663,6 +691,24 @@ public partial class AvRegressionTests : TestsBase
         var corralResult = CorralTestHelper("stringEq", "Test.IneqShouldPass2", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator7()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    var s1 = ""Hello world"";
+    var s2 = ""Hello world"";
+    Contract.Assert(s1 == s2);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("stringEqSpaces", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
@@ -686,6 +732,91 @@ public partial class AvRegressionTests : TestsBase
     {
         var corralResult = CorralTestHelper("stringEqWithEquals", "Test.ShouldPass2", 10);
         Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSet1()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSet2()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass2", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSet3()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSet4()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass4", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSet5()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass5", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSet6()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass6", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSetBug1()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldFail1", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSetBug2()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldFail2", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSetBug3()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldFail3", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSetBug4()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldFail4", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSetBug5()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldFail5", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestSetBug6()
+    {
+        var corralResult = CorralTestHelper("Set", "PoirotMain.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
     }
 }
 
