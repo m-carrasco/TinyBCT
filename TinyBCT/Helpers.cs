@@ -443,6 +443,14 @@ namespace TinyBCT
             return result;
         }
 
+        // this is just a wrapper to know where is it called for delegates
+        // Diego wants to change how to group delegates in the future
+        // do not call this method if it is not for delegates
+        public static string GetNormalizedTypeForDelegates(ITypeReference type)
+        {
+            return GetNormalizedType(type);
+        }
+
         /// <summary>
         /// Normalize Methdod Definitions taken from original BCT
         /// </summary>

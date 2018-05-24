@@ -1182,11 +1182,12 @@ namespace TinyBCT.Translators
                 {
                     var methodId = DelegateStore.GetMethodIdentifier(potentialMethod);
 
-                    // instruction.method.containingtype is the instantiated type - i want to group them by that property
+                    // instruction.method.containingtype is the instantiated type
+                    // i group them by their uninstanciated type
                     DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, potentialMethod);
                     // invoke the correct version of create delegate
                     //var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
-                    var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                    var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                     sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
                 };
@@ -1308,8 +1309,7 @@ namespace TinyBCT.Translators
         // this method will receive potential calles which have their types uninstanciated
         public static void AddDelegatedMethodToGroup(ITypeReference tRef, IMethodReference mRef)
         {
-            // Helpers.NormalizeStringForCorral(tRef.ToString());
-            var k = Helpers.GetNormalizedType(tRef);  // Helpers.NormalizeStringForCorral(tRef.ToString());
+            var k = Helpers.GetNormalizedTypeForDelegates(tRef);
             if (MethodGrouping.ContainsKey(k))
                 MethodGrouping[k].Add(mRef);
             else
@@ -1322,8 +1322,7 @@ namespace TinyBCT.Translators
 
         public static  void CreateDelegateGroup(ITypeReference tRef)
         {
-            // Helpers.NormalizeStringForCorral(tRef.ToString());
-            var k = Helpers.GetNormalizedType(tRef);  // Helpers.NormalizeStringForCorral(tRef.ToString());
+            var k = Helpers.GetNormalizedTypeForDelegates(tRef);
             if (MethodGrouping.ContainsKey(k))
                 return;
 
@@ -1334,7 +1333,7 @@ namespace TinyBCT.Translators
         public static string CreateDelegateMethod(string typeRef)
         {
             var sb = new StringBuilder();
-            var normalizedType = typeRef;// Helpers.GetNormalizedType(typeRef);
+            var normalizedType = typeRef;
 
             sb.AppendLine(String.Format("procedure {{:inline 1}} CreateDelegate_{0}(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref);", normalizedType));
             sb.AppendLine(String.Format("implementation {{:inline 1}} CreateDelegate_{0}(Method: int, Receiver: Ref, TypeParameters: Ref) returns(c: Ref)", normalizedType));
