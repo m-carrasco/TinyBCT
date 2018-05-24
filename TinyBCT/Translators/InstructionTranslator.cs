@@ -42,10 +42,6 @@ namespace TinyBCT.Translators
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
 
-        // counters used for new variables 
-        private int delegateInvokations = 0;
-        private int virtualInvokations = 0;
-
         private IPrimarySourceLocation prevSourceLocation;
 
         protected IMethodDefinition method;
@@ -580,47 +576,11 @@ namespace TinyBCT.Translators
 
             public override void Visit(StoreInstruction instruction)
             {
-                //addLabel(instruction);
-
-                var op = instruction.Operand; // what it is stored
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
-                string opStr = op.ToString();
-                if (op.Type.TypeCode.Equals(PrimitiveTypeCode.String))
-                {
-                    opStr = Helpers.Strings.fixStringLiteral(op);
-                }
-
                 if (instanceFieldAccess != null)
                 {
-                    String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-
-                    if (Helpers.GetBoogieType(op.Type).Equals("int"))
-                    {
-                        sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", opStr)));
-                    }
-                    else if (Helpers.GetBoogieType(op.Type).Equals("real"))
-                    {
-                        sb.AppendLine(String.Format("\t\tassume Union2Real(Real2Union({0})) == {0};", opStr));
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Real2Union({0})", opStr)));
-                    }
-                    else if (Helpers.GetBoogieType(op.Type).Equals("bool"))
-                    {
-                        sb.AppendLine(String.Format("\t\tassume Union2Bool(Bool2Union({0})) == {0};", opStr));
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Bool2Union({0})", opStr)));
-                    }
-                    else if (Helpers.GetBoogieType(op.Type).Equals("Ref"))
-                    {
-                        //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", opStr));
-                        // Union y Ref son el mismo type, forman un alias.
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, /*String.Format("Int2Union({0})", opStr)*/
-                opStr));
-                    }
-                    else
-                    {
-                        // Not supporting these cases yet
-                        System.Diagnostics.Contracts.Contract.Assume(false);
-                    }
+                    var p = BoogieGenerator.WriteInstanceField(instanceFieldAccess, instruction.Operand);
+                    sb.AppendLine(p);
                 }
                 else
                 {
@@ -628,9 +588,11 @@ namespace TinyBCT.Translators
                     var staticFieldAccess = instruction.Result as StaticFieldAccess;
                     if (staticFieldAccess != null)
                     {
-                        String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-                        sb.Append(String.Format("\t\t{0} := {1};", fieldName, opStr));
+                        var p = BoogieGenerator.WriteStaticField(staticFieldAccess, instruction.Operand);
+                        sb.AppendLine(p);
                     }
+                    else
+                        Contract.Assume(false);
                 }
             }
 
@@ -1186,7 +1148,6 @@ namespace TinyBCT.Translators
                     // i group them by their uninstanciated type
                     DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, potentialMethod);
                     // invoke the correct version of create delegate
-                    //var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
                     var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                     sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
@@ -1256,8 +1217,7 @@ namespace TinyBCT.Translators
                 var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
 
                 // invoke the correct version of invoke delegate
-                // Helpers.NormalizeStringForCorral(tRef.ToString());
-                var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                 if (instruction.HasResult)
                     sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
                 else
