@@ -527,11 +527,28 @@ public partial class AvRegressionTests : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
+    public void TestListSumOK()
+    {
+        var corralResult = CorralTestHelper("ListSum", "PoirotMain.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestListSum2Fail()
+    {
+        var corralResult = CorralTestHelper("ListSum2", "PoirotMain.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
     public void TestForeach2Bug()
     {
         var corralResult = CorralTestHelper("ForEach2Bug", "PoirotMain.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]

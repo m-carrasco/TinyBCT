@@ -654,8 +654,10 @@ namespace TinyBCT.Translators
                     LoadInstruction loadInstruction = this.instTranslator.lastInstruction as LoadInstruction;
                     Contract.Assume(loadInstruction != null);
                     Backend.ThreeAddressCode.Values.Reference reference = (Backend.ThreeAddressCode.Values.Reference) loadInstruction.Operand;
-                    IAssignableValue where = reference.Value as IAssignableValue;
+                    //IAssignableValue where = reference.Value as IAssignableValue;
+                    var where = reference.Value;
                     Contract.Assume(where != null);
+
                     var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
                     string valueStr = "0";
 
@@ -666,7 +668,7 @@ namespace TinyBCT.Translators
                         sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", valueStr));
                         sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", valueStr)));
                     }
-                    else
+                    else 
                     {
                         // static fields are considered global variables
                         var staticFieldAccess = where as StaticFieldAccess;
@@ -674,6 +676,17 @@ namespace TinyBCT.Translators
                         {
                             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
                             sb.Append(String.Format("\t\t{0} := {1};", fieldName, valueStr));
+                        }
+                        else if(where is IVariable)
+                        {
+                            // Diego BUG BUG
+                            // We need to handle default(T) properly
+                            var name = where.ToString();
+                            sb.Append(String.Format("\t\t{0} := {1};", name, valueStr));
+                        }
+                        else
+                        {
+                            Contract.Assert(false, "Not supported value");
                         }
                     }
                 }
@@ -1172,7 +1185,8 @@ namespace TinyBCT.Translators
                     // instruction.method.containingtype is the instantiated type - i want to group them by that property
                     DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, potentialMethod);
                     // invoke the correct version of create delegate
-                    var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                    //var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                    var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                     sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
                 };
@@ -1241,7 +1255,8 @@ namespace TinyBCT.Translators
                 var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
 
                 // invoke the correct version of invoke delegate
-                var normalizedType = Helpers.NormalizeStringForCorral(instruction.Method.ContainingType.ToString());//Helpers.GetNormalizedType(instruction.Method.ContainingType);
+                // Helpers.NormalizeStringForCorral(tRef.ToString());
+                var normalizedType = Helpers.GetNormalizedType(instruction.Method.ContainingType);
                 if (instruction.HasResult)
                     sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
                 else
@@ -1291,10 +1306,10 @@ namespace TinyBCT.Translators
             = new Dictionary<string, ITypeReference>();
 
         // this method will receive potential calles which have their types uninstanciated
-        // i need them instanced to 
         public static void AddDelegatedMethodToGroup(ITypeReference tRef, IMethodReference mRef)
         {
-            var k = Helpers.NormalizeStringForCorral(tRef.ToString());
+            // Helpers.NormalizeStringForCorral(tRef.ToString());
+            var k = Helpers.GetNormalizedType(tRef);  // Helpers.NormalizeStringForCorral(tRef.ToString());
             if (MethodGrouping.ContainsKey(k))
                 MethodGrouping[k].Add(mRef);
             else
@@ -1307,7 +1322,8 @@ namespace TinyBCT.Translators
 
         public static  void CreateDelegateGroup(ITypeReference tRef)
         {
-            var k = Helpers.NormalizeStringForCorral(tRef.ToString());
+            // Helpers.NormalizeStringForCorral(tRef.ToString());
+            var k = Helpers.GetNormalizedType(tRef);  // Helpers.NormalizeStringForCorral(tRef.ToString());
             if (MethodGrouping.ContainsKey(k))
                 return;
 

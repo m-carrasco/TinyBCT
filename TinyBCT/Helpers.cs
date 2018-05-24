@@ -31,6 +31,7 @@ namespace TinyBCT
                 inst is FinallyInstruction ||
                 inst is TryInstruction || 
                 inst is CatchInstruction ||
+                inst is ThrowInstruction ||
                 inst is ConvertInstruction ||
                 inst is InitializeObjectInstruction)
                 return true;
