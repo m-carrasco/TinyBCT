@@ -534,7 +534,7 @@ namespace TinyBCT
                 // String literal will start and end with '"'.
                 System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
                 stringLiterals.Add(literal);
-                return String.Format("$string_literal_{0}", NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)));
+                return String.Format("$string_literal_{0}", NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)).Replace(" ", "$"));
             }
             public static string fixStringLiteral(IValue v)
             {
