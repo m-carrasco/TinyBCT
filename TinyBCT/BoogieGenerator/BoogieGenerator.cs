@@ -201,9 +201,39 @@ namespace TinyBCT
             return BinaryOperationExpression(op1.ToString(), op2.ToString(), operation);
         }
 
-        public  string BinaryOperationExpression(string op1, string op2, string operation)
+        public string BinaryOperationExpression(string op1, string op2, string operation)
         {
             return string.Format("{0} {1} {2}", op1, operation, op2);
+        }
+
+        public string Goto(string label)
+        {
+            return String.Format("\t\tgoto {0};", label);
+        }
+
+        public string DynamicType(IVariable reference)
+        {
+            return DynamicType(reference.Name);
+        }
+
+        public string DynamicType(string reference)
+        {
+            return String.Format("$DynamicType({0})", reference);
+        }
+
+        public string AssumeDynamicType(IVariable reference, ITypeReference type)
+        {
+            return String.Format("assume $DynamicType({0}) == T${1}();", reference.Name, type);
+        }
+
+        public string TypeConstructor(string type)
+        {
+            return String.Format("$TypeConstructor({0})", type);
+        }
+
+        public string AssumeTypeConstructor(string arg, ITypeReference type)
+        {
+            return String.Format("assume $TypeConstructor({0}) == T${1};", arg, type);
         }
     }
 }

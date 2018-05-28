@@ -293,13 +293,13 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        AddBoogie(String.Format("\t\tgoto {0};", target.First()));
+                        AddBoogie(BoogieGenerator.Instance().Goto(target.First()));
                         return;
                     }
 
                 }
 
-                AddBoogie(String.Format("\t\tgoto {0};", instruction.Target));
+                AddBoogie(BoogieGenerator.Instance().Goto(instruction.Target));
             }
 
             public override void Visit(ReturnInstruction instruction)
@@ -357,16 +357,15 @@ namespace TinyBCT.Translators
                     string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
                         Helpers.Strings.fixStringLiteral(instructionOperand) :
                         instructionOperand.ToString();
-                    AddBoogie(String.Format("\t\t{0} := {1};", instruction.Result, operand));
+                    AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, operand));
                 }
-
 
                 if (instruction.Result is IVariable &&
                     instruction.Result.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
                     MentionedClasses.Add(instruction.Result.Type);
-                    AddBoogie(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, instruction.Result.Type));
-                    AddBoogie(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, instruction.Result.Type));
+                    AddBoogie(BoogieGenerator.Instance().AssumeDynamicType(instruction.Result, instruction.Result.Type));
+                    AddBoogie(BoogieGenerator.Instance().AssumeTypeConstructor(BoogieGenerator.Instance().DynamicType(instruction.Result), instruction.Result.Type));
                 }
             }
 
