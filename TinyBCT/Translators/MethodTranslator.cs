@@ -38,17 +38,8 @@ namespace TinyBCT
 
         String TranslateInstructions()
         {
-            StringBuilder insSb = new StringBuilder();
-
-            int idx = 0;
-            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody, methodDefinition);
-            methodBody.Instructions
-                .Select(ins =>
-                {
-                    var r = instTranslator.Translate(methodBody.Instructions, idx);
-                    idx++;
-                    return r;
-                }).ToList().ForEach(str => insSb.AppendLine(str)); ;
+            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody);
+            instTranslator.Translate();
 
             foreach (var v in instTranslator.RemovedVariables)
                 methodBody.Variables.Remove(v);
@@ -56,9 +47,7 @@ namespace TinyBCT
             foreach (var v in instTranslator.AddedVariables)
                 methodBody.Variables.Add(v);
 
-            //methodBody.UpdateVariables();
-
-            return insSb.ToString();
+            return instTranslator.Boogie();
         }
 
         String TranslateLocalVariables()

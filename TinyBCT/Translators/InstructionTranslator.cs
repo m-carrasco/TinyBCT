@@ -46,25 +46,37 @@ namespace TinyBCT.Translators
 
         protected IMethodDefinition method;
 
-        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody, IMethodDefinition method)
+        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody)
         {
             this.CHA = CHA;
-            this.method = method;
+            this.method = methodBody.MethodDefinition;
             this.methodBody = methodBody;
         }
 
-        public string Translate(IList<Instruction> instructions, int idx)
+        private StringBuilder sb = new StringBuilder();
+        public void AddBoogie(string boogie)
         {
-            SetState(instructions, idx);
-            var currentInstruction = instructions[idx];
-            translation.AddLabel(currentInstruction);
-            translation.AddLineNumbers(currentInstruction, prevSourceLocation);
-            if (currentInstruction.Location != null)
-                prevSourceLocation = currentInstruction.Location;
-            instructions[idx].Accept(translation);
-            lastInstruction = instructions[idx];
+            sb.AppendLine(boogie);
+        }
+        public string Boogie()
+        {
+            return sb.ToString().Replace("<>", "__");
+        }
 
-            return translation.Result();
+        public void Translate(/*IList<Instruction> instructions, int idx*/)
+        {
+            var instructions = methodBody.Instructions;
+            for (int idx = 0; idx < instructions.Count(); idx++)
+            {
+                SetState(instructions, idx);
+                var currentInstruction = instructions[idx];
+                translation.AddLabel(currentInstruction);
+                translation.AddLineNumbers(currentInstruction, prevSourceLocation);
+                if (currentInstruction.Location != null)
+                    prevSourceLocation = currentInstruction.Location;
+                instructions[idx].Accept(translation);
+                lastInstruction = instructions[idx];
+            }
         }
 
         void SetState(IList<Instruction> instructions, int idx)
@@ -89,18 +101,16 @@ namespace TinyBCT.Translators
                 instTranslator = p;
             }
 
+            protected void AddBoogie(string boogie)
+            {
+                instTranslator.AddBoogie(boogie);
+            }
+
             internal void AddLabel(Instruction instr)
             { 
                 string label = instr.Label;
                 if(!String.IsNullOrEmpty(label))
-                    sb.AppendLine(String.Format("\t{0}:", label));                    
-            }
-
-            protected StringBuilder sb = new StringBuilder();
-            public string Result()
-            {
-                //return sb.ToString();
-                return sb.ToString().Replace("<>", "__");
+                   AddBoogie(String.Format("\t{0}:", label));                    
             }
 
             internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
@@ -117,12 +127,12 @@ namespace TinyBCT.Translators
                 { 
                     var fileName = location.SourceDocument.Name;
                     var sourceLine = location.StartLine;
-                    sb.AppendLine(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", fileName, sourceLine));
+                    AddBoogie(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", fileName, sourceLine));
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
                 }
                 else 
                 {
-                    sb.AppendLine(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", "Empty", 0));
+                    AddBoogie(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", "Empty", 0));
                 }
             }
 
@@ -135,15 +145,15 @@ namespace TinyBCT.Translators
                     // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
                     var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
 
-                    sb.AppendLine(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
+                    AddBoogie(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
 
                     // example:if ($tmp6 == T$DynamicDispatch.Dog())
 
-                    sb.AppendLine(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
-                    sb.AppendLine("\t\t{");
+                    AddBoogie(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
+                    AddBoogie("\t\t{");
 
                     actionOnPotentialCallee(calless.First());
-                    sb.AppendLine("\t\t}");
+                    AddBoogie("\t\t}");
 
                     int i = 0;
                     foreach (var impl in calless)
@@ -156,19 +166,19 @@ namespace TinyBCT.Translators
                             continue;
                         }
 
-                        sb.AppendLine(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
-                        sb.AppendLine("\t\t{");
+                        AddBoogie(String.Format("\t\telse if ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(impl.ContainingType)));
+                        AddBoogie("\t\t{");
 
                         actionOnPotentialCallee(impl);
 
-                        sb.AppendLine("\t\t}");
+                        AddBoogie("\t\t}");
                         i++;
                     }
 
-                    sb.AppendLine(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
-                    sb.AppendLine("\t\t{");
-                    sb.AppendLine("\t\t assert false;");
-                    sb.AppendLine("\t\t}");
+                    AddBoogie(String.Format("\t\telse", getTypeVar, Helpers.GetNormalizedType(calless.Last().ContainingType)));
+                    AddBoogie("\t\t{");
+                    AddBoogie("\t\t assert false;");
+                    AddBoogie("\t\t}");
                 }
                 else
                 {
@@ -216,49 +226,16 @@ namespace TinyBCT.Translators
                     string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
 
                     var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", instruction.Result.Type);
-                    
-                    sb.AppendLine(
-                        String.Format(
-                            "\t\tcall {0} := {1}({2}, {3});",
-                            tempVar,
-                            methodName,
-                            Helpers.Strings.fixStringLiteral(left),
-                            Helpers.Strings.fixStringLiteral(right)));
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, tempVar));
+                    var arguments = new List<string>();
+                    arguments.Add(Helpers.Strings.fixStringLiteral(left));
+                    arguments.Add(Helpers.Strings.fixStringLiteral(right));
+                    AddBoogie(BoogieGenerator.Instance().ProcedureCall(methodName, arguments, tempVar.ToString()));
+                    AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, tempVar.ToString()));
                 } else
                 {
-                    String operation = String.Empty;
-
-                    switch (instruction.Operation)
-                    {
-                        case BinaryOperation.Add: operation = "+"; break;
-                        case BinaryOperation.Sub: operation = "-"; break;
-                        case BinaryOperation.Mul: operation = "*"; break;
-                        case BinaryOperation.Div: operation = "/"; break;
-                        // not implemented yet
-                        /*case BinaryOperation.Rem: operation = "%"; break;
-                        case BinaryOperation.And: operation = "&"; break;
-                        case BinaryOperation.Or: operation = "|"; break;
-                        case BinaryOperation.Xor: operation = "^"; break;
-                        case BinaryOperation.Shl: operation = "<<"; break;
-                        case BinaryOperation.Shr: operation = ">>"; break;*/
-                        case BinaryOperation.Eq: operation = "=="; break;
-                        case BinaryOperation.Neq: operation = "!="; break;
-                        case BinaryOperation.Gt:
-                            operation = ">";
-                            var leftAsConstant = left as Constant;
-                            var rightAsConstant = right as Constant;
-                            if (leftAsConstant != null && rightAsConstant != null)
-                            {
-                                // There was a bug when comparing references, checking that this doesn't show up again.
-                                Contract.Assume(leftAsConstant.Value != null && rightAsConstant.Value != null);
-                            }
-                            break;
-                        case BinaryOperation.Ge: operation = ">="; break;
-                        case BinaryOperation.Lt: operation = "<"; break;
-                        case BinaryOperation.Le: operation = "<="; break;
-                    }
-                    sb.Append(String.Format("\t\t{0} {1} {2} {3} {4};", instruction.Result, ":=", left, operation, right));
+                    var exp = BoogieGenerator.Instance().BinaryOperationExpression(left, right, instruction.Operation);
+                    var assignment = BoogieGenerator.Instance().VariableAssignment(instruction.Result.ToString(), exp);
+                    AddBoogie(assignment);
                 }
             }
 
@@ -316,20 +293,20 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        sb.Append(String.Format("\t\tgoto {0};", target.First()));
+                        AddBoogie(String.Format("\t\tgoto {0};", target.First()));
                         return;
                     }
 
                 }
 
-                sb.Append(String.Format("\t\tgoto {0};", instruction.Target));
+                AddBoogie(String.Format("\t\tgoto {0};", instruction.Target));
             }
 
             public override void Visit(ReturnInstruction instruction)
             {
                 //addLabel(instruction);
                 if (instruction.HasOperand)
-                    sb.Append(String.Format("\t\t$result := {0};", instruction.Operand.Name));
+                    AddBoogie(String.Format("\t\t$result := {0};", instruction.Operand.Name));
             }
 
             public override void Visit(LoadInstruction instruction)
@@ -348,10 +325,10 @@ namespace TinyBCT.Translators
                     InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
                     String fieldName = FieldTranslator.GetFieldName(instanceFieldOp.Field);
                     if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("int"))
-                        sb.Append(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
+                        AddBoogie(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
                     else if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("Ref"))
                         // Union and Ref are alias. There is no need of Union2Ref
-                        sb.Append(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
+                        AddBoogie(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
@@ -371,10 +348,10 @@ namespace TinyBCT.Translators
                     if (staticFieldAccess.Type.ResolvedType.IsDelegate &&
                         staticFieldAccess.Field.ContainingType.IsCompilerGenerated()) 
                     {
-                        sb.AppendLine(String.Format("\t\t{0} := null;", FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                        AddBoogie(String.Format("\t\t{0} := null;", FieldTranslator.GetFieldName(staticFieldAccess.Field)));
                     }
 
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                    AddBoogie(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
                 }
                 else if (instructionOperand is StaticMethodReference) // delegates handling
                 {
@@ -385,7 +362,7 @@ namespace TinyBCT.Translators
                     string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
                         Helpers.Strings.fixStringLiteral(instructionOperand) :
                         instructionOperand.ToString();
-                    sb.Append(String.Format("\t\t{0} := {1};", instruction.Result, operand));
+                    AddBoogie(String.Format("\t\t{0} := {1};", instruction.Result, operand));
                 }
 
 
@@ -393,8 +370,8 @@ namespace TinyBCT.Translators
                     instruction.Result.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
                     MentionedClasses.Add(instruction.Result.Type);
-                    sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, instruction.Result.Type));
-                    sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, instruction.Result.Type));
+                    AddBoogie(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, instruction.Result.Type));
+                    AddBoogie(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, instruction.Result.Type));
                 }
             }
 
@@ -415,21 +392,21 @@ namespace TinyBCT.Translators
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
                     if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
                     {
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
+                        AddBoogie(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
                     }
                     else
                     {
                         // TODO(rcastano): reuse variable
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
-                        sb.AppendLine(String.Format("\t\t\tcall {0} := {1}({2});", localVar, signature, arguments));
+                        AddBoogie(String.Format("\t\t\tcall {0} := {1}({2});", localVar, signature, arguments));
                         resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
-                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
+                        AddBoogie(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
                     }
 
                 }
                 else
                 {
-                    sb.AppendLine(String.Format("\t\t\tcall {0}({1});", signature, arguments));
+                    AddBoogie(String.Format("\t\t\tcall {0}({1});", signature, arguments));
                 }
             }
 
@@ -455,17 +432,17 @@ namespace TinyBCT.Translators
 
                 foreach (var line in toAppend)
                 {
-                    sb.AppendLine(line);
+                    AddBoogie(line);
                 }
 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
-                    sb.Append(String.Format("\t\t assert {0};", arguments));
+                    AddBoogie(String.Format("\t\t assert {0};", arguments));
                     return;
                 }
                 else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
                 {
-                    sb.Append(String.Format("\t\t assume {0};", arguments));
+                    AddBoogie(String.Format("\t\t assume {0};", arguments));
                     return;
                 }
                 // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
@@ -556,10 +533,10 @@ namespace TinyBCT.Translators
                     case BranchOperation.Le: operation = "<="; break;
                 }
 
-                sb.AppendLine(String.Format("\t\tif ({0} {1} {2})", leftOperand, operation, rightOperand));
-                sb.AppendLine("\t\t{");
-                sb.AppendLine(String.Format("\t\t\tgoto {0};", instruction.Target));
-                sb.Append("\t\t}");
+                AddBoogie(String.Format("\t\tif ({0} {1} {2})", leftOperand, operation, rightOperand));
+                AddBoogie("\t\t{");
+                AddBoogie(String.Format("\t\t\tgoto {0};", instruction.Target));
+                AddBoogie("\t\t}");
 
             }
 
@@ -569,11 +546,11 @@ namespace TinyBCT.Translators
                 //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
 
                 //addLabel(instruction);
-                sb.AppendLine(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
+                AddBoogie(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
                 var type = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
-                sb.AppendLine(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
-                sb.AppendLine(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
+                AddBoogie(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
+                AddBoogie(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
             }
 
             public override void Visit(StoreInstruction instruction)
@@ -581,8 +558,8 @@ namespace TinyBCT.Translators
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
                 if (instanceFieldAccess != null)
                 {
-                    var p = BoogieGenerator.WriteInstanceField(instanceFieldAccess, instruction.Operand);
-                    sb.AppendLine(p);
+                    var p = BoogieGenerator.Instance().WriteInstanceField(instanceFieldAccess, instruction.Operand);
+                    AddBoogie(p);
                 }
                 else
                 {
@@ -590,8 +567,8 @@ namespace TinyBCT.Translators
                     var staticFieldAccess = instruction.Result as StaticFieldAccess;
                     if (staticFieldAccess != null)
                     {
-                        var p = BoogieGenerator.WriteStaticField(staticFieldAccess, instruction.Operand);
-                        sb.AppendLine(p);
+                        var p = BoogieGenerator.Instance().WriteStaticField(staticFieldAccess, instruction.Operand);
+                        AddBoogie(p);
                     }
                     else
                         Contract.Assume(false);
@@ -606,7 +583,7 @@ namespace TinyBCT.Translators
                 var type = instruction.ConversionType;
                 System.Diagnostics.Contracts.Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
-                sb.Append(String.Format("\t\t{0} := $As({1},T${2}());", dest, source, type.ToString()));
+                AddBoogie(String.Format("\t\t{0} := $As({1},T${2}());", dest, source, type.ToString()));
             }
 
             public override void Visit(InitializeObjectInstruction instruction)
@@ -629,8 +606,8 @@ namespace TinyBCT.Translators
                     {
                         String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
                         
-                        sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", valueStr));
-                        sb.Append(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", valueStr)));
+                        AddBoogie(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", valueStr));
+                        AddBoogie(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", valueStr)));
                     }
                     else 
                     {
@@ -639,14 +616,14 @@ namespace TinyBCT.Translators
                         if (staticFieldAccess != null)
                         {
                             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-                            sb.Append(String.Format("\t\t{0} := {1};", fieldName, valueStr));
+                            AddBoogie(String.Format("\t\t{0} := {1};", fieldName, valueStr));
                         }
                         else if(where is IVariable)
                         {
                             // Diego BUG BUG
                             // We need to handle default(T) properly
                             var name = where.ToString();
-                            sb.Append(String.Format("\t\t{0} := {1};", name, valueStr));
+                            AddBoogie(String.Format("\t\t{0} := {1};", name, valueStr));
                         }
                         else
                         {
@@ -715,9 +692,9 @@ namespace TinyBCT.Translators
                     assume (forall $tmp1: int :: $ArrayContents[$tmp0][$tmp1] == null);
                 */
 
-                sb.AppendLine(String.Format("call {0} := Alloc();", instruction.Result));
-                sb.AppendLine(String.Format("assume $ArrayLength({0}) == {1};", instruction.Result, string.Join<IVariable>(" * ",instruction.UsedVariables.ToArray())));
-                sb.AppendLine(String.Format("assume (forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null);",instruction.Result));
+                AddBoogie(String.Format("call {0} := Alloc();", instruction.Result));
+                AddBoogie(String.Format("assume $ArrayLength({0}) == {1};", instruction.Result, string.Join<IVariable>(" * ",instruction.UsedVariables.ToArray())));
+                AddBoogie(String.Format("assume (forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null);",instruction.Result));
             }
 
             private static LoadInstruction arrayLengthAccess = null;
@@ -727,7 +704,7 @@ namespace TinyBCT.Translators
                 Contract.Assert(arrayLengthAccess != null);
 
                 var op = arrayLengthAccess.Operand as ArrayLengthAccess;
-                sb.AppendLine(String.Format("{0} := $ArrayLength({1});", instruction.Result, op.Instance));
+                AddBoogie(String.Format("{0} := $ArrayLength({1});", instruction.Result, op.Instance));
                 arrayLengthAccess = null;
             }
 
@@ -747,7 +724,7 @@ namespace TinyBCT.Translators
                     }
                     else
                     {
-                        sb.AppendLine(String.Format("{0} := $ArrayLength({1});", instruction.Result, lengthAccess.Instance));
+                        AddBoogie(String.Format("{0} := $ArrayLength({1});", instruction.Result, lengthAccess.Instance));
                         onlyLengthNoConvert = false;
                     }
 
@@ -776,7 +753,7 @@ namespace TinyBCT.Translators
                     // that element could be a Union (Ref alias) or a non Union type. In the last case we must perform a cast.
                     if (boogieType.Equals("Ref"))
                     {
-                        sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});",  insResult, array, indexes.First()));
+                        AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});",  insResult, array, indexes.First()));
                     }
                     else
                     {
@@ -784,13 +761,13 @@ namespace TinyBCT.Translators
                         boogieType = boogieType.First().ToString().ToUpper() + boogieType.Substring(1).ToLower();
 
                         var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                        sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});", tempVar, array, indexes.First()));
-                        sb.AppendLine(String.Format("{0} := Union2{2}({1});", insResult, tempVar, boogieType));
+                        AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});", tempVar, array, indexes.First()));
+                        AddBoogie(String.Format("{0} := Union2{2}({1});", insResult, tempVar, boogieType));
                     }
                 } else
                 {
                     var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                    sb.AppendLine(String.Format("call {0} := $ReadArrayElement({1}, {2});", insResult, array, indexes.First()));
+                    AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});", insResult, array, indexes.First()));
                     ReadArrayContent(insResult, tempVar, indexes.Skip(1).ToList(), boogieType);
                 }
             }
@@ -812,10 +789,10 @@ namespace TinyBCT.Translators
                     */
                     argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
 
-                    sb.AppendLine(String.Format("assume Union2{0}({0}2Union({1})) == {1};", argType, instruction.Operand));
-                    sb.AppendLine(String.Format("call $WriteArrayElement({0}, {1}, {3}2Union({2}));", res.Array, res.Indices[0], instruction.Operand, argType));
+                    AddBoogie(String.Format("assume Union2{0}({0}2Union({1})) == {1};", argType, instruction.Operand));
+                    AddBoogie(String.Format("call $WriteArrayElement({0}, {1}, {3}2Union({2}));", res.Array, res.Indices[0], instruction.Operand, argType));
                 } else
-                    sb.AppendLine(String.Format("call $WriteArrayElement({0}, {1}, {2});", res.Array, res.Indices[0], instruction.Operand));
+                    AddBoogie(String.Format("call $WriteArrayElement({0}, {1}, {2});", res.Array, res.Indices[0], instruction.Operand));
             }
         }
 
@@ -865,14 +842,14 @@ namespace TinyBCT.Translators
                      */
 
                     // only encode behaviour if there was an unhandled exception
-                    sb.AppendLine("\t\tif ($Exception != null)");
-                    sb.AppendLine("\t\t{");
+                    AddBoogie("\t\tif ($Exception != null)");
+                    AddBoogie("\t\t{");
                     var target = GetThrowTarget(instruction);
                     if (String.IsNullOrEmpty(target))
-                        sb.AppendLine("\t\t\treturn;");
+                        AddBoogie("\t\t\treturn;");
                     else
-                        sb.AppendLine(String.Format("\t\t\tgoto {0};", target));
-                    sb.AppendLine("\t\t}");
+                        AddBoogie(String.Format("\t\t\tgoto {0};", target));
+                    AddBoogie("\t\t}");
 
                 //}
                 //addLabel(instruction);
@@ -932,13 +909,13 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        sb.Append(String.Format("\t\tgoto {0};", target.First()));
+                        AddBoogie(String.Format("\t\tgoto {0};", target.First()));
                         return;
                     }
 
                 //}
 
-                sb.Append(String.Format("\t\tgoto {0};", instruction.Target));
+                AddBoogie(String.Format("\t\tgoto {0};", instruction.Target));
             }
 
             public override void Visit(TryInstruction instruction)
@@ -948,36 +925,36 @@ namespace TinyBCT.Translators
 
             public override void Visit(CatchInstruction instruction)
             {
-                sb.AppendLine(String.Format("\t\tif (!$Subtype($ExceptionType, T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
-                sb.AppendLine("\t\t{");
+                AddBoogie(String.Format("\t\tif (!$Subtype($ExceptionType, T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
+                AddBoogie("\t\t{");
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
                 if (String.IsNullOrEmpty(nextHandler))
-                    sb.AppendLine("\t\t\treturn;");
+                    AddBoogie("\t\t\treturn;");
                 else
-                    sb.AppendLine(String.Format("\t\t\tgoto {0};", nextHandler));
+                    AddBoogie(String.Format("\t\t\tgoto {0};", nextHandler));
 
-                sb.AppendLine("\t\t}");
+                AddBoogie("\t\t}");
 
-                //sb.AppendLine(String.Format());
+                //AddBoogie(String.Format());
 
                 // Exception is handled we reset global variables
-                sb.AppendLine(String.Format("\t\t{0} := $Exception;", instruction.Result));
-                sb.AppendLine("\t\t$Exception := null;");
-                sb.AppendLine("\t\t$ExceptionType := null;");
+                AddBoogie(String.Format("\t\t{0} := $Exception;", instruction.Result));
+                AddBoogie("\t\t$Exception := null;");
+                AddBoogie("\t\t$ExceptionType := null;");
             }
 
             public override void Visit(ThrowInstruction instruction)
             {
-                sb.AppendLine(String.Format("\t\tcall $ExceptionType := System.Object.GetType({0});", instruction.Operand));
-                sb.AppendLine(String.Format("\t\t$Exception := {0};", instruction.Operand));
+                AddBoogie(String.Format("\t\tcall $ExceptionType := System.Object.GetType({0});", instruction.Operand));
+                AddBoogie(String.Format("\t\t$Exception := {0};", instruction.Operand));
 
                 var target = GetThrowTarget(instruction);
 
                 if (String.IsNullOrEmpty(target))
-                    sb.AppendLine("\t\treturn;");
+                    AddBoogie("\t\treturn;");
                 else
-                    sb.AppendLine(String.Format("\t\tgoto {0};", target));
+                    AddBoogie(String.Format("\t\tgoto {0};", target));
             }
 
             public override void Visit(FinallyInstruction instruction)
@@ -1128,7 +1105,7 @@ namespace TinyBCT.Translators
                 var methodId = DelegateStore.GetMethodIdentifier(methodRef);
 
                 // do we have to type this reference?
-                sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate({1}, {2}, {3});", instruction.Result, methodId, "null", "Type0()"));*/
+                AddBoogie(String.Format("\t\tcall {0}:= CreateDelegate({1}, {2}, {3});", instruction.Result, methodId, "null", "Type0()"));*/
                 // continues in MethodCallInstruction
             }
 
@@ -1151,7 +1128,7 @@ namespace TinyBCT.Translators
                     DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, potentialMethod);
                     // invoke the correct version of create delegate
                     var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
-                    sb.AppendLine(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
+                    AddBoogie(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
                 };
 
@@ -1185,10 +1162,10 @@ namespace TinyBCT.Translators
                     if (argType.Equals("Ref")) // Ref and Union are alias
                         continue;
                     argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                    sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
+                    AddBoogie(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
                 }
 
-                //sb.AppendLine(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
+                //AddBoogie(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
 
                 /* 
                     // example of desired code
@@ -1221,20 +1198,20 @@ namespace TinyBCT.Translators
                 // invoke the correct version of invoke delegate
                 var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                 if (instruction.HasResult)
-                    sb.AppendLine(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
+                    AddBoogie(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
                 else
-                    sb.AppendLine(String.Format("\t\tcall InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
+                    AddBoogie(String.Format("\t\tcall InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
 
                 if (instruction.HasResult)
                 {
                     // the union depends on the type of the arguments
                     var argType = Helpers.GetBoogieType(instruction.Result.Type);
                     if (argType.Equals("Ref")) // Ref and Union are alias
-                        sb.AppendLine(String.Format("\t\t{0} := {1};", instruction.Result, localVar));
+                        AddBoogie(String.Format("\t\t{0} := {1};", instruction.Result, localVar));
                     else
                     {
                         argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        sb.AppendLine(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, argType));
+                        AddBoogie(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, argType));
                     }
                 }
             }
@@ -1383,7 +1360,7 @@ namespace TinyBCT.Translators
                     var argType = Helpers.GetBoogieType(v.Type);
                     Contract.Assert(!String.IsNullOrEmpty(argType));
                     //if (argType.Equals("Ref")) // Ref and Union are alias
-                    //    sb.AppendLine(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
+                    //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
                     if (!argType.Equals("Ref"))
                     {
                         argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();

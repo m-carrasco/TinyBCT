@@ -1,4 +1,5 @@
-﻿using Backend.ThreeAddressCode.Values;
+﻿using Backend.ThreeAddressCode.Instructions;
+using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
@@ -12,13 +13,24 @@ namespace TinyBCT
 {
     public class BoogieGenerator
     {
-        public static string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
+        private static BoogieGenerator singleton;
+
+        public static BoogieGenerator Instance()
+        {
+            if (singleton == null)
+                singleton = new BoogieGenerator();
+
+            return singleton;
+        }
+
+        public string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
         {
             boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
             var e1 = string.Format("{0}2Union({1})", boogieType, variable);
             return string.Format("assume Union2{0}({1}) == {2};", boogieType, e1, variable);
         }
-        public static string AssumeInverseRelationUnionAndPrimitiveType(IVariable variable)
+
+        public string AssumeInverseRelationUnionAndPrimitiveType(IVariable variable)
         {
             var boogieType = Helpers.GetBoogieType(variable.Type);
             Contract.Assert(!String.IsNullOrEmpty(boogieType));
@@ -26,35 +38,35 @@ namespace TinyBCT
             return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
         }
 
-        public static string PrimitiveType2Union(IVariable value)
+        public string PrimitiveType2Union(IVariable value)
         {
             var boogieType = Helpers.GetBoogieType(value.Type);
             Contract.Assert(!string.IsNullOrEmpty(boogieType) && !boogieType.Equals("Ref"));
 
             return PrimitiveType2Union(boogieType, value.ToString());
         }
-        public static string PrimitiveType2Union(string boogieType, string value)
+        public string PrimitiveType2Union(string boogieType, string value)
         {
             // int -> Int, bool -> Bool
             boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
             return string.Format("{0}2Union({1})", boogieType, value);
         }
 
-        public static string Union2PrimitiveType(IVariable value)
+        public string Union2PrimitiveType(IVariable value)
         {
             var boogieType = Helpers.GetBoogieType(value.Type);
             Contract.Assert(!string.IsNullOrEmpty(boogieType) && !boogieType.Equals("Ref"));
 
             return Union2PrimitiveType(boogieType, value.ToString());
         }
-        public static string Union2PrimitiveType(string boogieType, string value)
+        public string Union2PrimitiveType(string boogieType, string value)
         {
             // int -> Int, bool -> Bool
             boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
             return string.Format("Union2{0}({1})", boogieType, value);
         }
 
-        public static string WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
+        public string WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -68,7 +80,7 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public static string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
+        public string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -92,6 +104,72 @@ namespace TinyBCT
             }
 
             return sb.ToString();
+        }
+
+        public string ProcedureCall(string boogieProcedureName, List<string> argumentList, string resultVariable = null)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            var arguments = String.Join(",", argumentList);
+
+            if (!String.IsNullOrEmpty(resultVariable))
+                return string.Format("call {0} := {1}({2});", resultVariable, boogieProcedureName, arguments);
+            else
+                return string.Format("call {1}({2});", resultVariable, boogieProcedureName, arguments);
+        }
+
+        public string VariableAssignment(IVariable variableA, string expr)
+        {
+            return VariableAssignment(variableA.ToString(), expr);
+        }
+
+        public string VariableAssignment(string variableA, string expr)
+        {
+            return string.Format("{0} := {1};", variableA, expr);
+        }
+
+        public string BinaryOperationExpression(IVariable op1, IVariable op2, BinaryOperation binaryOperation)
+        {
+            string operation = String.Empty;
+            switch (binaryOperation)
+            {
+                case BinaryOperation.Add: operation = "+"; break;
+                case BinaryOperation.Sub: operation = "-"; break;
+                case BinaryOperation.Mul: operation = "*"; break;
+                case BinaryOperation.Div: operation = "/"; break;
+                // not implemented yet
+                /*case BinaryOperation.Rem: operation = "%"; break;
+                case BinaryOperation.And: operation = "&"; break;
+                case BinaryOperation.Or: operation = "|"; break;
+                case BinaryOperation.Xor: operation = "^"; break;
+                case BinaryOperation.Shl: operation = "<<"; break;
+                case BinaryOperation.Shr: operation = ">>"; break;*/
+                case BinaryOperation.Eq: operation = "=="; break;
+                case BinaryOperation.Neq: operation = "!="; break;
+                case BinaryOperation.Gt:
+                    operation = ">";
+                    var leftAsConstant = op1 as Constant;
+                    var rightAsConstant = op2 as Constant;
+                    if (leftAsConstant != null && rightAsConstant != null)
+                    {
+                        // There was a bug when comparing references, checking that this doesn't show up again.
+                        Contract.Assume(leftAsConstant.Value != null && rightAsConstant.Value != null);
+                    }
+                    break;
+                case BinaryOperation.Ge: operation = ">="; break;
+                case BinaryOperation.Lt: operation = "<"; break;
+                case BinaryOperation.Le: operation = "<="; break;
+                default:
+                    Contract.Assert(false);
+                    break;
+            }
+
+            return BinaryOperationExpression(op1.ToString(), op2.ToString(), operation);
+        }
+
+        public  string BinaryOperationExpression(string op1, string op2, string operation)
+        {
+            return string.Format("{0} {1} {2}", op1, operation, op2);
         }
     }
 }
