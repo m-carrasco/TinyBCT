@@ -304,9 +304,8 @@ namespace TinyBCT.Translators
 
             public override void Visit(ReturnInstruction instruction)
             {
-                //addLabel(instruction);
                 if (instruction.HasOperand)
-                    AddBoogie(String.Format("\t\t$result := {0};", instruction.Operand.Name));
+                    AddBoogie(BoogieGenerator.Instance().VariableAssignment("$result", instruction.Operand.Name));
             }
 
             public override void Visit(LoadInstruction instruction)
@@ -323,12 +322,7 @@ namespace TinyBCT.Translators
                 if (instructionOperand is InstanceFieldAccess) // memory access handling
                 {
                     InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
-                    String fieldName = FieldTranslator.GetFieldName(instanceFieldOp.Field);
-                    if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("int"))
-                        AddBoogie(String.Format("\t\t{0} := Union2Int(Read($Heap,{1},{2}));", instruction.Result, instanceFieldOp.Instance, fieldName));
-                    else if (Helpers.GetBoogieType(instanceFieldOp.Type).Equals("Ref"))
-                        // Union and Ref are alias. There is no need of Union2Ref
-                        AddBoogie(String.Format("\t\t{0} := Read($Heap,{1},{2});", instruction.Result, instanceFieldOp.Instance, fieldName));
+                    AddBoogie(BoogieGenerator.Instance().ReadInstanceField(instanceFieldOp, instruction.Result));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
@@ -348,11 +342,12 @@ namespace TinyBCT.Translators
                     if (staticFieldAccess.Type.ResolvedType.IsDelegate &&
                         staticFieldAccess.Field.ContainingType.IsCompilerGenerated()) 
                     {
-                        AddBoogie(String.Format("\t\t{0} := null;", FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                        AddBoogie(BoogieGenerator.Instance().VariableAssignment(FieldTranslator.GetFieldName(staticFieldAccess.Field), "null"));
                     }
 
-                    AddBoogie(String.Format("\t\t{0} := {1};", instruction.Result, FieldTranslator.GetFieldName(staticFieldAccess.Field)));
+                    AddBoogie(BoogieGenerator.Instance().ReadStaticField(staticFieldAccess, instruction.Result));
                 }
+
                 else if (instructionOperand is StaticMethodReference) // delegates handling
                 {
                     // see DelegateTranslation

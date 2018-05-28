@@ -75,7 +75,17 @@ namespace TinyBCT
                 opStr = Helpers.Strings.fixStringLiteral(value);
 
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            sb.Append(String.Format("\t\t{0} := {1};", fieldName, opStr));
+            sb.Append(VariableAssignment(fieldName, opStr));
+
+            return sb.ToString();
+        }
+
+        public string ReadStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
+            sb.Append(VariableAssignment(value, fieldName));
 
             return sb.ToString();
         }
@@ -101,6 +111,30 @@ namespace TinyBCT
             else
             {
                 sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, opStr));
+            }
+
+            return sb.ToString();
+        }
+
+        public string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
+
+            var boogieType = Helpers.GetBoogieType(result.Type);
+            Contract.Assert(!string.IsNullOrEmpty(boogieType));
+
+            if (!boogieType.Equals("Ref")) // int, bool, real
+            {
+                // example: Union2Int(Read(...))
+                var expr = Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
+                sb.AppendLine(VariableAssignment(result, expr));
+            }
+            else
+            {
+                var expr = String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName);
+                sb.AppendLine(VariableAssignment(result, expr));
             }
 
             return sb.ToString();
