@@ -233,9 +233,20 @@ namespace TinyBCT.Translators
                     AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, tempVar.ToString()));
                 } else
                 {
-                    var exp = BoogieGenerator.Instance().BinaryOperationExpression(left, right, instruction.Operation);
-                    var assignment = BoogieGenerator.Instance().VariableAssignment(instruction.Result.ToString(), exp);
-                    AddBoogie(assignment);
+                    // TODO(rcastano): refactor this. Ideally, there might be different BoogieGenerators,
+                    // each making slightly different translations, for example, bitvector representation
+                    // of integers as opposed to Boogie int.
+                    // When that happens, this should most likely be encapsulated within BoogieGenerator.
+                    if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation))
+                    {
+                        var exp = BoogieGenerator.Instance().BinaryOperationExpression(left, right, instruction.Operation);
+                        var assignment = BoogieGenerator.Instance().VariableAssignment(instruction.Result.ToString(), exp);
+                        AddBoogie(assignment);
+                    }
+                    else
+                    {
+                        AddBoogie(BoogieGenerator.Instance().HavocResult(instruction));
+                    }
                 }
             }
 

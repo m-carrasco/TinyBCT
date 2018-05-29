@@ -169,8 +169,34 @@ namespace TinyBCT
             return string.Format("{0} := {1};", variableA, expr);
         }
 
+        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation)
+        {
+            switch (binaryOperation)
+            {
+                case BinaryOperation.Add:
+                case BinaryOperation.Sub:
+                case BinaryOperation.Mul:
+                case BinaryOperation.Div:
+                case BinaryOperation.Eq:
+                case BinaryOperation.Neq:
+                case BinaryOperation.Gt:
+                case BinaryOperation.Ge:
+                case BinaryOperation.Lt:
+                case BinaryOperation.Le:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public string HavocResult(DefinitionInstruction instruction)
+        {
+            return String.Format("havoc {0};", instruction.Result);
+        }
+
         public string BinaryOperationExpression(IVariable op1, IVariable op2, BinaryOperation binaryOperation)
         {
+            Contract.Assume(IsSupportedBinaryOperation(binaryOperation));
             string operation = String.Empty;
             switch (binaryOperation)
             {
