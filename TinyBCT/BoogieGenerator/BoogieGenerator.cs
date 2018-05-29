@@ -194,6 +194,28 @@ namespace TinyBCT
             return String.Format("havoc {0};", instruction.Result);
         }
 
+        public string BranchOperationExpression(IVariable op1, IInmediateValue op2, BranchOperation branchOperation)
+        {
+            var operation = string.Empty;
+
+            switch (branchOperation)
+            {
+                case BranchOperation.Eq: operation = "=="; break;
+                case BranchOperation.Neq: operation = "!="; break;
+                case BranchOperation.Gt: operation = ">"; break;
+                case BranchOperation.Ge: operation = ">="; break;
+                case BranchOperation.Lt: operation = "<"; break;
+                case BranchOperation.Le: operation = "<="; break;
+            }
+
+            return BranchOperationExpression(op1.Name, op2.ToString(), operation);
+        }
+
+        public string BranchOperationExpression(string op1, string op2, string operation)
+        {
+            return string.Format("{0} {1} {2}", op1, operation, op2);
+        }
+
         public string BinaryOperationExpression(IVariable op1, IVariable op2, BinaryOperation binaryOperation)
         {
             Contract.Assume(IsSupportedBinaryOperation(binaryOperation));
@@ -231,7 +253,7 @@ namespace TinyBCT
                     break;
             }
 
-            return BinaryOperationExpression(op1.ToString(), op2.ToString(), operation);
+            return BinaryOperationExpression(op1.Name, op2.Name, operation);
         }
 
         public string BinaryOperationExpression(string op1, string op2, string operation)
@@ -256,7 +278,12 @@ namespace TinyBCT
 
         public string AssumeDynamicType(IVariable reference, ITypeReference type)
         {
-            return String.Format("assume $DynamicType({0}) == T${1}();", reference.Name, type);
+            return AssumeDynamicType(reference.Name, type.ToString());
+        }
+
+        public string AssumeDynamicType(string name, string type)
+        {
+            return String.Format("assume $DynamicType({0}) == T${1}();", name, type);
         }
 
         public string TypeConstructor(string type)
@@ -265,6 +292,11 @@ namespace TinyBCT
         }
 
         public string AssumeTypeConstructor(string arg, ITypeReference type)
+        {
+            return AssumeTypeConstructor(arg, type.ToString());
+        }
+
+        public string AssumeTypeConstructor(string arg, string type)
         {
             return String.Format("assume $TypeConstructor({0}) == T${1};", arg, type);
         }
@@ -287,6 +319,19 @@ namespace TinyBCT
         public string Assume(string cond)
         {
             return String.Format("assume {0};", cond);
+        }
+
+        // todo: extend for else / elseif
+        public string If(string condition, string body)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine(String.Format("\t\tif ({0})", condition));
+            sb.AppendLine("\t\t{");
+            sb.AppendLine(body);
+            sb.AppendLine("\t\t}");
+
+            return sb.ToString();
         }
     }
 }

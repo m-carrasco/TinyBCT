@@ -507,8 +507,6 @@ namespace TinyBCT.Translators
 
             public override void Visit(ConditionalBranchInstruction instruction)
             {
-                //addLabel(instruction);
-
                 IVariable leftOperand = instruction.LeftOperand;
                 IInmediateValue rightOperand = instruction.RightOperand;
 
@@ -519,23 +517,8 @@ namespace TinyBCT.Translators
                 System.Diagnostics.Contracts.Contract.Assume(
                     !leftOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && !rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
-                var operation = string.Empty;
-
-                switch (instruction.Operation)
-                {
-                    case BranchOperation.Eq: operation = "=="; break;
-                    case BranchOperation.Neq: operation = "!="; break;
-                    case BranchOperation.Gt: operation = ">"; break;
-                    case BranchOperation.Ge: operation = ">="; break;
-                    case BranchOperation.Lt: operation = "<"; break;
-                    case BranchOperation.Le: operation = "<="; break;
-                }
-
-                AddBoogie(String.Format("\t\tif ({0} {1} {2})", leftOperand, operation, rightOperand));
-                AddBoogie("\t\t{");
-                AddBoogie(String.Format("\t\t\tgoto {0};", instruction.Target));
-                AddBoogie("\t\t}");
-
+                var bg = BoogieGenerator.Instance();
+                AddBoogie(bg.If(bg.BranchOperationExpression(leftOperand, rightOperand, instruction.Operation), bg.Goto(instruction.Target)));
             }
 
             public override void Visit(CreateObjectInstruction instruction)
@@ -543,12 +526,12 @@ namespace TinyBCT.Translators
                 // assume $DynamicType($tmp0) == T$TestType();
                 //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
 
-                //addLabel(instruction);
-                AddBoogie(String.Format("\t\tcall {0}:= Alloc();", instruction.Result));
+                var bg = BoogieGenerator.Instance();
+                AddBoogie(bg.ProcedureCall("Alloc", new List<string>(), instruction.Result.Name));
                 var type = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
-                AddBoogie(String.Format("\t\tassume $DynamicType({0}) == T${1}();", instruction.Result, type));
-                AddBoogie(String.Format("\t\tassume $TypeConstructor($DynamicType({0})) == T${1};", instruction.Result, type));
+                AddBoogie(bg.AssumeDynamicType(instruction.Result.Name, type));
+                AddBoogie(bg.AssumeTypeConstructor(instruction.Result.Name, type));
             }
 
             public override void Visit(StoreInstruction instruction)
