@@ -820,6 +820,29 @@ class Test {
     }
 }
 
+[TestClass]
+public class TestsXor : TestsBase
+{
+    [TestMethod]
+    [TestCategory("Xor")]
+    public void XorImprecision()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int a = 4;
+    int b = 2;
+    int c = a ^ b;;
+    Contract.Assert(c == 6);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("XorImprecision", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+}
 
 [TestClass]
 public class TestsManu : TestsBase
