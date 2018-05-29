@@ -333,5 +333,10 @@ namespace TinyBCT
 
             return sb.ToString();
         }
+
+        public string As(IVariable arg1, ITypeReference arg2)
+        {
+            return String.Format("$As({0},T${1}())", arg1, arg2);
+        }
     }
 }

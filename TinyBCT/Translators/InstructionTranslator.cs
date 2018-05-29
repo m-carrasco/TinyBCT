@@ -562,9 +562,10 @@ namespace TinyBCT.Translators
                 var source = instruction.Operand;
                 var dest = instruction.Result;
                 var type = instruction.ConversionType;
-                System.Diagnostics.Contracts.Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
+                Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
-                AddBoogie(String.Format("\t\t{0} := $As({1},T${2}());", dest, source, type.ToString()));
+                var bg = BoogieGenerator.Instance();
+                AddBoogie(bg.VariableAssignment(dest.Name, bg.As(source, type)));
             }
 
             public override void Visit(InitializeObjectInstruction instruction)
@@ -575,20 +576,22 @@ namespace TinyBCT.Translators
                 {
                     LoadInstruction loadInstruction = this.instTranslator.lastInstruction as LoadInstruction;
                     Contract.Assume(loadInstruction != null);
-                    Backend.ThreeAddressCode.Values.Reference reference = (Backend.ThreeAddressCode.Values.Reference) loadInstruction.Operand;
+                    Reference reference = (Reference) loadInstruction.Operand;
                     //IAssignableValue where = reference.Value as IAssignableValue;
                     var where = reference.Value;
                     Contract.Assume(where != null);
 
                     var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
-                    string valueStr = "0";
+
+                    var valueZero = AddNewLocalVariableToMethod("$initialize", Types.Instance.PlatformType.SystemInt32);
+                    AddBoogie(BoogieGenerator.Instance().VariableAssignment(valueZero, "0"));
 
                     if (instanceFieldAccess != null)
                     {
                         String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-                        
-                        AddBoogie(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", valueStr));
-                        AddBoogie(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, String.Format("Int2Union({0})", valueStr)));
+
+                        var bg = BoogieGenerator.Instance();
+                        AddBoogie(bg.WriteInstanceField(instanceFieldAccess, valueZero));
                     }
                     else 
                     {
@@ -596,15 +599,13 @@ namespace TinyBCT.Translators
                         var staticFieldAccess = where as StaticFieldAccess;
                         if (staticFieldAccess != null)
                         {
-                            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-                            AddBoogie(String.Format("\t\t{0} := {1};", fieldName, valueStr));
+                            AddBoogie(BoogieGenerator.Instance().WriteStaticField(staticFieldAccess, valueZero));
                         }
                         else if(where is IVariable)
                         {
                             // Diego BUG BUG
                             // We need to handle default(T) properly
-                            var name = where.ToString();
-                            AddBoogie(String.Format("\t\t{0} := {1};", name, valueStr));
+                            AddBoogie(BoogieGenerator.Instance().VariableAssignment(where as IVariable, valueZero.Name));
                         }
                         else
                         {
