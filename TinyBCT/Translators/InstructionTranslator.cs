@@ -374,7 +374,7 @@ namespace TinyBCT.Translators
                 ExternMethodsCalled.Add(method.ResolvedMethod);
             }
 
-            private void CallMethod(MethodCallInstruction instruction, string arguments, IMethodReference callee)
+            private void CallMethod(MethodCallInstruction instruction, List<IVariable> arguments, IMethodReference callee)
             {
                 var signature = Helpers.GetMethodName(callee);
 
@@ -386,21 +386,20 @@ namespace TinyBCT.Translators
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
                     if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
                     {
-                        AddBoogie(String.Format("\t\t\tcall {0} := {1}({2});", instruction.Result, signature, arguments));
+                        AddBoogie(BoogieGenerator.Instance().ProcedureCall(callee, arguments, instruction.Result));
                     }
                     else
                     {
                         // TODO(rcastano): reuse variable
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
-                        AddBoogie(String.Format("\t\t\tcall {0} := {1}({2});", localVar, signature, arguments));
+                        AddBoogie(BoogieGenerator.Instance().ProcedureCall(callee, arguments, localVar));
                         resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
-                        AddBoogie(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, resType));
+                        AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, BoogieGenerator.Instance().Union2PrimitiveType(resType, localVar.Name)));
                     }
-
                 }
                 else
                 {
-                    AddBoogie(String.Format("\t\t\tcall {0}({1});", signature, arguments));
+                    AddBoogie(BoogieGenerator.Instance().ProcedureCall(callee, arguments));
                 }
             }
 
@@ -411,18 +410,11 @@ namespace TinyBCT.Translators
                 // DIEGO: Removed after fix in analysis framewlrk 
                 // if (!Helpers.IsConstructor(instruction.Method))
                 //addLabel(instruction);
-                var arguments = "";
+                //var arguments = "";
                 List<string> toAppend = new List<string>();
 
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
-
-                // For debugging purposes, remove 
-                if (methodName.Contains("Current"))
-                {
-
-                }
                 var copyArgs = ComputeArguments(instruction, toAppend);
-                arguments = String.Join(", ", copyArgs);
 
                 foreach (var line in toAppend)
                 {
@@ -431,12 +423,12 @@ namespace TinyBCT.Translators
 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
-                    AddBoogie(String.Format("\t\t assert {0};", arguments));
+                    AddBoogie(BoogieGenerator.Instance().Assert(instruction.Variables.First()));
                     return;
                 }
                 else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
                 {
-                    AddBoogie(String.Format("\t\t assume {0};", arguments));
+                    AddBoogie(BoogieGenerator.Instance().Assume(instruction.Variables.First()));
                     return;
                 }
                 // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
@@ -444,7 +436,7 @@ namespace TinyBCT.Translators
                 // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
                 else if (instruction.Operation == MethodCallOperation.Virtual)
                 {
-                    Action<IMethodReference> onPotentialCallee = (potential => CallMethod(instruction, arguments, potential));
+                    Action<IMethodReference> onPotentialCallee = (potential => CallMethod(instruction, copyArgs, potential));
                     DynamicDispatch(instruction.Method, instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Method.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, onPotentialCallee);
                     ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
                     return;
@@ -452,7 +444,7 @@ namespace TinyBCT.Translators
 
                 var signature = Helpers.GetMethodName(instruction.Method);
 
-                CallMethod(instruction, arguments, instruction.Method);
+                CallMethod(instruction, copyArgs, instruction.Method);
 
                 ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
 
@@ -488,8 +480,9 @@ namespace TinyBCT.Translators
                         // TODO(rcastano): try to reuse variables.
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
 
-                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        toAppend.Add(String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType));
+                        var bg = BoogieGenerator.Instance();
+                        // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
+                        toAppend.Add(bg.VariableAssignment(localVar, bg.PrimitiveType2Union(instruction.Arguments.ElementAt(arg_i))));
 
                         copyArgs.Add(localVar);
                     }

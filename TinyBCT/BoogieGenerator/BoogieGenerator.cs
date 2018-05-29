@@ -140,6 +140,13 @@ namespace TinyBCT
             return sb.ToString();
         }
 
+        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, IVariable resultVariable = null)
+        {
+            StringBuilder sb = new StringBuilder();
+            var boogieProcedureName = Helpers.GetMethodName(procedure);
+            return ProcedureCall(boogieProcedureName, argumentList.Select(v => v.Name).ToList(), resultVariable == null ? String.Empty : resultVariable.Name);
+        }
+
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, string resultVariable = null)
         {
             StringBuilder sb = new StringBuilder();
@@ -234,6 +241,26 @@ namespace TinyBCT
         public string AssumeTypeConstructor(string arg, ITypeReference type)
         {
             return String.Format("assume $TypeConstructor({0}) == T${1};", arg, type);
+        }
+
+        public string Assert(IVariable cond)
+        {
+            return Assert(cond.Name);
+        }
+
+        public string Assert(string cond)
+        {
+            return String.Format("assert {0};", cond);
+        }
+
+        public string Assume(IVariable cond)
+        {
+            return Assume(cond.Name);
+        }
+
+        public string Assume(string cond)
+        {
+            return String.Format("assume {0};", cond);
         }
     }
 }
