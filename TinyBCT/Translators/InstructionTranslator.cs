@@ -128,12 +128,12 @@ namespace TinyBCT.Translators
                 { 
                     var fileName = location.SourceDocument.Name;
                     var sourceLine = location.StartLine;
-                    AddBoogie(BoogieGenerator.Instance().Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", fileName, sourceLine)));
+                    AddBoogie(boogieGenerator.Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", fileName, sourceLine)));
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
                 }
                 else 
                 {
-                    AddBoogie(BoogieGenerator.Instance().Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", "Empty", 0)));
+                    AddBoogie(boogieGenerator.Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", "Empty", 0)));
                 }
             }
 
@@ -145,12 +145,10 @@ namespace TinyBCT.Translators
                 {
                     // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
                     var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
-
-                    var bg = BoogieGenerator.Instance();
-
+                
                     var args = new List<string>();
                     args.Add(receiver.Name);
-                    AddBoogie(bg.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
+                    AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
                     //AddBoogie(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
 
                     // example:if ($tmp6 == T$DynamicDispatch.Dog())
