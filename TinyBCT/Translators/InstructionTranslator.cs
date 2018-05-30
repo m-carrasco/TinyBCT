@@ -96,6 +96,7 @@ namespace TinyBCT.Translators
         protected abstract class Translation : InstructionVisitor
         {
             protected InstructionTranslator instTranslator;
+            protected BoogieGenerator boogieGenerator = BoogieGenerator.Instance();
             public Translation(InstructionTranslator p)
             {
                 instTranslator = p;
@@ -236,8 +237,8 @@ namespace TinyBCT.Translators
                     var arguments = new List<string>();
                     arguments.Add(Helpers.Strings.fixStringLiteral(left));
                     arguments.Add(Helpers.Strings.fixStringLiteral(right));
-                    AddBoogie(BoogieGenerator.Instance().ProcedureCall(methodName, arguments, tempVar.ToString()));
-                    AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, tempVar.ToString()));
+                    AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
+                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar.ToString()));
                 } else
                 {
                     // TODO(rcastano): refactor this. Ideally, there might be different BoogieGenerators,
@@ -246,13 +247,13 @@ namespace TinyBCT.Translators
                     // When that happens, this should most likely be encapsulated within BoogieGenerator.
                     if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation))
                     {
-                        var exp = BoogieGenerator.Instance().BinaryOperationExpression(left, right, instruction.Operation);
-                        var assignment = BoogieGenerator.Instance().VariableAssignment(instruction.Result.ToString(), exp);
+                        var exp = boogieGenerator.BinaryOperationExpression(left, right, instruction.Operation);
+                        var assignment = boogieGenerator.VariableAssignment(instruction.Result.ToString(), exp);
                         AddBoogie(assignment);
                     }
                     else
                     {
-                        AddBoogie(BoogieGenerator.Instance().HavocResult(instruction));
+                        AddBoogie(boogieGenerator.HavocResult(instruction));
                     }
                 }
             }
@@ -311,19 +312,19 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        AddBoogie(BoogieGenerator.Instance().Goto(target.First()));
+                        AddBoogie(boogieGenerator.Goto(target.First()));
                         return;
                     }
 
                 }
 
-                AddBoogie(BoogieGenerator.Instance().Goto(instruction.Target));
+                AddBoogie(boogieGenerator.Goto(instruction.Target));
             }
 
             public override void Visit(ReturnInstruction instruction)
             {
                 if (instruction.HasOperand)
-                    AddBoogie(BoogieGenerator.Instance().VariableAssignment("$result", instruction.Operand.Name));
+                    AddBoogie(boogieGenerator.VariableAssignment("$result", instruction.Operand.Name));
             }
 
             public override void Visit(LoadInstruction instruction)
@@ -340,7 +341,7 @@ namespace TinyBCT.Translators
                 if (instructionOperand is InstanceFieldAccess) // memory access handling
                 {
                     InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
-                    AddBoogie(BoogieGenerator.Instance().ReadInstanceField(instanceFieldOp, instruction.Result));
+                    AddBoogie(boogieGenerator.ReadInstanceField(instanceFieldOp, instruction.Result));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
@@ -360,10 +361,10 @@ namespace TinyBCT.Translators
                     if (staticFieldAccess.Type.ResolvedType.IsDelegate &&
                         staticFieldAccess.Field.ContainingType.IsCompilerGenerated()) 
                     {
-                        AddBoogie(BoogieGenerator.Instance().VariableAssignment(FieldTranslator.GetFieldName(staticFieldAccess.Field), "null"));
+                        AddBoogie(boogieGenerator.VariableAssignment(FieldTranslator.GetFieldName(staticFieldAccess.Field), "null"));
                     }
 
-                    AddBoogie(BoogieGenerator.Instance().ReadStaticField(staticFieldAccess, instruction.Result));
+                    AddBoogie(boogieGenerator.ReadStaticField(staticFieldAccess, instruction.Result));
                 }
 
                 else if (instructionOperand is StaticMethodReference) // delegates handling
@@ -375,15 +376,15 @@ namespace TinyBCT.Translators
                     string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
                         Helpers.Strings.fixStringLiteral(instructionOperand) :
                         instructionOperand.ToString();
-                    AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, operand));
+                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
                 }
 
                 if (instruction.Result is IVariable &&
                     instruction.Result.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
                     MentionedClasses.Add(instruction.Result.Type);
-                    AddBoogie(BoogieGenerator.Instance().AssumeDynamicType(instruction.Result, instruction.Result.Type));
-                    AddBoogie(BoogieGenerator.Instance().AssumeTypeConstructor(BoogieGenerator.Instance().DynamicType(instruction.Result), instruction.Result.Type));
+                    AddBoogie(boogieGenerator.AssumeDynamicType(instruction.Result, instruction.Result.Type));
+                    AddBoogie(boogieGenerator.AssumeTypeConstructor(boogieGenerator.DynamicType(instruction.Result), instruction.Result.Type));
                 }
             }
 
@@ -404,20 +405,20 @@ namespace TinyBCT.Translators
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
                     if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
                     {
-                        AddBoogie(BoogieGenerator.Instance().ProcedureCall(callee, arguments, instruction.Result));
+                        AddBoogie(boogieGenerator.ProcedureCall(callee, arguments, instruction.Result));
                     }
                     else
                     {
                         // TODO(rcastano): reuse variable
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
-                        AddBoogie(BoogieGenerator.Instance().ProcedureCall(callee, arguments, localVar));
+                        AddBoogie(boogieGenerator.ProcedureCall(callee, arguments, localVar));
                         resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
-                        AddBoogie(BoogieGenerator.Instance().VariableAssignment(instruction.Result, BoogieGenerator.Instance().Union2PrimitiveType(resType, localVar.Name)));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(resType, localVar.Name)));
                     }
                 }
                 else
                 {
-                    AddBoogie(BoogieGenerator.Instance().ProcedureCall(callee, arguments));
+                    AddBoogie(boogieGenerator.ProcedureCall(callee, arguments));
                 }
             }
 
@@ -441,12 +442,12 @@ namespace TinyBCT.Translators
 
                 if (methodName == "System.Diagnostics.Contracts.Contract.Assert")
                 {
-                    AddBoogie(BoogieGenerator.Instance().Assert(instruction.Variables.First()));
+                    AddBoogie(boogieGenerator.Assert(instruction.Variables.First()));
                     return;
                 }
                 else if (methodName == "System.Diagnostics.Contracts.Contract.Assume")
                 {
-                    AddBoogie(BoogieGenerator.Instance().Assume(instruction.Variables.First()));
+                    AddBoogie(boogieGenerator.Assume(instruction.Variables.First()));
                     return;
                 }
                 // Diego: BUGBUG. Some non-virtual but non-static call (i.e., on particular instances) are categorized as static!
@@ -498,7 +499,7 @@ namespace TinyBCT.Translators
                         // TODO(rcastano): try to reuse variables.
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
 
-                        var bg = BoogieGenerator.Instance();
+                        var bg = boogieGenerator;
                         // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
                         toAppend.Add(bg.VariableAssignment(localVar, bg.PrimitiveType2Union(instruction.Arguments.ElementAt(arg_i))));
 
@@ -524,7 +525,7 @@ namespace TinyBCT.Translators
                 System.Diagnostics.Contracts.Contract.Assume(
                     !leftOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && !rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
-                var bg = BoogieGenerator.Instance();
+                var bg = boogieGenerator;
                 AddBoogie(bg.If(bg.BranchOperationExpression(leftOperand, rightOperand, instruction.Operation), bg.Goto(instruction.Target)));
             }
 
@@ -533,7 +534,7 @@ namespace TinyBCT.Translators
                 // assume $DynamicType($tmp0) == T$TestType();
                 //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
 
-                var bg = BoogieGenerator.Instance();
+                var bg = boogieGenerator;
                 AddBoogie(bg.ProcedureCall("Alloc", new List<string>(), instruction.Result.Name));
                 var type = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
@@ -546,7 +547,7 @@ namespace TinyBCT.Translators
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
                 if (instanceFieldAccess != null)
                 {
-                    var p = BoogieGenerator.Instance().WriteInstanceField(instanceFieldAccess, instruction.Operand);
+                    var p = boogieGenerator.WriteInstanceField(instanceFieldAccess, instruction.Operand);
                     AddBoogie(p);
                 }
                 else
@@ -555,7 +556,7 @@ namespace TinyBCT.Translators
                     var staticFieldAccess = instruction.Result as StaticFieldAccess;
                     if (staticFieldAccess != null)
                     {
-                        var p = BoogieGenerator.Instance().WriteStaticField(staticFieldAccess, instruction.Operand);
+                        var p = boogieGenerator.WriteStaticField(staticFieldAccess, instruction.Operand);
                         AddBoogie(p);
                     }
                     else
@@ -571,7 +572,7 @@ namespace TinyBCT.Translators
                 var type = instruction.ConversionType;
                 Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
-                var bg = BoogieGenerator.Instance();
+                var bg = boogieGenerator;
                 AddBoogie(bg.VariableAssignment(dest.Name, bg.As(source, type)));
             }
 
@@ -591,13 +592,13 @@ namespace TinyBCT.Translators
                     var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
 
                     var valueZero = AddNewLocalVariableToMethod("$initialize", Types.Instance.PlatformType.SystemInt32);
-                    AddBoogie(BoogieGenerator.Instance().VariableAssignment(valueZero, "0"));
+                    AddBoogie(boogieGenerator.VariableAssignment(valueZero, "0"));
 
                     if (instanceFieldAccess != null)
                     {
                         String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
-                        var bg = BoogieGenerator.Instance();
+                        var bg = boogieGenerator;
                         AddBoogie(bg.WriteInstanceField(instanceFieldAccess, valueZero));
                     }
                     else 
@@ -606,13 +607,13 @@ namespace TinyBCT.Translators
                         var staticFieldAccess = where as StaticFieldAccess;
                         if (staticFieldAccess != null)
                         {
-                            AddBoogie(BoogieGenerator.Instance().WriteStaticField(staticFieldAccess, valueZero));
+                            AddBoogie(boogieGenerator.WriteStaticField(staticFieldAccess, valueZero));
                         }
                         else if(where is IVariable)
                         {
                             // Diego BUG BUG
                             // We need to handle default(T) properly
-                            AddBoogie(BoogieGenerator.Instance().VariableAssignment(where as IVariable, valueZero.Name));
+                            AddBoogie(boogieGenerator.VariableAssignment(where as IVariable, valueZero.Name));
                         }
                         else
                         {
