@@ -127,12 +127,12 @@ namespace TinyBCT.Translators
                 { 
                     var fileName = location.SourceDocument.Name;
                     var sourceLine = location.StartLine;
-                    AddBoogie(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", fileName, sourceLine));
+                    AddBoogie(BoogieGenerator.Instance().Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", fileName, sourceLine)));
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
                 }
                 else 
                 {
-                    AddBoogie(String.Format("\t\t assert {{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true;", "Empty", 0));
+                    AddBoogie(BoogieGenerator.Instance().Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", "Empty", 0)));
                 }
             }
 
@@ -145,9 +145,16 @@ namespace TinyBCT.Translators
                     // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
                     var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
 
-                    AddBoogie(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
+                    var bg = BoogieGenerator.Instance();
+
+                    var args = new List<string>();
+                    args.Add(receiver.Name);
+                    AddBoogie(bg.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
+                    //AddBoogie(String.Format("\t\tcall {0} := System.Object.GetType({1});", getTypeVar, receiver));
 
                     // example:if ($tmp6 == T$DynamicDispatch.Dog())
+
+                    //bg.If(bg.Subtype(getTypeVar, calless.First().ContainingType), string);
 
                     AddBoogie(String.Format("\t\tif ($Subtype({0},T${1}()))", getTypeVar, Helpers.GetNormalizedType(calless.First().ContainingType)));
                     AddBoogie("\t\t{");
@@ -449,7 +456,7 @@ namespace TinyBCT.Translators
                 {
                     Action<IMethodReference> onPotentialCallee = (potential => CallMethod(instruction, copyArgs, potential));
                     DynamicDispatch(instruction.Method, instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Method.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, onPotentialCallee);
-                    ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+                    AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
                     return;
                 }
 
@@ -457,7 +464,7 @@ namespace TinyBCT.Translators
 
                 CallMethod(instruction, copyArgs, instruction.Method);
 
-                ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+                AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
 
                 if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
                     AddToExternalMethods(instruction.Method);
@@ -1111,7 +1118,7 @@ namespace TinyBCT.Translators
                     // invoke the correct version of create delegate
                     var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                     AddBoogie(String.Format("\t\tcall {0}:= CreateDelegate_{1}({2}, {3}, {4});", createObjIns.Result, normalizedType, methodId, receiverObject, "Type0()"));
-                    ExceptionTranslation.HandleExceptionAfterMethodCall(instruction);
+                    AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
                 };
 
                 DynamicDispatch(methodRef, receiverObject, methodRef.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, d);

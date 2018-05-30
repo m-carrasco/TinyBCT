@@ -321,15 +321,39 @@ namespace TinyBCT
             return String.Format("assume {0};", cond);
         }
 
-        // todo: extend for else / elseif
         public string If(string condition, string body)
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine(String.Format("\t\tif ({0})", condition));
-            sb.AppendLine("\t\t{");
+            sb.AppendLine(String.Format("if ({0})", condition));
+            sb.AppendLine("{");
             sb.AppendLine(body);
-            sb.AppendLine("\t\t}");
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+        public string Else( string body)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("else");
+            sb.AppendLine("{");
+            sb.AppendLine(body);
+            sb.AppendLine("}");
+
+            return sb.ToString();
+        }
+
+
+        public string ElseIf(string condition, string body)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine(String.Format("else if ({0})", condition));
+            sb.AppendLine("{");
+            sb.AppendLine(body);
+            sb.AppendLine("}");
 
             return sb.ToString();
         }
@@ -337,6 +361,11 @@ namespace TinyBCT
         public string As(IVariable arg1, ITypeReference arg2)
         {
             return String.Format("$As({0},T${1}())", arg1, arg2);
+        }
+
+        public string Subtype(IVariable var, ITypeReference type)
+        {
+            return string.Format("$Subtype({0}, T${1}())", var, Helpers.GetNormalizedType(type));
         }
     }
 }
