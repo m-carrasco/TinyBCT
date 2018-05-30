@@ -1142,8 +1142,9 @@ namespace TinyBCT.Translators
                     var argType = Helpers.GetBoogieType(argument.Type);
                     if (argType.Equals("Ref")) // Ref and Union are alias
                         continue;
-                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                    AddBoogie(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
+
+                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(argument));
+                    //AddBoogie(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
                 }
 
                 //AddBoogie(String.Format("\t\tassume Union2Int(Int2Union({0})) == {0};", instruction.Arguments[1]));
@@ -1160,40 +1161,39 @@ namespace TinyBCT.Translators
                         r := Union2Int($res_invoke);
                 */
 
-                var arguments2Union = new List<String>();
+                var invokeDelegateArguments = new List<string>();
+                invokeDelegateArguments.Add(instruction.Arguments[0].Name);
                 foreach (var argument in instruction.Arguments.Skip(1))
                 {
                     var argType = Helpers.GetBoogieType(argument.Type);
-                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
+                    //argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
                     if (argType.Equals("Ref")) // Ref and Union are alias
                     {
-                        arguments2Union.Add(argument.ToString());
+                        invokeDelegateArguments.Add(argument.ToString());
                     } else
                     {
-                        arguments2Union.Add(String.Format("{0}2Union({1})", argType, argument.ToString()));
+                        invokeDelegateArguments.Add(boogieGenerator.PrimitiveType2Union(argument));
+                        //arguments2Union.Add(String.Format("{0}2Union({1})", argType, argument.ToString()));
                     }
                 }
 
-                var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
-
+                //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
+                //var argumentsString = string.Join(",", invokeDelegateArguments.ToArray());
                 // invoke the correct version of invoke delegate
                 var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                 if (instruction.HasResult)
-                    AddBoogie(String.Format("\t\tcall {0} := InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
+                    AddBoogie(boogieGenerator.ProcedureCall(string.Format("InvokeDelegate_{0}", normalizedType), invokeDelegateArguments, localVar.Name));
                 else
-                    AddBoogie(String.Format("\t\tcall InvokeDelegate_{1}({2} {3});", localVar, normalizedType, instruction.Arguments[0], arguments));
+                    AddBoogie(boogieGenerator.ProcedureCall(string.Format("InvokeDelegate_{0}", normalizedType), invokeDelegateArguments));
 
                 if (instruction.HasResult)
                 {
                     // the union depends on the type of the arguments
                     var argType = Helpers.GetBoogieType(instruction.Result.Type);
                     if (argType.Equals("Ref")) // Ref and Union are alias
-                        AddBoogie(String.Format("\t\t{0} := {1};", instruction.Result, localVar));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, localVar.Name));
                     else
-                    {
-                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        AddBoogie(String.Format("\t\t{0} := Union2{2}({1});", instruction.Result, localVar, argType));
-                    }
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(argType, localVar.Name)));
                 }
             }
 
