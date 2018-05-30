@@ -525,7 +525,16 @@ namespace TinyBCT
         {
             return method.Name.Value == ".ctor";
         }
-        
+
+        public static Boolean IsBoogieRefType(ITypeReference r)
+        {
+            var type = Helpers.GetBoogieType(r);
+
+            Contract.Assert(!string.IsNullOrEmpty(type));
+
+            return type.Equals("Ref");
+        }
+
         public static class Strings
         {
             internal static ISet<string> stringLiterals = new HashSet<string>();

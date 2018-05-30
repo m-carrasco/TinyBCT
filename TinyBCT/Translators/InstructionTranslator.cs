@@ -385,7 +385,7 @@ namespace TinyBCT.Translators
                     // the union depends on the type of the arguments
                     var resType = Helpers.GetBoogieType(instruction.Result.Type);
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
-                    if (methodType.Equals(resType) || resType.Equals("Ref")) // Ref and Union are alias
+                    if (methodType.Equals(resType) || Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
                     {
                         sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instruction.Result));
                     }
@@ -753,9 +753,8 @@ namespace TinyBCT.Translators
 
                 Contract.Assert(res != null);
                 var argType = Helpers.GetBoogieType(res.Type);
-                Contract.Assert(!String.IsNullOrEmpty(argType));
 
-                if (!argType.Equals("Ref")) // Ref and Union are alias
+                if (!Helpers.IsBoogieRefType(res.Type)) // Ref and Union are alias
                 {
                     /*
                         assume Union2Int(Int2Union(0)) == 0;
@@ -1139,8 +1138,7 @@ namespace TinyBCT.Translators
 
                 foreach (var argument in instruction.Arguments.Skip(1)) // first argument is the delegate object
                 {
-                    var argType = Helpers.GetBoogieType(argument.Type);
-                    if (argType.Equals("Ref")) // Ref and Union are alias
+                    if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         continue;
 
                     AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(argument));
@@ -1165,16 +1163,10 @@ namespace TinyBCT.Translators
                 invokeDelegateArguments.Add(instruction.Arguments[0].Name);
                 foreach (var argument in instruction.Arguments.Skip(1))
                 {
-                    var argType = Helpers.GetBoogieType(argument.Type);
-                    //argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                    if (argType.Equals("Ref")) // Ref and Union are alias
-                    {
+                    if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         invokeDelegateArguments.Add(argument.ToString());
-                    } else
-                    {
+                    else
                         invokeDelegateArguments.Add(boogieGenerator.PrimitiveType2Union(argument));
-                        //arguments2Union.Add(String.Format("{0}2Union({1})", argType, argument.ToString()));
-                    }
                 }
 
                 //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
@@ -1190,7 +1182,7 @@ namespace TinyBCT.Translators
                 {
                     // the union depends on the type of the arguments
                     var argType = Helpers.GetBoogieType(instruction.Result.Type);
-                    if (argType.Equals("Ref")) // Ref and Union are alias
+                    if (Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, localVar.Name));
                     else
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(argType, localVar.Name)));
@@ -1342,7 +1334,7 @@ namespace TinyBCT.Translators
                     Contract.Assert(!String.IsNullOrEmpty(argType));
                     //if (argType.Equals("Ref")) // Ref and Union are alias
                     //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
-                    if (!argType.Equals("Ref"))
+                    if (!Helpers.IsBoogieRefType(v.Type))
                     {
                         argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
                         sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType));
@@ -1358,7 +1350,7 @@ namespace TinyBCT.Translators
                 {
                     Contract.Assert(!String.IsNullOrEmpty(Helpers.GetBoogieType(method.Type)));
 
-                    if (Helpers.GetBoogieType(method.Type).Equals("Ref"))
+                    if (Helpers.IsBoogieRefType(method.Type))
                     {
                         sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
                     } else
@@ -1366,7 +1358,7 @@ namespace TinyBCT.Translators
                         var argType = Helpers.GetBoogieType(method.Type);
                         Contract.Assert(!String.IsNullOrEmpty(argType));
                         argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        if (!argType.Equals("Ref"))
+                        if (!Helpers.IsBoogieRefType(method.Type))
                         {
                             sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
                             sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType));

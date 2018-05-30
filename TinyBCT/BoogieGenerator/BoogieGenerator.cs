@@ -40,9 +40,8 @@ namespace TinyBCT
 
         public string PrimitiveType2Union(IVariable value)
         {
+            Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
             var boogieType = Helpers.GetBoogieType(value.Type);
-            Contract.Assert(!string.IsNullOrEmpty(boogieType) && !boogieType.Equals("Ref"));
-
             return PrimitiveType2Union(boogieType, value.ToString());
         }
         public string PrimitiveType2Union(string boogieType, string value)
@@ -54,8 +53,8 @@ namespace TinyBCT
 
         public string Union2PrimitiveType(IVariable value)
         {
+            Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
             var boogieType = Helpers.GetBoogieType(value.Type);
-            Contract.Assert(!string.IsNullOrEmpty(boogieType) && !boogieType.Equals("Ref"));
 
             return Union2PrimitiveType(boogieType, value.ToString());
         }
@@ -100,13 +99,10 @@ namespace TinyBCT
 
             String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
-            var boogieType = Helpers.GetBoogieType(value.Type);
-            Contract.Assert(!string.IsNullOrEmpty(boogieType));
-
-            if (!boogieType.Equals("Ref")) // int, bool, real
+            if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
             {
                 sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(boogieType, opStr)));
+                sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), opStr)));
             }
             else
             {
@@ -125,7 +121,7 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(result.Type);
             Contract.Assert(!string.IsNullOrEmpty(boogieType));
 
-            if (!boogieType.Equals("Ref")) // int, bool, real
+            if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
             {
                 // example: Union2Int(Read(...))
                 var expr = Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
