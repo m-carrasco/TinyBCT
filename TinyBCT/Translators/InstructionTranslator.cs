@@ -666,9 +666,9 @@ namespace TinyBCT.Translators
                     assume (forall $tmp1: int :: $ArrayContents[$tmp0][$tmp1] == null);
                 */
 
-                AddBoogie(String.Format("call {0} := Alloc();", instruction.Result));
-                AddBoogie(String.Format("assume $ArrayLength({0}) == {1};", instruction.Result, string.Join<IVariable>(" * ",instruction.UsedVariables.ToArray())));
-                AddBoogie(String.Format("assume (forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null);",instruction.Result));
+                AddBoogie(boogieGenerator.ProcedureCall("Alloc", new List<string>(), instruction.Result.Name));
+                AddBoogie(boogieGenerator.AssumeArrayLength(instruction.Result, string.Join<IVariable>(" * ", instruction.UsedVariables.ToArray())));
+                AddBoogie(boogieGenerator.Assume(String.Format("(forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null)", instruction.Result)));
             }
 
             private static LoadInstruction arrayLengthAccess = null;
@@ -678,7 +678,7 @@ namespace TinyBCT.Translators
                 Contract.Assert(arrayLengthAccess != null);
 
                 var op = arrayLengthAccess.Operand as ArrayLengthAccess;
-                AddBoogie(String.Format("{0} := $ArrayLength({1});", instruction.Result, op.Instance));
+                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result.Name, boogieGenerator.ArrayLength(op.Instance)));
                 arrayLengthAccess = null;
             }
 
@@ -698,7 +698,7 @@ namespace TinyBCT.Translators
                     }
                     else
                     {
-                        AddBoogie(String.Format("{0} := $ArrayLength({1});", instruction.Result, lengthAccess.Instance));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result.Name, boogieGenerator.ArrayLength(lengthAccess.Instance)));
                         onlyLengthNoConvert = false;
                     }
 
@@ -727,7 +727,7 @@ namespace TinyBCT.Translators
                     // that element could be a Union (Ref alias) or a non Union type. In the last case we must perform a cast.
                     if (boogieType.Equals("Ref"))
                     {
-                        AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});",  insResult, array, indexes.First()));
+                        AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
                     }
                     else
                     {
@@ -735,13 +735,13 @@ namespace TinyBCT.Translators
                         boogieType = boogieType.First().ToString().ToUpper() + boogieType.Substring(1).ToLower();
 
                         var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                        AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});", tempVar, array, indexes.First()));
-                        AddBoogie(String.Format("{0} := Union2{2}({1});", insResult, tempVar, boogieType));
+                        AddBoogie(boogieGenerator.CallReadArrayElement(tempVar, array, indexes.First()));
+                        AddBoogie(boogieGenerator.VariableAssignment(insResult, boogieGenerator.Union2PrimitiveType(boogieType, tempVar.Name)));
                     }
                 } else
                 {
                     var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                    AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});", insResult, array, indexes.First()));
+                    AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
                     ReadArrayContent(insResult, tempVar, indexes.Skip(1).ToList(), boogieType);
                 }
             }
@@ -752,7 +752,6 @@ namespace TinyBCT.Translators
                 ArrayElementAccess res = instruction.Result as ArrayElementAccess;
 
                 Contract.Assert(res != null);
-                var argType = Helpers.GetBoogieType(res.Type);
 
                 if (!Helpers.IsBoogieRefType(res.Type)) // Ref and Union are alias
                 {
@@ -760,12 +759,11 @@ namespace TinyBCT.Translators
                         assume Union2Int(Int2Union(0)) == 0;
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
-                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-
-                    AddBoogie(String.Format("assume Union2{0}({0}2Union({1})) == {1};", argType, instruction.Operand));
-                    AddBoogie(String.Format("call $WriteArrayElement({0}, {1}, {3}2Union({2}));", res.Array, res.Indices[0], instruction.Operand, argType));
-                } else
-                    AddBoogie(String.Format("call $WriteArrayElement({0}, {1}, {2});", res.Array, res.Indices[0], instruction.Operand));
+                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(instruction.Operand));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array.Name, res.Indices[0].Name, boogieGenerator.PrimitiveType2Union(Helpers.GetBoogieType(res.Type),instruction.Operand.Name)));
+                }
+                else
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array, res.Indices[0], instruction.Operand));
             }
         }
 
@@ -801,31 +799,20 @@ namespace TinyBCT.Translators
 
             public override void Visit(NopInstruction instruction)
             {
-                // hack to get endfinally
-                //if (instruction.IsEndFinally)
-                //{
-                    /*
-                     The endfinally instruction transfers control out of a finally or fault block in the usual manner. 
-                     This mean that if the finally block was being executed as a result of a leave statement in a try block, 
-                     then execution continues at the next statement following the finally block. 
-                     If, on the other hand, the finally block was being executed as a result of an exception having been thrown, 
-                     then execution will transfer to the next suitable block of exception handling code. 
+                /*
+                 The endfinally instruction transfers control out of a finally or fault block in the usual manner. 
+                 This mean that if the finally block was being executed as a result of a leave statement in a try block, 
+                 then execution continues at the next statement following the finally block. 
+                 If, on the other hand, the finally block was being executed as a result of an exception having been thrown, 
+                 then execution will transfer to the next suitable block of exception handling code. 
 
-                        taken from: "Expert .NET 1.1 Programming"
-                     */
+                    taken from: "Expert .NET 1.1 Programming"
+                 */
 
-                    // only encode behaviour if there was an unhandled exception
-                    AddBoogie("\t\tif ($Exception != null)");
-                    AddBoogie("\t\t{");
-                    var target = GetThrowTarget(instruction);
-                    if (String.IsNullOrEmpty(target))
-                        AddBoogie("\t\t\treturn;");
-                    else
-                        AddBoogie(String.Format("\t\t\tgoto {0};", target));
-                    AddBoogie("\t\t}");
-
-                //}
-                //addLabel(instruction);
+                // only encode behaviour if there was an unhandled exception
+                var target = GetThrowTarget(instruction);
+                var ifBody = String.IsNullOrEmpty(target) ? boogieGenerator.Return() : boogieGenerator.Goto(target);
+                AddBoogie(boogieGenerator.If("$Exception != null", ifBody));
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -882,13 +869,12 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        AddBoogie(String.Format("\t\tgoto {0};", target.First()));
+                        AddBoogie(boogieGenerator.Goto(target.First()));
                         return;
                     }
 
                 //}
-
-                AddBoogie(String.Format("\t\tgoto {0};", instruction.Target));
+                AddBoogie(boogieGenerator.Goto(instruction.Target));
             }
 
             public override void Visit(TryInstruction instruction)
@@ -898,34 +884,28 @@ namespace TinyBCT.Translators
 
             public override void Visit(CatchInstruction instruction)
             {
-                AddBoogie(String.Format("\t\tif (!$Subtype($ExceptionType, T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
-                AddBoogie("\t\t{");
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
-                if (String.IsNullOrEmpty(nextHandler))
-                    AddBoogie("\t\t\treturn;");
-                else
-                    AddBoogie(String.Format("\t\t\tgoto {0};", nextHandler));
-
-                AddBoogie("\t\t}");
+                var body = String.IsNullOrEmpty(nextHandler) ? boogieGenerator.Return() : boogieGenerator.Goto(nextHandler);
+                AddBoogie(boogieGenerator.If(boogieGenerator.Negation(boogieGenerator.Subtype("$ExceptionType", instruction.ExceptionType)), body));
 
                 // Exception is handled we reset global variables
-                AddBoogie(String.Format("\t\t{0} := $Exception;", instruction.Result));
-                AddBoogie("\t\t$Exception := null;");
-                AddBoogie("\t\t$ExceptionType := null;");
+                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, "$Exception"));
+                AddBoogie(boogieGenerator.VariableAssignment("$Exception", "null"));
+                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", "null"));
             }
 
             public override void Visit(ThrowInstruction instruction)
             {
-                AddBoogie(String.Format("\t\tcall $ExceptionType := System.Object.GetType({0});", instruction.Operand));
-                AddBoogie(String.Format("\t\t$Exception := {0};", instruction.Operand));
+                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", String.Format("System.Object.GetType({0})", instruction.Operand)));
+                AddBoogie(boogieGenerator.VariableAssignment("$Exception", instruction.Operand.Name));
 
                 var target = GetThrowTarget(instruction);
 
                 if (String.IsNullOrEmpty(target))
-                    AddBoogie("\t\treturn;");
+                    AddBoogie(boogieGenerator.Return());
                 else
-                    AddBoogie(String.Format("\t\tgoto {0};", target));
+                    AddBoogie(boogieGenerator.Goto(target));
             }
 
             public override void Visit(FinallyInstruction instruction)

@@ -362,7 +362,84 @@ namespace TinyBCT
 
         public string Subtype(IVariable var, ITypeReference type)
         {
+            return Subtype(var.Name, type);
+        }
+
+        public string Subtype(string var, ITypeReference type)
+        {
             return string.Format("$Subtype({0}, {1})", var, Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses));
+        }
+
+        public string AssumeArrayLength(IVariable array, string length)
+        {
+            return Assume(String.Format("{0} == {1}", ArrayLength(array), length));
+        }
+
+        public string ArrayLength(IVariable arr)
+        {
+            return String.Format("$ArrayLength({0})", arr.Name);
+        }
+
+        public string ArrayLength(string arr)
+        {
+            return String.Format("$ArrayLength({0})", arr);
+        }
+
+        public string ReadArrayElement(string array, string index)
+        {
+            return string.Format("$ReadArrayElement({0}, {1})", array, index);
+        }
+
+        public string ReadArrayElement(IVariable array, IVariable index)
+        {
+            return ReadArrayElement(array.Name, index.Name);
+        }
+
+        public string CallReadArrayElement(string result, string array, string index)
+        {
+            var l = new List<string>();
+            l.Add(array);
+            l.Add(index);
+            return ProcedureCall("$ReadArrayElement", l, result);
+        }
+
+        public string CallReadArrayElement(IVariable result, IVariable array, IVariable index)
+        {
+            return CallReadArrayElement(result.Name, array.Name, index.Name);
+        }
+
+        public string WriteArrayElement(string array, string index, string value)
+        {
+            return string.Format("$WriteArrayElement({0}, {1}, {2})", array, index, value);
+        }
+
+        public string WriteArrayElement(IVariable array, IVariable index, IVariable value)
+        {
+            return WriteArrayElement(array.Name, index.Name, value.Name);
+        }
+
+        public string CallWriteArrayElement(string array, string index, string value)
+        {
+            var l = new List<string>();
+            l.Add(array);
+            l.Add(index);
+            l.Add(value);
+            return ProcedureCall("$WriteArrayElement", l);
+        }
+
+        public string CallWriteArrayElement(IVariable array, IVariable index, IVariable value)
+        {
+            return CallWriteArrayElement(array.Name, index.Name, value.Name);
+        }
+
+        public string Return()
+        {
+            return "return;";
+        }
+
+        public string Negation(string b)
+        {
+            return String.Format("!{0}", b);
         }
     }
 }
