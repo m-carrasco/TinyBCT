@@ -561,7 +561,7 @@ namespace TinyBCT
                 foreach (var lit in stringLiterals)
                 {
                     sw.WriteLine(
-                        String.Format("\tvar {0} : Ref;", Helpers.Strings.ConstNameForStringLiteral(lit))
+                        String.Format("\tconst unique {0} : Ref;", Helpers.Strings.ConstNameForStringLiteral(lit))
                         );
                 }
             }

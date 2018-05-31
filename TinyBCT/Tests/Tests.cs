@@ -709,6 +709,24 @@ class Test {
         var corralResult = CorralTestHelperCode("stringEqSpaces", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Av-Regressions")]
+    public void TestStringEqOperator8()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    var s1 = ""Hello world"";
+    var s2 = ""Hello"";
+    Contract.Assert(s1 != s2);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("stringEqPrecision", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Av-Regressions")]
