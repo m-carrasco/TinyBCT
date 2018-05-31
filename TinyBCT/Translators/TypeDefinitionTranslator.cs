@@ -87,10 +87,16 @@ namespace TinyBCT.Translators
                 // already in prelude
                 if (typeName.Equals("System.Object"))
                     continue;
-
-                sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
+                var argsString = String.Empty;
+                if (c is IGenericTypeInstanceReference)
+                {
+                    System.Diagnostics.Contracts.Contract.Assume(false);
+                    var instanciatedType = c as IGenericTypeInstanceReference;
+                    var typeArguments = instanciatedType.GenericArguments;
+                    argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref"));
+                }
+                sb.AppendLine(String.Format("function T${0}({1}) : Ref;", typeName, argsString));
                 sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
-                sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
 
                 sb.AppendLine("axiom(forall $T: Ref:: { " + String.Format(" $Subtype(T${0}()", typeName) +
                     ", $T) } $Subtype(T$" + string.Format("{0}(), $T) <==> T${0}() == $T || $Subtype({1}, $T));", typeName, "T$System.Object()"));
@@ -109,13 +115,33 @@ namespace TinyBCT.Translators
 
                 normalizedTypeStrings.Add(typeName);
             var superClass = typeDef.BaseClasses.SingleOrDefault();
-            sb.AppendLine(String.Format("function T${0}() : Ref;", typeName));
+
+            var argsString = String.Empty;
+            if (typeDef.IsGeneric && typeDef.InstanceType is IGenericTypeInstanceReference)
+            {
+                var instanciatedType = typeDef.InstanceType as IGenericTypeInstanceReference;
+                var typeArguments = instanciatedType.GenericArguments;
+                argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref"));
+            }
+            sb.AppendLine(String.Format("function T${0}({1}) : Ref;", typeName, argsString));
             sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
-            sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
             if (superClass != null)
             {
-                sb.AppendLine("axiom(forall $T: Ref:: { " + String.Format(" $Subtype(T${0}()", typeName) +
-                    ", $T) } $Subtype(T$" + string.Format("{0}(), $T) <==> T${0}() == $T || $Subtype(T${1}(), $T));", typeName, Helpers.GetNormalizedType(superClass)));
+                argsString = "";
+                IEnumerable<ITypeReference> typeArguments = null;
+                if (typeDef.IsGeneric && typeDef.InstanceType is IGenericTypeInstanceReference)
+                {
+                    var instanciatedType = typeDef.InstanceType as IGenericTypeInstanceReference;
+                    typeArguments = instanciatedType.GenericArguments;
+                    argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref")) + ", ";
+                }
+                var funcCall = typeDef.IsGeneric ? 
+                    Helpers.GetNormalizedTypeFunction(typeDef.InstanceType, InstructionTranslator.MentionedClasses, typeArguments) :
+                    Helpers.GetNormalizedTypeFunction(typeDef, InstructionTranslator.MentionedClasses);
+                var superClassFuncCall = Helpers.GetNormalizedTypeFunction(superClass, InstructionTranslator.MentionedClasses, typeArguments);
+                sb.AppendLine(
+                    String.Format("axiom(forall {0} $T: Ref:: {{  $Subtype({1}, $T) }} ", argsString, funcCall) +
+                    String.Format("$Subtype({0}, $T) <==> {0} == $T || $Subtype({1}, $T));", funcCall, superClassFuncCall));
 
                parents.Add(superClass.ResolvedType);
             }

@@ -97,6 +97,8 @@ public class TestsBase
     {
         TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+        TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
+
         TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
         TinyBCT.Translators.InstructionTranslator.PotentiallyMissingMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
         TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
@@ -537,6 +539,54 @@ public partial class AvRegressionTests : TestsBase
         var corralResult = CorralTestHelper("AsSubtypeFails", "TestAs.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("Av-Regressions")]
+    [TestMethod]
+    public void TestIsGenerics1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+}
+class Test {
+  public static bool IsHoldsString<S>(Holds<S> h) {
+    return h is Holds<string>;
+  }
+  public static void Main() {
+    Holds<string> holds_strings = new Holds<string>();
+    Contract.Assert(IsHoldsString(holds_strings));
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("IsWithGenerics1", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("NotImplemented")] // Av-Regressions
+    [TestMethod]
+    public void TestIsGenerics2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+}
+class Test {
+  public static bool IsHoldsString<S>(Holds<S> h) {
+    return h is Holds<string>;
+  }
+  public static void Main() {
+    Holds<Int32> holds_ints = new Holds<Int32>();
+    Contract.Assert(IsHoldsString(holds_ints));
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("IsWithGenerics2", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestCategory("Av-Regressions")]
     [TestMethod, Timeout(10000)]
@@ -546,7 +596,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Av-Regressions")]
     public void TestListSumOK()
     {
@@ -1279,3 +1329,33 @@ public class TestsManu : TestsBase
         return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalOptions);
     }
  }
+
+[TestClass]
+public class TestStringHelpers
+{
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceIllegalCharsSimple()
+    {
+        Assert.AreEqual("Hello#1#World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello:World"));
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceSpaces1()
+    {
+        Assert.AreEqual("Hello#0#World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello World"));
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceSpaces2()
+    {
+        Assert.AreEqual("Hello#0#World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello World"));
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceIllegalCharsEscape()
+    {
+        Assert.AreEqual("Hello##World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello#World"));
+    }
+}

@@ -274,12 +274,12 @@ namespace TinyBCT
 
         public string AssumeDynamicType(IVariable reference, ITypeReference type)
         {
-            return AssumeDynamicType(reference.Name, type.ToString());
+            return AssumeDynamicType(reference.Name, type);
         }
 
-        public string AssumeDynamicType(string name, string type)
+        public string AssumeDynamicType(string name, ITypeReference type)
         {
-            return String.Format("assume $DynamicType({0}) == T${1}();", name, type);
+            return String.Format("assume $DynamicType({0}) == {1};", name, Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses));
         }
 
         public string TypeConstructor(string type)
@@ -294,7 +294,7 @@ namespace TinyBCT
 
         public string AssumeTypeConstructor(string arg, string type)
         {
-            return String.Format("assume $TypeConstructor({0}) == T${1};", arg, type);
+            return String.Format("assume $TypeConstructor($DynamicType({0})) == T${1};", arg, type);
         }
 
         public string Assert(IVariable cond)
@@ -356,12 +356,13 @@ namespace TinyBCT
 
         public string As(IVariable arg1, ITypeReference arg2)
         {
-            return String.Format("$As({0},T${1}())", arg1, arg2);
+            // TODO(rcastano): Fix for generics
+            return String.Format("$As({0},{1})", arg1, Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses));
         }
 
         public string Subtype(IVariable var, ITypeReference type)
         {
-            return string.Format("$Subtype({0}, T${1}())", var, Helpers.GetNormalizedType(type));
+            return string.Format("$Subtype({0}, {1})", var, Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses));
         }
     }
 }

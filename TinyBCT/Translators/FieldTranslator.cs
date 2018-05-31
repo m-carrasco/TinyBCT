@@ -49,7 +49,7 @@ namespace TinyBCT.Translators
             var typeName = Helpers.GetNormalizedType(fieldRef.ContainingType);
             var fieldName = typeName + "." + fieldRef.Name.Value;
             var name = String.Format("F${0}", fieldName);
-            name = Helpers.NormalizeStringForCorral(name);
+            name = Helpers.Strings.NormalizeStringForCorral(name);
 
             fieldNames.Add(fieldRef, name);
             return name;
