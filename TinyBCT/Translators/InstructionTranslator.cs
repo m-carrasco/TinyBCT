@@ -666,9 +666,9 @@ namespace TinyBCT.Translators
                     assume (forall $tmp1: int :: $ArrayContents[$tmp0][$tmp1] == null);
                 */
 
-                AddBoogie(String.Format("call {0} := Alloc();", instruction.Result));
-                AddBoogie(String.Format("assume $ArrayLength({0}) == {1};", instruction.Result, string.Join<IVariable>(" * ",instruction.UsedVariables.ToArray())));
-                AddBoogie(String.Format("assume (forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null);",instruction.Result));
+                AddBoogie(boogieGenerator.ProcedureCall("Alloc", new List<string>(), instruction.Result.Name));
+                AddBoogie(boogieGenerator.AssumeArrayLength(instruction.Result, string.Join<IVariable>(" * ", instruction.UsedVariables.ToArray())));
+                AddBoogie(boogieGenerator.Assume(String.Format("(forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null)", instruction.Result)));
             }
 
             private static LoadInstruction arrayLengthAccess = null;
@@ -678,7 +678,7 @@ namespace TinyBCT.Translators
                 Contract.Assert(arrayLengthAccess != null);
 
                 var op = arrayLengthAccess.Operand as ArrayLengthAccess;
-                AddBoogie(String.Format("{0} := $ArrayLength({1});", instruction.Result, op.Instance));
+                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result.Name, boogieGenerator.ArrayLength(op.Instance)));
                 arrayLengthAccess = null;
             }
 
@@ -698,7 +698,7 @@ namespace TinyBCT.Translators
                     }
                     else
                     {
-                        AddBoogie(String.Format("{0} := $ArrayLength({1});", instruction.Result, lengthAccess.Instance));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result.Name, boogieGenerator.ArrayLength(lengthAccess.Instance)));
                         onlyLengthNoConvert = false;
                     }
 
@@ -727,7 +727,7 @@ namespace TinyBCT.Translators
                     // that element could be a Union (Ref alias) or a non Union type. In the last case we must perform a cast.
                     if (boogieType.Equals("Ref"))
                     {
-                        AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});",  insResult, array, indexes.First()));
+                        AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
                     }
                     else
                     {
@@ -735,13 +735,13 @@ namespace TinyBCT.Translators
                         boogieType = boogieType.First().ToString().ToUpper() + boogieType.Substring(1).ToLower();
 
                         var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                        AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});", tempVar, array, indexes.First()));
-                        AddBoogie(String.Format("{0} := Union2{2}({1});", insResult, tempVar, boogieType));
+                        AddBoogie(boogieGenerator.CallReadArrayElement(tempVar, array, indexes.First()));
+                        AddBoogie(boogieGenerator.VariableAssignment(insResult, boogieGenerator.Union2PrimitiveType(boogieType, tempVar.Name)));
                     }
                 } else
                 {
                     var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                    AddBoogie(String.Format("call {0} := $ReadArrayElement({1}, {2});", insResult, array, indexes.First()));
+                    AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
                     ReadArrayContent(insResult, tempVar, indexes.Skip(1).ToList(), boogieType);
                 }
             }
@@ -752,7 +752,6 @@ namespace TinyBCT.Translators
                 ArrayElementAccess res = instruction.Result as ArrayElementAccess;
 
                 Contract.Assert(res != null);
-                var argType = Helpers.GetBoogieType(res.Type);
 
                 if (!Helpers.IsBoogieRefType(res.Type)) // Ref and Union are alias
                 {
@@ -760,12 +759,11 @@ namespace TinyBCT.Translators
                         assume Union2Int(Int2Union(0)) == 0;
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
-                    argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-
-                    AddBoogie(String.Format("assume Union2{0}({0}2Union({1})) == {1};", argType, instruction.Operand));
-                    AddBoogie(String.Format("call $WriteArrayElement({0}, {1}, {3}2Union({2}));", res.Array, res.Indices[0], instruction.Operand, argType));
-                } else
-                    AddBoogie(String.Format("call $WriteArrayElement({0}, {1}, {2});", res.Array, res.Indices[0], instruction.Operand));
+                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(instruction.Operand));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array.Name, res.Indices[0].Name, boogieGenerator.PrimitiveType2Union(Helpers.GetBoogieType(res.Type),instruction.Operand.Name)));
+                }
+                else
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array, res.Indices[0], instruction.Operand));
             }
         }
 
