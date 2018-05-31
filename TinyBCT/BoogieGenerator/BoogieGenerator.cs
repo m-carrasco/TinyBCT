@@ -361,6 +361,11 @@ namespace TinyBCT
 
         public string Subtype(IVariable var, ITypeReference type)
         {
+            return Subtype(var.Name, type);
+        }
+
+        public string Subtype(string var, ITypeReference type)
+        {
             return string.Format("$Subtype({0}, T${1}())", var, Helpers.GetNormalizedType(type));
         }
 
@@ -424,6 +429,16 @@ namespace TinyBCT
         public string CallWriteArrayElement(IVariable array, IVariable index, IVariable value)
         {
             return CallWriteArrayElement(array.Name, index.Name, value.Name);
+        }
+
+        public string Return()
+        {
+            return "return;";
+        }
+
+        public string Negation(string b)
+        {
+            return String.Format("!{0}", b);
         }
     }
 }

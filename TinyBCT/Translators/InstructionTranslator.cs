@@ -799,31 +799,20 @@ namespace TinyBCT.Translators
 
             public override void Visit(NopInstruction instruction)
             {
-                // hack to get endfinally
-                //if (instruction.IsEndFinally)
-                //{
-                    /*
-                     The endfinally instruction transfers control out of a finally or fault block in the usual manner. 
-                     This mean that if the finally block was being executed as a result of a leave statement in a try block, 
-                     then execution continues at the next statement following the finally block. 
-                     If, on the other hand, the finally block was being executed as a result of an exception having been thrown, 
-                     then execution will transfer to the next suitable block of exception handling code. 
+                /*
+                 The endfinally instruction transfers control out of a finally or fault block in the usual manner. 
+                 This mean that if the finally block was being executed as a result of a leave statement in a try block, 
+                 then execution continues at the next statement following the finally block. 
+                 If, on the other hand, the finally block was being executed as a result of an exception having been thrown, 
+                 then execution will transfer to the next suitable block of exception handling code. 
 
-                        taken from: "Expert .NET 1.1 Programming"
-                     */
+                    taken from: "Expert .NET 1.1 Programming"
+                 */
 
-                    // only encode behaviour if there was an unhandled exception
-                    AddBoogie("\t\tif ($Exception != null)");
-                    AddBoogie("\t\t{");
-                    var target = GetThrowTarget(instruction);
-                    if (String.IsNullOrEmpty(target))
-                        AddBoogie("\t\t\treturn;");
-                    else
-                        AddBoogie(String.Format("\t\t\tgoto {0};", target));
-                    AddBoogie("\t\t}");
-
-                //}
-                //addLabel(instruction);
+                // only encode behaviour if there was an unhandled exception
+                var target = GetThrowTarget(instruction);
+                var ifBody = String.IsNullOrEmpty(target) ? boogieGenerator.Return() : boogieGenerator.Goto(target);
+                AddBoogie(boogieGenerator.If("$Exception != null", ifBody));
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -880,13 +869,12 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        AddBoogie(String.Format("\t\tgoto {0};", target.First()));
+                        AddBoogie(boogieGenerator.Goto(target.First()));
                         return;
                     }
 
                 //}
-
-                AddBoogie(String.Format("\t\tgoto {0};", instruction.Target));
+                AddBoogie(boogieGenerator.Goto(instruction.Target));
             }
 
             public override void Visit(TryInstruction instruction)
@@ -896,34 +884,28 @@ namespace TinyBCT.Translators
 
             public override void Visit(CatchInstruction instruction)
             {
-                AddBoogie(String.Format("\t\tif (!$Subtype($ExceptionType, T${0}()))", Helpers.GetNormalizedType(instruction.ExceptionType)));
-                AddBoogie("\t\t{");
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
-                if (String.IsNullOrEmpty(nextHandler))
-                    AddBoogie("\t\t\treturn;");
-                else
-                    AddBoogie(String.Format("\t\t\tgoto {0};", nextHandler));
-
-                AddBoogie("\t\t}");
+                var body = String.IsNullOrEmpty(nextHandler) ? boogieGenerator.Return() : boogieGenerator.Goto(nextHandler);
+                AddBoogie(boogieGenerator.If(boogieGenerator.Negation(boogieGenerator.Subtype("$ExceptionType", instruction.ExceptionType)), body));
 
                 // Exception is handled we reset global variables
-                AddBoogie(String.Format("\t\t{0} := $Exception;", instruction.Result));
-                AddBoogie("\t\t$Exception := null;");
-                AddBoogie("\t\t$ExceptionType := null;");
+                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, "$Exception"));
+                AddBoogie(boogieGenerator.VariableAssignment("$Exception", "null"));
+                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", "null"));
             }
 
             public override void Visit(ThrowInstruction instruction)
             {
-                AddBoogie(String.Format("\t\tcall $ExceptionType := System.Object.GetType({0});", instruction.Operand));
-                AddBoogie(String.Format("\t\t$Exception := {0};", instruction.Operand));
+                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", String.Format("System.Object.GetType({0})", instruction.Operand)));
+                AddBoogie(boogieGenerator.VariableAssignment("$Exception", instruction.Operand.Name));
 
                 var target = GetThrowTarget(instruction);
 
                 if (String.IsNullOrEmpty(target))
-                    AddBoogie("\t\treturn;");
+                    AddBoogie(boogieGenerator.Return());
                 else
-                    AddBoogie(String.Format("\t\tgoto {0};", target));
+                    AddBoogie(boogieGenerator.Goto(target));
             }
 
             public override void Visit(FinallyInstruction instruction)
