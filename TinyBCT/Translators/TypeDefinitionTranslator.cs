@@ -171,13 +171,18 @@ namespace TinyBCT.Translators
                 var instanciatedType = typeDefinition.InstanceType as IGenericTypeInstanceReference;
                 typeArguments = instanciatedType.GenericArguments;
                 argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref")) + ", ";
-                var callWithQuantifiedVars = 
+                var callWithQuantifiedVars =
                 Helpers.GetNormalizedTypeFunction(typeDefinition.InstanceType, InstructionTranslator.MentionedClasses, typeArguments);
                 var callWithGenericsTypes = Helpers.GetNormalizedTypeFunction(typeDefinition.InstanceType, InstructionTranslator.MentionedClasses);
                 /// subtype(generic($T), generic(T$T()) 
                 sb.AppendLine(
-                String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", argsString.Substring(0, argsString.Length-2), callWithQuantifiedVars, callWithGenericsTypes));
+                String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", argsString.Substring(0, argsString.Length - 2), callWithQuantifiedVars, callWithGenericsTypes));
+                sb.AppendLine(String.Format("axiom $TypeConstructor({0}) == T${1};", callWithGenericsTypes, typeName));
 
+            }
+            else
+            {
+                sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
             }
             var funcCall = typeDefinition.IsGeneric ?
                 Helpers.GetNormalizedTypeFunction(typeDefinition.InstanceType, InstructionTranslator.MentionedClasses, typeArguments) :
@@ -186,7 +191,6 @@ namespace TinyBCT.Translators
             sb.AppendLine(
                 String.Format("axiom(forall {0} $T: Ref:: {{  $Subtype({1}, $T) }} ", argsString, funcCall) +
                 String.Format("$Subtype({0}, $T) <==> {0} == $T || $Subtype({1}, $T));", funcCall, superClassFuncCall));
-
 
             parents.Add(superClass.ResolvedType);
             
