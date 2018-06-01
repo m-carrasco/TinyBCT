@@ -167,7 +167,7 @@ namespace TinyBCT.Translators
                         i++;
                     }
 
-                    boogieGenerator.Else(boogieGenerator.Assert("false"));
+                    AddBoogie(boogieGenerator.Else(boogieGenerator.Assert("false")));
                 }
                 else
                 {
@@ -791,7 +791,7 @@ namespace TinyBCT.Translators
                     return unconditionalBranchInstruction.IsLeaveProtectedBlock;
                 }
 
-                if (instructions[0] is ThrowInstruction || instructions[0] is CatchInstruction || instructions[0] is FinallyInstruction)
+                if (instructions[idx] is ThrowInstruction || instructions[idx] is CatchInstruction || instructions[idx] is FinallyInstruction)
                     return true;
 
                 return false;
@@ -897,7 +897,9 @@ namespace TinyBCT.Translators
 
             public override void Visit(ThrowInstruction instruction)
             {
-                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", String.Format("System.Object.GetType({0})", instruction.Operand)));
+                var args = new List<string>();
+                args.Add(instruction.Operand.Name);
+                AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
                 AddBoogie(boogieGenerator.VariableAssignment("$Exception", instruction.Operand.Name));
 
                 var target = GetThrowTarget(instruction);

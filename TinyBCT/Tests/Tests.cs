@@ -1154,8 +1154,6 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-
-
     // ************************************* ARRAYS ******************************
 
     [TestMethod, Timeout(10000)]
@@ -1272,6 +1270,111 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
+    // ************************************* Exceptions ******************************
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest1NoBugs()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest1NoBugs.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest1Bugged()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest1Bugged.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest2NoBugs()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest2NoBugs.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest2Bugged()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest2Bugged.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest3NoBugs()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest3NoBugs.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest3Bugged()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest3Bugged.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu"), Timeout(10000)]
+    public void ExceptionTest5NoBugs()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest5NoBugs.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest5Bugged()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest5Bugged.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu"), Timeout(10000)]
+    public void ExceptionTest6NoBugs()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest6NoBugs.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest6Bugged()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest6Bugged.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu"), Timeout(10000)]
+    public void ExceptionTest7NoBugs()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest7NoBugs.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTest7Bugged()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest7Bugged.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTestInitializeExceptionVariable()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "Test.ExceptionTestInitializeExceptionVariable.test", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
     {
