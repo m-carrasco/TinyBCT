@@ -167,7 +167,7 @@ namespace TinyBCT.Translators
                         i++;
                     }
 
-                    boogieGenerator.Else(boogieGenerator.Assert("false"));
+                    AddBoogie(boogieGenerator.Else(boogieGenerator.Assert("false")));
                 }
                 else
                 {
