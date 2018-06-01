@@ -431,16 +431,11 @@ namespace TinyBCT
             ITypeReference originalType, ISet<ITypeReference> mentionedClasses, IEnumerable<ITypeReference> typeArguments = null)
         {
             var type = originalType;
-            // BUG BUG
             bool callRecursively = typeArguments == null;
 
             if(type is INamespaceTypeReference || type is INestedTypeReference)
             { 
-//                var nType = type as INestedTypeReference;
-//              if(nType.GenericParameterCount>0)
-                {
-                    type = TypeHelper.GetInstanceOrSpecializedNestedType(type.ResolvedType);
-                }
+                type = TypeHelper.GetInstanceOrSpecializedNestedType(type.ResolvedType);
             }
 
             if (type is IGenericTypeInstanceReference)
