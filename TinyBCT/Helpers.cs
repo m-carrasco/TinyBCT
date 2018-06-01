@@ -428,30 +428,48 @@ namespace TinyBCT
         }
 
         public static string GetNormalizedTypeFunction(
-            ITypeReference type, ISet<ITypeReference> mentionedClasses, IEnumerable<ITypeReference> typeArguments = null)
+            ITypeReference originalType, ISet<ITypeReference> mentionedClasses, IEnumerable<ITypeReference> typeArguments = null)
         {
+            var type = originalType;
             // BUG BUG
             bool callRecursively = typeArguments == null;
+
+            if(type is INamespaceTypeReference || type is INestedTypeReference)
+            { 
+//                var nType = type as INestedTypeReference;
+//              if(nType.GenericParameterCount>0)
+                {
+                    type = TypeHelper.GetInstanceOrSpecializedNestedType(type.ResolvedType);
+                }
+            }
+
             if (type is IGenericTypeInstanceReference)
             {
                 var instanciatedType = type as IGenericTypeInstanceReference;
-                typeArguments = typeArguments ??  instanciatedType.GenericArguments;
-                Func<ITypeReference, string> f = null;
-                if (callRecursively)
+                if (instanciatedType.GenericArguments.Count() > 0)
                 {
-                    f = (t => Helpers.GetNormalizedTypeFunction(t, mentionedClasses));
+                    typeArguments = typeArguments ?? instanciatedType.GenericArguments;
+                    Func<ITypeReference, string> f = null;
+                    if (callRecursively)
+                    {
+                        f = (t => Helpers.GetNormalizedTypeFunction(t, mentionedClasses));
+                    }
+                    else
+                    {
+                        f = (t => t.GetName());
+                    }
+                    var typeArgsString = String.Join(",", typeArguments.Select(t => f(t)));
+                    foreach (var t in typeArguments)
+                    {
+                        mentionedClasses.Add(t);
+                    }
+                    var typeName = GetNormalizedType(instanciatedType.GenericType);
+                    return String.Format("T${0}({1})", typeName, typeArgsString);
                 }
                 else
                 {
-                    f = (t => t.GetName());
+                    return "T$" + GetNormalizedType(type) + "()";
                 }
-                var typeArgsString = String.Join(",", typeArguments.Select(t => f(t)));
-                foreach (var t in typeArguments)
-                {
-                    mentionedClasses.Add(t);
-                }
-                var typeName = GetNormalizedType(instanciatedType.GenericType);
-                return String.Format("T${0}({1})", typeName, typeArgsString);
             } else
             {
                 return "T$" + GetNormalizedType(type) + "()";
