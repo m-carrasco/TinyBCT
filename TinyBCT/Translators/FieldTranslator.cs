@@ -1,6 +1,7 @@
 ﻿using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +23,16 @@ namespace TinyBCT.Translators
                 if (item.Key.IsStatic) {
                     values.Add(String.Format("var {0}: {1};", item.Value, Helpers.GetBoogieType(item.Key.Type)));
                 } else {
-                    values.Add(String.Format("const unique {0} : Field;", item.Value));
+                    if (!Settings.SplitFields)
+                        values.Add(String.Format("const unique {0} : Field;", item.Value));
+                    else
+                    {
+                        var boogieType = Helpers.GetBoogieType(item.Key.Type);
+                        Contract.Assert(!string.IsNullOrEmpty(boogieType));
+                        values.Add(String.Format("var {0} : [Ref]{1};", item.Value, boogieType));
+                    }
+
+                    // var F$ConsoleApplication3.Holds`1.x: [Ref]Ref;
                 }
             }
 

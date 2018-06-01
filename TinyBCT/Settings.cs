@@ -21,6 +21,7 @@ namespace TinyBCT
 
         public static bool EmitLineNumbers = false;
         public static bool Exceptions = true;
+        public static bool SplitFields = true;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -58,6 +59,11 @@ namespace TinyBCT
              .Callback(b => Exceptions = b)
              .SetDefault(true)
              .WithDescription("Enable translation of exceptions handling.");
+
+            p.Setup<bool>('s', "splitFields")
+             .Callback(b => SplitFields = b)
+             .SetDefault(true)
+             .WithDescription("Models the heap splitting instance fields into different dictionaries.");
 
             var result = p.Parse(args);
 

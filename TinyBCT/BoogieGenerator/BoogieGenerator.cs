@@ -99,15 +99,25 @@ namespace TinyBCT
 
             String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
-            if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
+            if (!Settings.SplitFields)
             {
-                sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), opStr)));
+
+                if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
+                {
+                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
+                    sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), opStr)));
+                }
+                else
+                {
+                    sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, opStr));
+                }
             }
             else
             {
-                sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, opStr));
+                //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
+                sb.AppendLine(VariableAssignment(String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance), opStr));
             }
+
 
             return sb.ToString();
         }
@@ -121,16 +131,24 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(result.Type);
             Contract.Assert(!string.IsNullOrEmpty(boogieType));
 
-            if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
+            if (!Settings.SplitFields)
             {
-                // example: Union2Int(Read(...))
-                var expr = Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
-                sb.AppendLine(VariableAssignment(result, expr));
-            }
-            else
+
+                if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
+                {
+                    // example: Union2Int(Read(...))
+                    var expr = Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
+                    sb.AppendLine(VariableAssignment(result, expr));
+                }
+                else
+                {
+                    var expr = String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName);
+                    sb.AppendLine(VariableAssignment(result, expr));
+                }
+            } else
             {
-                var expr = String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName);
-                sb.AppendLine(VariableAssignment(result, expr));
+                //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
+                sb.AppendLine(VariableAssignment(result, string.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name)));
             }
 
             return sb.ToString();

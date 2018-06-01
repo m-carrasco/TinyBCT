@@ -163,6 +163,7 @@
     <Compile Include="NestedClass.cs" />
     <Compile Include="NoHeap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SplitFields.cs" />
     <Compile Include="Static.cs" />
   </ItemGroup>
   <ItemGroup>

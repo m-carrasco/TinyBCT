@@ -1273,6 +1273,14 @@ public class TestsManu : TestsBase
     }
 
 
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields1()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\");
