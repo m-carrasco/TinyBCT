@@ -443,6 +443,13 @@ namespace TinyBCT
             return result;
         }
 
+        public static bool IsGenericField(IFieldReference field)
+        {
+            var containingType = TypeHelper.UninstantiateAndUnspecialize(field.ContainingType).ResolvedType;
+            var potentiallyGenericField = containingType.Fields.Single(f => field.Name == f.Name);
+            return potentiallyGenericField.Type is IGenericTypeParameter;
+        }
+
         // this is just a wrapper to know where is it called for delegates
         // Diego wants to change how to group delegates in the future
         // do not call this method if it is not for delegates

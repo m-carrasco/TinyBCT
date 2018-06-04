@@ -14,9 +14,9 @@ namespace TinyBCT.Translators
         IFieldReference fieldRef;
         internal static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
 
-        public static IList<String> GetFieldDefinitions()
+        public static ISet<String> GetFieldDefinitions()
         {
-            IList<String> values = new List<String>();
+            ISet<String> values = new HashSet<String>();
 
             foreach (var item in fieldNames)
             {
@@ -27,12 +27,16 @@ namespace TinyBCT.Translators
                         values.Add(String.Format("const unique {0} : Field;", item.Value));
                     else
                     {
-                        var boogieType = Helpers.GetBoogieType(item.Key.Type);
-                        Contract.Assert(!string.IsNullOrEmpty(boogieType));
-                        values.Add(String.Format("var {0} : [Ref]{1};", item.Value, boogieType));
+                        if (Helpers.IsGenericField(item.Key))
+                        {
+                            values.Add(String.Format("var {0} : [Ref]Union;", item.Value));
+                        } else
+                        {
+                            var boogieType = Helpers.GetBoogieType(item.Key.Type);
+                            Contract.Assert(!string.IsNullOrEmpty(boogieType));
+                            values.Add(String.Format("var {0} : [Ref]{1};", item.Value, boogieType));
+                        }
                     }
-
-                    // var F$ConsoleApplication3.Holds`1.x: [Ref]Ref;
                 }
             }
 

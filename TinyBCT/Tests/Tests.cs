@@ -1154,8 +1154,6 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-
-
     // ************************************* ARRAYS ******************************
 
     [TestMethod, Timeout(10000)]
@@ -1272,12 +1270,51 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
     public void SplitFields1()
     {
         var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields2()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test2$Test.SplitFields.Foo", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields3()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu"), Timeout(10000)]
+    public void SplitFields4()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test4", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields5()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test5", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields6()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test6", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
 

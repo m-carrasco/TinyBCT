@@ -139,7 +139,7 @@ namespace TinyBCT
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
             streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
 
-            }
+            
 
             // extern method called
             foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
@@ -174,6 +174,7 @@ namespace TinyBCT
                 }
 
                 output.Close();
+            }
             }
 
         }

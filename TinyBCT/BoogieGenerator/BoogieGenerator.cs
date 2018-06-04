@@ -101,7 +101,6 @@ namespace TinyBCT
 
             if (!Settings.SplitFields)
             {
-
                 if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
                 {
                     sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
@@ -114,8 +113,17 @@ namespace TinyBCT
             }
             else
             {
+                var boogieType = Helpers.GetBoogieType(value.Type);
+                Contract.Assert(!string.IsNullOrEmpty(boogieType));
+                var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
                 //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
-                sb.AppendLine(VariableAssignment(String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance), opStr));
+
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                {
+                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
+                    sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, opStr)));
+                } else
+                    sb.AppendLine(VariableAssignment(heapAccess, opStr));
             }
 
 
@@ -147,8 +155,14 @@ namespace TinyBCT
                 }
             } else
             {
+                var heapAccess = string.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name);
+
                 //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
-                sb.AppendLine(VariableAssignment(result, string.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name)));
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                {
+                    sb.AppendLine(VariableAssignment(result, Union2PrimitiveType(boogieType, heapAccess)));
+                } else
+                    sb.AppendLine(VariableAssignment(result, heapAccess));
             }
 
             return sb.ToString();
