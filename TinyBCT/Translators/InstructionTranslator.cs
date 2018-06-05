@@ -376,6 +376,13 @@ namespace TinyBCT.Translators
 
             private string CallMethod(MethodCallInstruction instruction, List<IVariable> arguments, IMethodReference callee)
             {
+                var methodDefinition = callee.ResolvedMethod;
+                if (Helpers.IsExternal(methodDefinition))
+                    AddToExternalMethods(methodDefinition);
+                // Important not to add methods to both sets.
+                else if (Helpers.IsCurrentlyMissing(methodDefinition))
+                    PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(methodDefinition));
+
                 var signature = Helpers.GetMethodName(callee);
                 var sb = new StringBuilder();
 
@@ -450,12 +457,6 @@ namespace TinyBCT.Translators
                 AddBoogie(CallMethod(instruction, copyArgs, instruction.Method));
 
                 AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
-
-                if (Helpers.IsExternal(instruction.Method.ResolvedMethod))
-                    AddToExternalMethods(instruction.Method);
-                // Important not to add methods to both sets.
-                else if (Helpers.IsCurrentlyMissing(instruction.Method.ResolvedMethod))
-                    PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(instruction.Method));
             }
 
             private List<IVariable> ComputeArguments(MethodCallInstruction instruction,  List<string> toAppend)
@@ -501,16 +502,24 @@ namespace TinyBCT.Translators
             {
                 IVariable leftOperand = instruction.LeftOperand;
                 IInmediateValue rightOperand = instruction.RightOperand;
-
-                // Binary operations get translated into method calls:
-                // ops:
-                //     ==: System.String.op_Equality$System.String$System.String
-                //     !=: ? TODO(rcastano): check
-                System.Diagnostics.Contracts.Contract.Assume(
-                    !leftOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && !rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String));
-
+                
                 var bg = boogieGenerator;
-                AddBoogie(bg.If(bg.BranchOperationExpression(leftOperand, rightOperand, instruction.Operation), bg.Goto(instruction.Target)));
+                if (leftOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ||
+                    rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String))
+                {
+                    string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
+
+                    var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", Types.Instance.PlatformType.SystemBoolean);
+                    var arguments = new List<string>();
+                    arguments.Add(Helpers.Strings.fixStringLiteral(leftOperand));
+                    arguments.Add(Helpers.Strings.fixStringLiteral(rightOperand));
+                    AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
+                    AddBoogie(bg.If(tempVar.ToString(), bg.Goto(instruction.Target)));
+                }
+                else
+                {
+                    AddBoogie(bg.If(bg.BranchOperationExpression(leftOperand, rightOperand, instruction.Operation), bg.Goto(instruction.Target)));
+                }
             }
 
             public override void Visit(CreateObjectInstruction instruction)
@@ -548,7 +557,7 @@ namespace TinyBCT.Translators
                 }
             }
 
-            public override void Visit(ConvertInstruction instruction)
+            private void ProcessAs(ConvertInstruction instruction)
             {
                 //addLabel(instruction);
                 var source = instruction.Operand;
@@ -559,6 +568,22 @@ namespace TinyBCT.Translators
 
                 var bg = boogieGenerator;
                 AddBoogie(bg.VariableAssignment(dest.Name, bg.As(source, type)));
+            }
+
+            private void ProcessTypeConversion(ConvertInstruction instruction)
+            {
+                var bg = boogieGenerator;
+                AddBoogie(bg.HavocResult(instruction));
+            }
+            public override void Visit(ConvertInstruction instruction)
+            {
+                if (instruction.Operation == ConvertOperation.Conv)
+                {
+                    ProcessTypeConversion(instruction);
+                } else 
+                {
+                    ProcessAs(instruction);
+                }
             }
 
             public override void Visit(InitializeObjectInstruction instruction)

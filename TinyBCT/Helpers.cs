@@ -663,7 +663,20 @@ namespace TinyBCT
                     case BinaryOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
                     case BinaryOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
                     case BinaryOperation.Add: method = "System.String.Concat$System.String$System.String"; break;
-
+                }
+                return method;
+            }
+            
+            public static string GetBinaryMethod(BranchOperation op)
+            {
+                string method = "";
+                switch (op)
+                {
+                    case BranchOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
+                    case BranchOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
+                    default:
+                        Contract.Assert(false);
+                        break;
                 }
                 return method;
             }

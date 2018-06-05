@@ -36,6 +36,13 @@ public partial class TestsHelpers
     }
     [TestCategory("Call-Corral")]
     [TestMethod, Timeout(10000)]
+    public void TestsCorralResultNameResolutionError()
+    {
+        var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"name_resolution_error.bpl"));
+        Assert.IsTrue(corralResult.NameResolutionErrors());
+    }
+    [TestCategory("Call-Corral")]
+    [TestMethod, Timeout(10000)]
     [ExpectedException(typeof(Test.TestUtils.CorralResult.CorralOutputException))]
     public void TestsCorralResultNoBugsSyntaxErrorCausesException()
     {
@@ -59,6 +66,35 @@ public partial class TestsHelpers
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"syntax_error.bpl"));
         corralResult.getOutput();
     }
+
+
+    [TestCategory("Call-CSC")]
+    [TestMethod]
+    public void TestsCSCCompiles()
+    {
+        var source = @"
+class Test {
+	public static void Main()
+	{
+        int a = 5;
+	}
+}
+        ";
+        var path = System.IO.Path.Combine(pathAuxDir, "TestCSCCompiles");
+        if (System.IO.Directory.Exists(path))
+        {
+            foreach (var f in System.IO.Directory.EnumerateFiles(path))
+            {
+                System.IO.File.Delete(f);
+            }
+        }
+        else
+        {
+            System.IO.Directory.CreateDirectory(path);
+        }
+        Test.TestUtils.CompileWithCSC(source, "TestCSC", prefixDir: path);
+        Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(path, "TestCSC.dll")));
+    }
 }
 
 [TestClass]
@@ -79,7 +115,7 @@ public partial class Tests
 public class TestsBase
 {
     [TestCategory("Av-Regressions")]
-    [ClassInitialize()]
+    [AssemblyInitialize()]
     public static void ClassInit(TestContext context)
     {
         Console.WriteLine(context.TestName);
@@ -117,9 +153,9 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
 
-    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalOptions = "") {
+    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalOptions = "", bool useCSC = false) {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
-        var uniqueDir = DoTest(source, testName, useStubs, prefixDir: pathTempDir);
+        var uniqueDir = DoTest(source, testName, useStubs, prefixDir: pathTempDir, useCSC: useCSC);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         Console.WriteLine(corralResult.ToString());
@@ -130,17 +166,28 @@ public class TestsBase
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
         return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalOptions: additionalOptions);
     }
-    protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "")
+
+    protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "", bool useCSC = false)
     {
         System.Diagnostics.Contracts.Contract.Assume(
             prefixDir.Equals("") ||
             System.IO.Directory.Exists(prefixDir));
-        string uniqueDir = System.IO.Path.Combine(prefixDir, Test.TestUtils.getFreshDir(assemblyName));
+        string uniqueDir = Test.TestUtils.getFreshDir(System.IO.Path.Combine(prefixDir, assemblyName));
         System.IO.Directory.CreateDirectory(uniqueDir);
         string[] references = null;
+        bool compileErrors = false;
+        if (useCSC)
+        {
+            compileErrors  = !Test.TestUtils.CompileWithCSC(source, assemblyName, prefixDir: uniqueDir);
+        }
+        else
+        {
+            compileErrors = !Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir, useCSC: useCSC);
+        }
         // Didn't work because there are conflitcs with mscorelib...
         // var references = new string[] { "CollectionStubs.dll" };
-        if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir))
+        
+        if (!compileErrors)
         {
             // If we need to recompile, use: csc /target:library /debug /D:DEBUG /D:CONTRACTS_FULL CollectionStubs.cs
             var dll = System.IO.Path.Combine(uniqueDir, assemblyName) + ".dll";
@@ -148,8 +195,7 @@ public class TestsBase
             var args = useStubs ?
                 (new string[] { "-i", dll, stubs, "-l", "true",
                 "-b", @"..\..\Dependencies\poirot_stubs.bpl" }) :
-                (new string[] { "-i", dll, "-l", "true",
-                "-b", @"..\..\Dependencies\poirot_stubs.bpl" });
+                (new string[] { "-i", dll, "-l", "true" });
             TinyBCT.Program.Main(args);
         }
         else
@@ -516,7 +562,7 @@ public partial class AvRegressionTests : TestsBase
 {
 
     [TestCategory("Av-Regressions")]
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     public void TestAsSimple()
     {
         var corralResult = CorralTestHelper("AsSimple", "TestAs.Main", 10);
@@ -670,7 +716,83 @@ class Test {
         var corralResult = CorralTestHelperCode("TestAsUndeclaredType1", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestExternMethod1()
+    {
+        var source = @"
+class Test {
+    public string toString()
+    {
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        return sb.ToString();
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestExternMethod1", "Test.toString", 10, source, useStubs: false);
+        Assert.IsFalse(corralResult.NameResolutionErrors());
+    }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestCast1()
+    {
+        var source = @"
+class Test {
+    public void Main(double d)
+    {
+        int i = (int) d;
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestCast1", "Test.Main$System.Double", 10, source, useStubs: false, useCSC: true);
+        Assert.IsFalse(corralResult.SyntaxErrors());
+    }
 
+    [TestCategory("DocumentedImprecision")]
+    [TestMethod]
+    public void TestCast2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static int ToInt(double d)
+    {
+        // Cast is modelled as havoc
+        return (int) d;
+    }
+    public void Main() {
+        int i = ToInt(5.0);
+        Contract.Assert(i == 5);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestCast2", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestStringNull1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Foo(String s) {
+        if (s != null) {
+            Contract.Assert(false);
+        }
+    }
+    public static void Main()
+    {
+        string s = ""Hello world"";
+        Foo(s);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestStringNull1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
     public void TestDynamicDispatchGenerics3()
     {
         var source = @"
@@ -1004,7 +1126,7 @@ class Test {
 public class TestsXor : TestsBase
 {
     [TestMethod]
-    [TestCategory("Xor")]
+    [TestCategory("DocumentedImprecision")]
     public void XorImprecision()
     {
         var source = @"
