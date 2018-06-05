@@ -36,50 +36,6 @@ namespace TinyBCT
             CHA = CHAnalysis;
 		}
 
-        // not used yet - under development
-        // there are some issues related to the parameter renaming
-        // we modified the methodBody but we should also do the same with the IMethodDef
-        private void inmutableArguments(MethodBody methodBody)
-        {
-            // corral interprets parameter as inmutable references
-            // parameters are renamed, and local versions of them are created
-            // procedure foo(a : int) { ... } -> procedure foo($a_param : int) { var a : int; a := $a_param; ...}
-
-            var newParameters = new List<IVariable>();
-            var oldParamToNewLocal = new Dictionary<IVariable, IVariable>();
-            var newLocalToNewParam = new Dictionary<IVariable, IVariable>();
-            foreach (var variable in methodBody.Parameters)
-            {
-                // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                var newParameter = new LocalVariable(String.Format("${0}_param", variable.Name), true, methodBody.MethodDefinition);
-                newParameters.Add(newParameter);
-                newParameter.Type = variable.Type;
-                // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                var newLocal = new LocalVariable(variable.Name, false, methodBody.MethodDefinition);
-                newLocal.Type = variable.Type;
-                oldParamToNewLocal.Add(variable, newLocal);
-                methodBody.Variables.Add(newLocal);
-                newLocalToNewParam.Add(newLocal, newParameter);
-            }
-
-            methodBody.Parameters.Clear();
-            foreach (var variable in newParameters)
-                methodBody.Parameters.Add(variable);
-
-            foreach (var instruction in methodBody.Instructions)
-                foreach (KeyValuePair<IVariable, IVariable> oldParamNewParam in oldParamToNewLocal)
-                    instruction.Replace(oldParamNewParam.Key, oldParamNewParam.Value);
-
-            uint i = (uint)methodBody.Instructions.Count * 5; // hack - otherwise we should re assing every label - *5 in order to avoid collisions
-            foreach (KeyValuePair<IVariable, IVariable> oldParamNewLocal in oldParamToNewLocal)
-            {
-                var ins = new LoadInstruction(i, oldParamNewLocal.Value, newLocalToNewParam[oldParamNewLocal.Value]);
-                // pisar ins.Label = "bct_LABELID"
-                methodBody.Instructions.Insert(0, ins);
-                i++;
-            }
-        }
-
         private void transformBody(MethodBody methodBody)
         {
             var cfAnalysis = new ControlFlowAnalysis(methodBody);
@@ -95,13 +51,16 @@ namespace TinyBCT
             var typeAnalysis = new TypeInferenceAnalysis(CFG);
             typeAnalysis.Analyze();
 
-            //var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(CFG);
-            //forwardCopyAnalysis.Analyze();
-            //forwardCopyAnalysis.Transform(methodBody);
+            /*var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(CFG);
+            forwardCopyAnalysis.Analyze();
+            forwardCopyAnalysis.Transform(methodBody);
 
-            //var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(CFG);
-            //backwardCopyAnalysis.Analyze();
-            //backwardCopyAnalysis.Transform(methodBody);
+            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(CFG);
+            backwardCopyAnalysis.Analyze();
+            backwardCopyAnalysis.Transform(methodBody);*/
+
+            var immutableArguments = new ImmutableArguments(methodBody);
+            immutableArguments.Transform();
 
             methodBody.RemoveUnusedLabels();
         }

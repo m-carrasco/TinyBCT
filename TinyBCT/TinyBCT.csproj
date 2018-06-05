@@ -194,6 +194,7 @@
       <DependentUpon>BoogieProcedureTemplate.tt</DependentUpon>
     </Compile>
     <Compile Include="Helpers.cs" />
+    <Compile Include="ImmutableArguments.cs" />
     <Compile Include="Prelude.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TACWriter.cs" />
