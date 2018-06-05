@@ -97,6 +97,8 @@ public class TestsBase
     {
         TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+        TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
+
         TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
         TinyBCT.Translators.InstructionTranslator.PotentiallyMissingMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
         TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
@@ -115,9 +117,9 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
 
-    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, string additionalOptions = "") {
+    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalOptions = "") {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
-        var uniqueDir = DoTest(source, testName, prefixDir: pathTempDir);
+        var uniqueDir = DoTest(source, testName, useStubs, prefixDir: pathTempDir);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         Console.WriteLine(corralResult.ToString());
@@ -128,7 +130,7 @@ public class TestsBase
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
         return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalOptions: additionalOptions);
     }
-    protected static string DoTest(string source, string assemblyName, string prefixDir = "")
+    protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "")
     {
         System.Diagnostics.Contracts.Contract.Assume(
             prefixDir.Equals("") ||
@@ -141,10 +143,14 @@ public class TestsBase
         if (Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir))
         {
             // If we need to recompile, use: csc /target:library /debug /D:DEBUG /D:CONTRACTS_FULL CollectionStubs.cs
-            TinyBCT.Program.Main(new string[] { "-i", System.IO.Path.Combine(uniqueDir, assemblyName)+".dll",
-                @"..\..\Dependencies\CollectionStubs.dll",
-                "-l", "true",
+            var dll = System.IO.Path.Combine(uniqueDir, assemblyName) + ".dll";
+            var stubs = @"..\..\Dependencies\CollectionStubs.dll";
+            var args = useStubs ?
+                (new string[] { "-i", dll, stubs, "-l", "true",
+                "-b", @"..\..\Dependencies\poirot_stubs.bpl" }) :
+                (new string[] { "-i", dll, "-l", "true",
                 "-b", @"..\..\Dependencies\poirot_stubs.bpl" });
+            TinyBCT.Program.Main(args);
         }
         else
         {
@@ -537,6 +543,162 @@ public partial class AvRegressionTests : TestsBase
         var corralResult = CorralTestHelper("AsSubtypeFails", "TestAs.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("Av-Regressions")]
+    [TestMethod]
+    public void TestIsGenerics1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+}
+class Test {
+  public static bool IsHoldsString<S>(Holds<S> h) {
+    return h is Holds<string>;
+  }
+  public static void Main() {
+    Holds<string> holds_strings = new Holds<string>();
+    Contract.Assert(IsHoldsString(holds_strings));
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("IsWithGenerics1", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Generics")]
+    [TestMethod]
+    public void TestIsGenerics2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+}
+class Test {
+  public static bool IsHoldsString<S>(Holds<S> h) {
+    return h is Holds<string>;
+  }
+  public static void Main() {
+    Holds<Int32> holds_ints = new Holds<Int32>();
+    Contract.Assert(IsHoldsString(holds_ints));
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("IsWithGenerics2", "Test.Main", 10, source);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestCategory("Generics")]
+    [TestMethod]
+    public void TestDynamicDispatchGenerics1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+ virtual public void Foo() {
+  Contract.Assert(false);
+ }
+}
+
+class SubHolds<T> : Holds<T> {
+ override public void Foo() {
+ }
+}
+
+class Test {
+  public static void Main() {
+    Holds<Int32> holds_ints = new SubHolds<Int32>();
+    holds_ints.Foo();
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Generics")]
+    [TestMethod]
+    public void TestDynamicDispatchGenerics2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+ virtual public void Foo() {
+ }
+}
+
+class SubHolds<T> : Holds<T> {
+ override public void Foo() {
+ }
+}
+
+class Test {
+  public static void Main() {
+    Holds<Int32> holds_ints = new SubHolds<Int32>();
+    holds_ints.Foo();
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics2", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("MissingTypes")]
+    [TestMethod]
+    public void TestAsUndeclaredType1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    object o = new object();
+    if (((int?)o) != null) { // Convert to Nullable<int>
+      Contract.Assert(false);
+    }
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestAsUndeclaredType1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    public void TestDynamicDispatchGenerics3()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T> {
+ T value;
+ virtual public void Foo() {
+ }
+}
+
+class SubHolds<T> : Holds<T> {
+ override public void Foo() {
+  Contract.Assert(false);
+ }
+}
+
+class Test {
+  public static void Main() {
+    Holds<Int32> holds_ints = new SubHolds<Int32>();
+    holds_ints.Foo();
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics3", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestCategory("Av-Regressions")]
     [TestMethod, Timeout(10000)]
@@ -546,7 +708,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Av-Regressions")]
     public void TestListSumOK()
     {
@@ -1270,6 +1432,54 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields1()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields2()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test2$Test.SplitFields.Foo", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields3()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu"), Timeout(10000)]
+    public void SplitFields4()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test4", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields5()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test5", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void SplitFields6()
+    {
+        var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test6", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* Exceptions ******************************
 
     [TestMethod, Timeout(10000)]
@@ -1382,3 +1592,33 @@ public class TestsManu : TestsBase
         return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalOptions);
     }
  }
+
+[TestClass]
+public class TestStringHelpers
+{
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceIllegalCharsSimple()
+    {
+        Assert.AreEqual("Hello#1#World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello:World"));
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceSpaces1()
+    {
+        Assert.AreEqual("Hello#0#World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello World"));
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceSpaces2()
+    {
+        Assert.AreEqual("Hello#0#World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello World"));
+    }
+    [TestMethod, Timeout(10000)]
+    [TestCategory("TestsForHelpers")]
+    public void TestReplaceIllegalCharsEscape()
+    {
+        Assert.AreEqual("Hello##World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello#World"));
+    }
+}

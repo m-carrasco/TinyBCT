@@ -377,7 +377,7 @@ namespace TinyBCT
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);
 
-            parameters = NormalizeStringForCorral(parameters);
+            parameters = Strings.NormalizeStringForCorral(parameters);
             return parameters;
         }
 
@@ -427,7 +427,50 @@ namespace TinyBCT
             methodsTranslated.Add(Helpers.GetMethodName(methodDefinition));
         }
 
-        public static string GetNormalizedType(ITypeReference type)
+        public static string GetNormalizedTypeFunction(
+            ITypeReference originalType, ISet<ITypeReference> mentionedClasses, IEnumerable<ITypeReference> typeArguments = null)
+        {
+            var type = originalType;
+            bool callRecursively = typeArguments == null;
+
+            if(type is INamespaceTypeReference || type is INestedTypeReference)
+            { 
+                type = TypeHelper.GetInstanceOrSpecializedNestedType(type.ResolvedType);
+            }
+
+            if (type is IGenericTypeInstanceReference)
+            {
+                var instanciatedType = type as IGenericTypeInstanceReference;
+                if (instanciatedType.GenericArguments.Count() > 0)
+                {
+                    typeArguments = typeArguments ?? instanciatedType.GenericArguments;
+                    Func<ITypeReference, string> f = null;
+                    if (callRecursively)
+                    {
+                        f = (t => Helpers.GetNormalizedTypeFunction(t, mentionedClasses));
+                    }
+                    else
+                    {
+                        f = (t => t.GetName());
+                    }
+                    var typeArgsString = String.Join(",", typeArguments.Select(t => f(t)));
+                    foreach (var t in typeArguments)
+                    {
+                        mentionedClasses.Add(t);
+                    }
+                    var typeName = GetNormalizedType(instanciatedType.GenericType);
+                    return String.Format("T${0}({1})", typeName, typeArgsString);
+                }
+                else
+                {
+                    return "T$" + GetNormalizedType(type) + "()";
+                }
+            } else
+            {
+                return "T$" + GetNormalizedType(type) + "()";
+            }
+        }
+            public static string GetNormalizedType(ITypeReference type)
         {
             type = TypeHelper.UninstantiateAndUnspecialize(type);
             var result = TypeHelper.GetTypeName(type.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
@@ -438,9 +481,16 @@ namespace TinyBCT
             }
             // Do this well 
             result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
-            result = NormalizeStringForCorral(result);
+            result = Strings.NormalizeStringForCorral(result);
 
             return result;
+        }
+
+        public static bool IsGenericField(IFieldReference field)
+        {
+            var containingType = TypeHelper.UninstantiateAndUnspecialize(field.ContainingType).ResolvedType;
+            var potentiallyGenericField = containingType.Fields.Single(f => field.Name == f.Name);
+            return potentiallyGenericField.Type is IGenericTypeParameter;
         }
 
         // this is just a wrapper to know where is it called for delegates
@@ -511,16 +561,6 @@ namespace TinyBCT
             return raw.Trim(new char[] { '\0' });
         }
 
-
-        public static string NormalizeStringForCorral(string s)
-        {
-            return s.Replace("::", ".")// for example: static fields
-                .Replace("<>", "__")  // class compiled generated
-                .Replace('<', '$').Replace('>', '$').Replace(", ", "$");
-
-            //return s; // .Replace('<', '_').Replace('>', '_');
-        }
-
         public static bool IsConstructor(IMethodReference method)
         {
             return method.Name.Value == ".ctor";
@@ -538,12 +578,58 @@ namespace TinyBCT
         public static class Strings
         {
             internal static ISet<string> stringLiterals = new HashSet<string>();
+            internal static IDictionary<Char, int> specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
+            internal static readonly Regex illegalBoogieCharactersRegex = new Regex(@"[^a-zA-Z_.$#'`~^\?]");
+            public static string ReplaceIllegalChars(string s)
+            {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < s.Length; ++i)
+                {
+                    // Using '#' as escape character.
+                    if (s[i] == '#')
+                    {
+                        sb.Append("##");
+                    }
+                    else if (!illegalBoogieCharactersRegex.Match(s[i].ToString()).Success)
+                    {
+                        sb.Append(s[i]);
+                    }
+                    else
+                    {
+                        if (!specialCharacters.ContainsKey(s[i]))
+                        {
+                            specialCharacters.Add(s[i], specialCharacters.Count);
+                        }
+                        sb.Append("#" + specialCharacters[s[i]].ToString() + "#");
+                    }
+                }
+                return sb.ToString();
+            }
+            public static string ReplaceSpaces(string s)
+            {
+                return s.Replace(" ", "#" + specialCharacters[' '].ToString() + "#");
+            }
+            
+            public static string NormalizeStringForCorral(string s)
+            {
+                return s.Replace("::", ".")// for example: static fields
+                    .Replace("<>", "__")  // class compiled generated
+                    .Replace('<', '$').Replace('>', '$').Replace(", ", "$");
+
+                //return s; // .Replace('<', '_').Replace('>', '_');
+            }
+
             public static string ConstNameForStringLiteral(string literal)
             {
                 // String literal will start and end with '"'.
                 System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
                 stringLiterals.Add(literal);
-                return String.Format("$string_literal_{0}", NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)).Replace(" ", "$"));
+                var fixedString = ReplaceSpaces(NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)));
+                if (illegalBoogieCharactersRegex.Match(fixedString).Success)
+                {
+                    fixedString = ReplaceIllegalChars(fixedString);
+                }
+                return String.Format("$string_literal_{0}", fixedString);
             }
             public static string fixStringLiteral(IValue v)
             {
@@ -558,10 +644,12 @@ namespace TinyBCT
 
             public static void writeStringConsts(System.IO.StreamWriter sw)
             {
+                var addedConsts = new HashSet<string>();
                 foreach (var lit in stringLiterals)
                 {
+                    var boogieConst = Helpers.Strings.ConstNameForStringLiteral(lit);
                     sw.WriteLine(
-                        String.Format("\tconst unique {0} : Ref;", Helpers.Strings.ConstNameForStringLiteral(lit))
+                        String.Format("\tconst unique {0} : Ref;", boogieConst)
                         );
                 }
             }

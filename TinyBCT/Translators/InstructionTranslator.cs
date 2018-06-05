@@ -520,10 +520,10 @@ namespace TinyBCT.Translators
 
                 var bg = boogieGenerator;
                 AddBoogie(bg.ProcedureCall("Alloc", new List<string>(), instruction.Result.Name));
-                var type = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
+                var typeString = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
-                AddBoogie(bg.AssumeDynamicType(instruction.Result.Name, type));
-                AddBoogie(bg.AssumeTypeConstructor(instruction.Result.Name, type));
+                AddBoogie(bg.AssumeDynamicType(instruction.Result.Name, instruction.AllocationType));
+                AddBoogie(bg.AssumeTypeConstructor(instruction.Result.Name, typeString));
             }
 
             public override void Visit(StoreInstruction instruction)
@@ -554,6 +554,7 @@ namespace TinyBCT.Translators
                 var source = instruction.Operand;
                 var dest = instruction.Result;
                 var type = instruction.ConversionType;
+                MentionedClasses.Add(type);
                 Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
                 var bg = boogieGenerator;

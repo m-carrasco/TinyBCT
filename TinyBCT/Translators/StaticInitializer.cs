@@ -49,7 +49,7 @@ namespace TinyBCT.Translators
                 if (mainMethod.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                     variables = String.Format("this", mainMethod.ParameterCount > 0 ? "," : String.Empty, parameters);
 
-                variables = Helpers.NormalizeStringForCorral(variables);
+                variables = Helpers.Strings.NormalizeStringForCorral(variables);
 
                 sb.AppendLine("\tcall $initialize_globals();");
                 if (String.IsNullOrEmpty(returnType))
