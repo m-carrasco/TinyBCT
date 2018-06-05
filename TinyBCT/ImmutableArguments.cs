@@ -67,6 +67,7 @@ namespace TinyBCT
 
                 var newVar = AddNewLocalVariable(instruction.Result);
                 var newLoad = new LoadInstruction(0, newVar, instruction.Result);
+                newLoad.Label = String.Empty;
                 newLoads.Add(newLoad);
                 argumentToNewVariable.Add(instruction.Result, newVar);
             }
