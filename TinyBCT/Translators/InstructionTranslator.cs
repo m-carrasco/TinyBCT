@@ -554,6 +554,7 @@ namespace TinyBCT.Translators
                 var source = instruction.Operand;
                 var dest = instruction.Result;
                 var type = instruction.ConversionType;
+                MentionedClasses.Add(type);
                 Contract.Assume(!source.Type.TypeCode.Equals(PrimitiveTypeCode.String));
 
                 var bg = boogieGenerator;

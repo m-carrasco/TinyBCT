@@ -151,14 +151,22 @@ namespace TinyBCT.Translators
             var superClass = typeDefinition.BaseClasses.SingleOrDefault();
 
             var argsString = String.Empty;
-            if (typeDefinition.IsGeneric && typeDefinition.InstanceType is IGenericTypeInstanceReference)
+            typeDefinition = TypeHelper.UninstantiateAndUnspecialize(typeDefinition).ResolvedType;
+            if (typeDefinition is INamespaceTypeReference || typeDefinition is INestedTypeReference || typeDefinition is IGenericTypeInstance)
             {
-                var instanciatedType = typeDefinition.InstanceType as IGenericTypeInstanceReference;
+                typeDefinition = TypeHelper.GetInstanceOrSpecializedNestedType(typeDefinition.ResolvedType);
+            }
+
+            if (typeDefinition is IGenericTypeInstanceReference)
+            {
+                var instanciatedType = typeDefinition as IGenericTypeInstanceReference;
                 var typeArgs = instanciatedType.GenericArguments;
                 argsString = String.Join(",", typeArgs.Select(t => t.ToString() + " : Ref"));
             }
+            
             sb.AppendLine(String.Format("function T${0}({1}) : Ref;", typeName, argsString));
             sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
+            
             if (superClass == null)
             {
                 superClass = Backend.Types.Instance.PlatformType.SystemObject;
@@ -166,14 +174,14 @@ namespace TinyBCT.Translators
 
             argsString = "";
             IEnumerable<ITypeReference> typeArguments = null;
-            if (typeDefinition.IsGeneric && typeDefinition.InstanceType is IGenericTypeInstanceReference)
+            if (typeDefinition is IGenericTypeInstanceReference)
             {
-                var instanciatedType = typeDefinition.InstanceType as IGenericTypeInstanceReference;
+                var instanciatedType = typeDefinition as IGenericTypeInstanceReference;
                 typeArguments = instanciatedType.GenericArguments;
                 argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref")) + ", ";
                 var callWithQuantifiedVars =
-                Helpers.GetNormalizedTypeFunction(typeDefinition.InstanceType, InstructionTranslator.MentionedClasses, typeArguments);
-                var callWithGenericsTypes = Helpers.GetNormalizedTypeFunction(typeDefinition.InstanceType, InstructionTranslator.MentionedClasses);
+                Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments);
+                var callWithGenericsTypes = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses);
                 /// subtype(generic($T), generic(T$T()) 
                 sb.AppendLine(
                 String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", argsString.Substring(0, argsString.Length - 2), callWithQuantifiedVars, callWithGenericsTypes));
@@ -184,9 +192,8 @@ namespace TinyBCT.Translators
             {
                 sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
             }
-            var funcCall = typeDefinition.IsGeneric ?
-                Helpers.GetNormalizedTypeFunction(typeDefinition.InstanceType, InstructionTranslator.MentionedClasses, typeArguments) :
-                Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses);
+            var funcCall = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments: typeArguments);
+
             var superClassFuncCall = Helpers.GetNormalizedTypeFunction(superClass, InstructionTranslator.MentionedClasses, typeArguments);
             sb.AppendLine(
                 String.Format("axiom(forall {0} $T: Ref:: {{  $Subtype({1}, $T) }} ", argsString, funcCall) +

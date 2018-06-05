@@ -650,6 +650,27 @@ class Test {
         var corralResult = CorralTestHelperCode("DynamicDispatchGenerics2", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestCategory("MissingTypes")]
+    [TestMethod]
+    public void TestAsUndeclaredType1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    object o = new object();
+    if (((int?)o) != null) { // Convert to Nullable<int>
+      Contract.Assert(false);
+    }
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestAsUndeclaredType1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
     public void TestDynamicDispatchGenerics3()
     {
         var source = @"
