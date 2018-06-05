@@ -1563,6 +1563,26 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
+    // ************************************* Immutable Arguments ******************************
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ImmutableArgumentTest1()
+    {
+        var corralResult = CorralTestHelper("ImmutableArgument", "Test.ImmutableArgument.test1$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ImmutableArgumentTest2()
+    {
+        var corralResult = CorralTestHelper("ImmutableArgument", "Test.ImmutableArgument.test2$System.Int32", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    // ************************************* Split Fields ******************************
+
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
     public void SplitFields2()
