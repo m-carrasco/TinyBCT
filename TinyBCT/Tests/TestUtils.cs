@@ -57,6 +57,11 @@ namespace Test
                 SanityCheck(this.output, this.err, checkSyntaxError: false);
                 return this.output.Contains(": error:") || this.err.Contains("Parse errors");
             }
+            public bool NameResolutionErrors()
+            {
+                SanityCheck(this.output, this.err, checkSyntaxError: false);
+                return this.output.Contains("name resolution error");
+            }
             public string getOutput()
             {
                 SanityCheck(this.output, this.err);
@@ -100,8 +105,9 @@ namespace Test
         {
             Func<string, int, string> make_name = (string x, int y) => x + "_" + y.ToString();
             int suffix_n = usedDirs.Count;
-            while (usedDirs.Contains(make_name(prefix, suffix_n)))
+            while (usedDirs.Contains(make_name(prefix, suffix_n)) || System.IO.Directory.Exists(make_name(prefix, suffix_n)))
             {
+                usedDirs.Add(make_name(prefix, suffix_n));
                 ++suffix_n;
             }
             usedDirs.Add(make_name(prefix, suffix_n));
@@ -117,7 +123,36 @@ namespace Test
             }
         }
 
-        public static bool CreateAssemblyDefinition(string code, string name, string[] references = null, string prefixDir = "")
+        public static bool CompileWithCSC(string code, string name, string prefixDir = "")
+        {
+            string cscPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe";
+            var sourceFullPath = Path.Combine(prefixDir, Path.ChangeExtension(name, ".cs"));
+            var outputFullPath = Path.ChangeExtension(sourceFullPath, "dll");
+            System.Diagnostics.Contracts.Contract.Assume(!System.IO.File.Exists(outputFullPath));
+            System.IO.File.WriteAllText(sourceFullPath, code);
+            var cscArguments = "/D:CONTRACTS_FULL /target:library /out:" + outputFullPath + " " + sourceFullPath;
+
+            System.Diagnostics.Process pProcess = new System.Diagnostics.Process();
+            pProcess.StartInfo.FileName = cscPath;
+            pProcess.StartInfo.Arguments = cscArguments;
+            pProcess.StartInfo.UseShellExecute = false;
+            pProcess.StartInfo.RedirectStandardOutput = true;
+            pProcess.StartInfo.RedirectStandardError = true;
+            var cmd = cscPath + " " + pProcess.StartInfo.Arguments;
+            pProcess.Start();
+            string output = pProcess.StandardOutput.ReadToEnd();
+            string err = pProcess.StandardError.ReadToEnd();
+            pProcess.WaitForExit();
+            pProcess.Dispose();
+            
+            if (!System.IO.File.Exists(outputFullPath))
+            {
+                return false;
+            }
+
+            return true;
+        }
+        public static bool CreateAssemblyDefinition(string code, string name, string[] references = null, string prefixDir = "", bool useCSC = false)
         {
             var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL");
             var syntaxTree = CSharpSyntaxTree.ParseText(code, options: parseOptions);
