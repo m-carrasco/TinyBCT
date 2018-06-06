@@ -35,7 +35,7 @@ namespace TinyBCT.Translators
             {
                 var methodName = Helpers.GetMethodName(mainMethod);
                 var parameters = Helpers.GetParametersWithBoogieType(mainMethod);
-                var returnType = Helpers.GetMethodBoogieReturnType(mainMethod) == null ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(mainMethod) + ")");
+                var returnType = Helpers.GetMethodBoogieReturnType(mainMethod).Equals("Void") ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(mainMethod) + ")");
                 sb.AppendLine(String.Format("procedure {{:entrypoint}} $Main_Wrapper_{0}({1}) {2}", methodName, parameters, returnType));
                 sb.AppendLine("{");
 
