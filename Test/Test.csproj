@@ -161,6 +161,7 @@
     <Compile Include="Inheritance.cs" />
     <Compile Include="Lambdas.cs" />
     <Compile Include="List.cs" />
+    <Compile Include="MissingConstructorInitializations.cs" />
     <Compile Include="NestedClass.cs" />
     <Compile Include="NoHeap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1044,6 +1044,41 @@ public class TestsManu : TestsBase
         var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test1", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+    // ************************************* MissingConstructorInitializations ******************************
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void MissingConstructorInitializations1()
+    {
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testInt", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void MissingConstructorInitializations2()
+    {
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testFloat", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void MissingConstructorInitializations3()
+    {
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testDouble", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void MissingConstructorInitializations4()
+    {
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testRef", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* DYNAMIC DISPATCH ******************************
 
     [TestMethod, Timeout(10000)]

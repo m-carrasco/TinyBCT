@@ -354,10 +354,19 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                        Helpers.Strings.fixStringLiteral(instructionOperand) :
-                        instructionOperand.ToString();
-                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                    Constant cons = instruction.Operand as Constant;
+                    if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+                    {
+                        // default string representation of floating point types is not suitable for boogie
+                        // check boogieGenerator.VariableAssignment code
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, cons));
+                    } else
+                    {
+                        string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
+                                        Helpers.Strings.fixStringLiteral(instructionOperand) :
+                                        instructionOperand.ToString();
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                    }
                 }
 
                 if (instruction.Result is IVariable &&

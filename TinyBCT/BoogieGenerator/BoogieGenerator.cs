@@ -187,6 +187,23 @@ namespace TinyBCT
                 return string.Format("call {1}({2});", resultVariable, boogieProcedureName, arguments);
         }
 
+        public string VariableAssignment(IVariable variableA, IValue value)
+        {
+            Constant cons = value as Constant;
+            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+            {
+                // default string representation of floating point types is not suitable for boogie
+                // boogie wants dot instead of ,
+                // "F" forces to add decimal part
+                Decimal v = Decimal.Parse(cons.Value.ToString());
+                var str = v.ToString("F").Replace(",", ".");
+
+                return VariableAssignment(variableA.ToString(), str);
+            }
+
+            return VariableAssignment(variableA.ToString(), value.ToString());
+        }
+
         public string VariableAssignment(IVariable variableA, string expr)
         {
             return VariableAssignment(variableA.ToString(), expr);

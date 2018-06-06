@@ -62,6 +62,9 @@ namespace TinyBCT
             var immutableArguments = new ImmutableArguments(methodBody);
             immutableArguments.Transform();
 
+            var fieldInitialization = new FieldInitialization(methodBody);
+            fieldInitialization.Transform();
+
             methodBody.RemoveUnusedLabels();
         }
 
