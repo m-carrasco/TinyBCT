@@ -793,6 +793,26 @@ class Test {
         var corralResult = CorralTestHelperCode("TestStringNull1", "Test.Main", 10, source, useStubs: false, useCSC: true);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestArray1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        string[] s = new string[5];
+        s[1] = ""Hello World"";
+        s[2] = ""Hello World"";
+        Contract.Assert(s[1] == s[2]);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestArray1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
     [TestCategory("Fernan")]
     [TestMethod]
     public void TestConstructors1()
