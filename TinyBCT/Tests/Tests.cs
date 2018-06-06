@@ -1201,6 +1201,14 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void MissingConstructorInitializations5()
+    {
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"$Main_Wrapper_Test.MissingConstructorInitializations.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* DYNAMIC DISPATCH ******************************
 
     [TestMethod, Timeout(10000)]

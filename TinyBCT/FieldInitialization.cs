@@ -33,6 +33,9 @@ namespace TinyBCT
 
         public void Transform()
         {
+            if (!methodBody.MethodDefinition.IsStaticConstructor && !methodBody.MethodDefinition.IsConstructor)
+                return;
+
             // these variables hold the default value
             IDictionary<string, LocalVariable> boogieTypeToLocalVariable =
                 new Dictionary<string, LocalVariable>();
@@ -46,11 +49,22 @@ namespace TinyBCT
                  = new List<Instruction>();
 
             CreateLocalVariablesWithDefaultValues(boogieTypeToLocalVariable, variables, instructions);
+            var fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
 
-            if (methodBody.MethodDefinition.IsConstructor)
+            if (methodBody.MethodDefinition.IsStaticConstructor)
+            {
+                foreach (IFieldDefinition field in fields.Where(f => f.IsStatic))
+                {
+                    var fieldBoogieType = Helpers.GetBoogieType(field.Type);
+                    IVariable initialValue = boogieTypeToLocalVariable[fieldBoogieType];
+                    var staticAccess = new StaticFieldAccess(field);
+                    var storeInstruction = new StoreInstruction(0, staticAccess, initialValue);
+                    storeInstruction.Label = String.Empty;
+                    instructions.Add(storeInstruction);
+                }
+            } else if (methodBody.MethodDefinition.IsConstructor)
             {
                 var thisVariable = methodBody.Parameters[0];
-                var fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
 
                 foreach (IFieldDefinition field in fields.Where(f => !f.IsStatic))
                 {
@@ -61,14 +75,14 @@ namespace TinyBCT
                     storeInstruction.Label = String.Empty;
                     instructions.Add(storeInstruction);
                 }
+            }
 
-                methodBody.Variables.UnionWith(variables);
-                int idx = 0;
-                foreach (var i in instructions)
-                {
-                    methodBody.Instructions.Insert(idx, i);
-                    idx++;
-                }
+            methodBody.Variables.UnionWith(variables);
+            int idx = 0;
+            foreach (var i in instructions)
+            {
+                methodBody.Instructions.Insert(idx, i);
+                idx++;
             }
         }
 

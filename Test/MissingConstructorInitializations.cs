@@ -26,6 +26,26 @@ namespace Test
         public double double1 = 790.0691;
         public double double2;
 
+        // Static fields
+
+        public static int staticInt1 = 150;
+        public static int staticInt2;
+
+        //public bool bool1 = true;
+        //public bool bool2;
+
+        public static MissingConstructorInitializations staticRef1;
+
+        public static float staticFloat1 = 1.60f;
+        public static float staticFloat2;
+
+        public static double staticDouble1 = 790.0691;
+        public static double staticDouble2;
+
+        static MissingConstructorInitializations()
+        {
+        }
+
         public MissingConstructorInitializations()
         {
             ref1 = this;
@@ -63,6 +83,17 @@ namespace Test
             var m = new MissingConstructorInitializations();
             Contract.Assert(m.double1 == 790.0691);
             Contract.Assert(m.double2 == 0.0);
+        }
+        
+        public static void Main()
+        {
+            Contract.Assert(staticInt1 == 150);
+            Contract.Assert(staticInt2 == 0);
+            Contract.Assert(staticDouble1 == 790.0691);
+            Contract.Assert(staticDouble2 == 0.0);
+            Contract.Assert(staticFloat1 == 1.60f);
+            Contract.Assert(staticFloat2 == 0.0f);
+            Contract.Assert(staticRef1 == null);
         }
     }
 }
