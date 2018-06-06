@@ -793,6 +793,107 @@ class Test {
         var corralResult = CorralTestHelperCode("TestStringNull1", "Test.Main", 10, source, useStubs: false, useCSC: true);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("Fernan")]
+    [TestMethod]
+    public void TestConstructors1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class A {
+  int value;
+  public A(int x) {
+    value = x;
+    Contract.Assert(false);
+  }
+  public A() : this(5) {
+  }
+}
+class Test {
+    public static void Main()
+    {
+        A a = new A();
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestConstructors1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestCategory("Fernan")]
+    [TestMethod]
+    public void TestConstructors2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class A {
+  int value;
+  public A(int x) {
+    value = x;
+  }
+  public A() : this(5) {
+    Contract.Assert(value == 5);
+  }
+}
+class Test {
+    public static void Main()
+    {
+        A a = new A();
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestConstructors2", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Fernan")]
+    [TestMethod]
+    public void TestSizeof1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        Contract.Assert(2 == sizeof(short));
+    }
+}
+            ";
+        var corralResult = CorralTestHelperCode("TestSizeof1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Fernan")]
+    [TestMethod]
+    public void TestBase1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Derived : Base {
+  public override void Foo() {
+    base.Foo();
+  }
+}
+class Base {
+  public virtual void Foo() {
+    Contract.Assert(false);
+  }
+}
+
+class Test {
+    public static void Main()
+    {
+        Derived d = new Derived();
+        d.Foo();
+    }
+}
+            ";
+        var corralResult = CorralTestHelperCode("TestBase1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestCategory("AvRegressions")]
+    [TestMethod]
     public void TestDynamicDispatchGenerics3()
     {
         var source = @"
@@ -1159,7 +1260,7 @@ public class TestsManu : TestsBase
     }
 
     // fails because of analysis-net bug
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("NotImplemented")]
     public void SplitFields1()
     {
