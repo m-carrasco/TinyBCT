@@ -61,6 +61,10 @@ namespace TinyBCT
             // thus violating corral's requirements
             if (methodBody.Parameters.Contains(instruction.Result))
             {
+                // check if it was processed already
+                if (argumentToNewVariable.ContainsKey(instruction.Result))
+                    return;
+
                 // creates new copy of the assigned argument
                 // creates a load instruction for to set original argument value to the new local copy
                 // the new local copy will replace the use of the argument
