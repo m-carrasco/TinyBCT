@@ -282,7 +282,15 @@ namespace TinyBCT
                 case BinaryOperation.Add: operation = "+"; break;
                 case BinaryOperation.Sub: operation = "-"; break;
                 case BinaryOperation.Mul: operation = "*"; break;
-                case BinaryOperation.Div: operation = "/"; break;
+                case BinaryOperation.Div:
+                    {
+                        if (Helpers.GetBoogieType(op1.Type).Equals(Helpers.GetBoogieType(op2.Type)) &&
+                            Helpers.GetBoogieType(op1.Type).Equals("int"))
+                            operation = "div";
+                        else
+                            operation = "/";
+                        break;
+                    }
                 // not implemented yet
                 /*case BinaryOperation.Rem: operation = "%"; break;
                 case BinaryOperation.And: operation = "&"; break;
