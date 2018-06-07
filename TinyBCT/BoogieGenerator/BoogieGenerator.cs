@@ -195,8 +195,20 @@ namespace TinyBCT
                 // default string representation of floating point types is not suitable for boogie
                 // boogie wants dot instead of ,
                 // "F" forces to add decimal part
-                Decimal v = Decimal.Parse(cons.Value.ToString());
-                var str = v.ToString("F").Replace(",", ".");
+                string str = "";
+                if (cons.Value is Single)
+                {
+                    Single v = (Single)cons.Value;
+                    str = v.ToString("F").Replace(",", ".");
+                } else if (cons.Value is Double)
+                {
+                    Double v = (Double)cons.Value;
+                    str = v.ToString("F").Replace(",", ".");
+                } else if (cons.Value is Decimal)
+                {
+                    Decimal v = (Decimal)cons.Value;
+                    str = v.ToString("F").Replace(",", ".");
+                }
 
                 return VariableAssignment(variableA.ToString(), str);
             }
