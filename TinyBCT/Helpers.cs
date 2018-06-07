@@ -619,7 +619,7 @@ namespace TinyBCT
             {
                 return s.Replace("::", ".")// for example: static fields
                     .Replace("<>", "__")  // class compiled generated
-                    .Replace('<', '$').Replace('>', '$').Replace(", ", "$");
+                    .Replace('<', '$').Replace('>', '$').Replace(", ", "$").Replace("=", "$");
 
                 //return s; // .Replace('<', '_').Replace('>', '_');
             }
