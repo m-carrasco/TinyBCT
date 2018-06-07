@@ -33,7 +33,8 @@ namespace TinyBCT
                 inst is CatchInstruction ||
                 inst is ThrowInstruction ||
                 inst is ConvertInstruction ||
-                inst is InitializeObjectInstruction)
+                inst is InitializeObjectInstruction ||
+                inst is CreateArrayInstruction)
                 return true;
 
             return false;
@@ -623,6 +624,7 @@ namespace TinyBCT
                 //return s; // .Replace('<', '_').Replace('>', '_');
             }
 
+            public const string constNameForNullString = "$string_literal_NullValue";
             public static string ConstNameForStringLiteral(string literal)
             {
                 // String literal will start and end with '"'.
@@ -640,8 +642,15 @@ namespace TinyBCT
                 string vStr = v.ToString();
                 if (v is Constant)
                 {
-                    vStr = ConstNameForStringLiteral(vStr);
-                    stringLiterals.Add(v.ToString());
+                    if ((v as Constant).Value != null)
+                    {
+                        vStr = ConstNameForStringLiteral(vStr);
+                        stringLiterals.Add(v.ToString());
+                    }
+                    else
+                    {
+                        vStr = constNameForNullString;
+                    }
                 }
                 return vStr;
             }
@@ -649,6 +658,7 @@ namespace TinyBCT
             public static void writeStringConsts(System.IO.StreamWriter sw)
             {
                 var addedConsts = new HashSet<string>();
+                sw.WriteLine(String.Format("\tconst unique {0} : Ref;", Helpers.Strings.constNameForNullString));
                 foreach (var lit in stringLiterals)
                 {
                     var boogieConst = Helpers.Strings.ConstNameForStringLiteral(lit);
