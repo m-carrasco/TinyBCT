@@ -1,3 +1,3 @@
 ﻿TinyBCT uses analysis-net framework to perform the bytecode translation on a three adress code.
-Currently version used is: https://github.com/garbervetsky/analysis-net/commit/dc5f37001c00c71fad85b8516dcaa92316cbe4f9
+Currently version used is: https://github.com/garbervetsky/analysis-net/commit/05ec20bb6723a5fabc4cbabb5956304468327061
 The framework is attached to the project as the Backend dependency.
