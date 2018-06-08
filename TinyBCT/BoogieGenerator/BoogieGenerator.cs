@@ -510,5 +510,19 @@ namespace TinyBCT
         {
             return String.Format("!{0}", b);
         }
+
+        public string BoxFrom(IVariable op1, IVariable result)
+        {
+            var boogieType = Helpers.GetBoogieType(op1.Type);
+            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
+            if (boogieType.Equals("Ref"))
+                boogieType = "Union";
+
+            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieType);
+            var args = new List<string>();
+            args.Add(op1.Name);
+
+            return ProcedureCall(boxFromProcedure, args, result.Name);
+        }
     }
 }

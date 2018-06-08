@@ -118,8 +118,13 @@ implementation System.String.op_Inequality$System.String$System.String(a$in: Ref
   $result := (a$in != b$in);
 }
 
+// global state for exceptions
 var $Exception : Ref;
 var $ExceptionType : Ref;
+// state of exceptions during catch execution - useful for rethrows
+// catch handlers set $Exception to null, we might need the previous value if there is a rethrow.
+var $ExceptionInCatchHandler : Ref;
+var $ExceptionInCatchHandlerType : Ref;
 
 var $ArrayContents: [Ref][int]Union;
 function $ArrayLength(Ref) : int;
@@ -136,4 +141,44 @@ implementation $WriteArrayElement(array: Ref, index : int, data : Union)
 {
     assert $ArrayLength(array) > index && index >= 0;
 	$ArrayContents := $ArrayContents[array := $ArrayContents[array][index := data]];
+}
+
+const unique $BoolValueType: int;
+
+const unique $IntValueType: int;
+
+const unique $RealValueType: int;
+
+procedure {:inline 1} $BoxFromBool(b: bool) returns (r: Ref);
+
+implementation {:inline 1} $BoxFromBool(b: bool) returns (r: Ref)
+{
+    call r := Alloc();
+    assume $TypeConstructor($DynamicType(r)) == $BoolValueType;
+    assume Union2Bool(r) == b;
+}
+
+procedure {:inline 1} $BoxFromInt(i: int) returns (r: Ref);
+
+implementation {:inline 1} $BoxFromInt(i: int) returns (r: Ref)
+{
+    call r := Alloc();
+    assume $TypeConstructor($DynamicType(r)) == $IntValueType;
+    assume Union2Int(r) == i;
+}
+
+procedure {:inline 1} $BoxFromReal(r: real) returns (rf: Ref);
+
+implementation {:inline 1} $BoxFromReal(r: real) returns (rf: Ref)
+{
+    call rf := Alloc();
+    assume $TypeConstructor($DynamicType(rf)) == $RealValueType;
+    assume Union2Real(rf) == r;
+}
+
+procedure {:inline 1} $BoxFromUnion(u: Union) returns (r: Ref);
+
+implementation {:inline 1} $BoxFromUnion(u: Union) returns (r: Ref)
+{
+    r := u;
 }

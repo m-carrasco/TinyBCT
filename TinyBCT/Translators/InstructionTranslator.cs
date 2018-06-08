@@ -589,6 +589,9 @@ namespace TinyBCT.Translators
                 if (instruction.Operation == ConvertOperation.Conv)
                 {
                     ProcessTypeConversion(instruction);
+                } else if (instruction.Operation == ConvertOperation.Box)
+                {
+                    AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction.Result));
                 } else 
                 {
                     ProcessAs(instruction);
@@ -925,17 +928,29 @@ namespace TinyBCT.Translators
                 AddBoogie(boogieGenerator.If(boogieGenerator.Negation(boogieGenerator.Subtype("$ExceptionType", instruction.ExceptionType)), body));
 
                 // Exception is handled we reset global variables
-                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, "$Exception"));
+                if (instruction.HasResult) // catch with no specific exception type
+                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, "$Exception"));
+                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionInCatchHandler", "$Exception"));
+                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionInCatchHandlerType", "$ExceptionType"));
                 AddBoogie(boogieGenerator.VariableAssignment("$Exception", "null"));
                 AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", "null"));
             }
 
             public override void Visit(ThrowInstruction instruction)
             {
-                var args = new List<string>();
-                args.Add(instruction.Operand.Name);
-                AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
-                AddBoogie(boogieGenerator.VariableAssignment("$Exception", instruction.Operand.Name));
+                if (instruction.HasOperand)
+                {
+                    var args = new List<string>();
+                    args.Add(instruction.Operand.Name);
+                    AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
+                    AddBoogie(boogieGenerator.VariableAssignment("$Exception", instruction.Operand.Name));
+                }
+                else
+                {
+                    // rethrow
+                    AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", "$ExceptionInCatchHandlerType"));
+                    AddBoogie(boogieGenerator.VariableAssignment("$Exception", "$ExceptionInCatchHandler"));
+                }
 
                 var target = GetThrowTarget(instruction);
 

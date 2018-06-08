@@ -78,6 +78,8 @@ namespace TinyBCT.Translators
             sb.AppendLine("\t//this procedure initializes global exception variables and calls static constructors");
             sb.AppendLine("\t$Exception := null;");
             sb.AppendLine("\t$ExceptionType := null;");
+            sb.AppendLine("\t$ExceptionInCatchHandler := null;");
+            sb.AppendLine("\t$ExceptionInCatchHandlerType := null;");
 
             foreach (var staticConstructor in staticConstructors)
             {
