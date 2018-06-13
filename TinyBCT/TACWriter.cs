@@ -65,7 +65,7 @@ namespace TinyBCT
                     type = TypeHelper.GetTypeName(variable.Type);
                 }
 
-                result.AppendFormat("  {0} {1};", type, variable.Name);
+                result.AppendFormat("local  {0} {1};", type, variable.Name);
                 result.AppendLine();
             }
 
