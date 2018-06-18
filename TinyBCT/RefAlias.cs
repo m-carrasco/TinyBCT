@@ -117,7 +117,7 @@ namespace TinyBCT
             for (int i = instructionIndex+1; i < methodBody.Instructions.Count(); i++)
             {
                 MethodCallInstruction methodCallIns 
-                    = methodBody.Instructions[instructionIndex] as MethodCallInstruction;
+                    = methodBody.Instructions[i] as MethodCallInstruction;
 
                 if (methodCallIns != null && methodCallIns.Arguments.IndexOf(var) != -1)
                 {
