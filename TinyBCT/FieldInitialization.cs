@@ -33,9 +33,6 @@ namespace TinyBCT
 
         public void Transform()
         {
-            if (!methodBody.MethodDefinition.IsStaticConstructor && !methodBody.MethodDefinition.IsConstructor)
-                return;
-
             // these variables hold the default value
             IDictionary<string, LocalVariable> boogieTypeToLocalVariable =
                 new Dictionary<string, LocalVariable>();
@@ -49,8 +46,26 @@ namespace TinyBCT
                  = new List<Instruction>();
 
             CreateLocalVariablesWithDefaultValues(boogieTypeToLocalVariable, variables, instructions);
-            var fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
 
+            // we need to initialize local variables.
+
+            foreach (var lv in methodBody.Variables)
+            {
+                if (lv.IsParameter || 
+                    // in the delegate handling this type of variables are not used
+                    // calling get boogie type will crash
+                    lv.Type is Microsoft.Cci.Immutable.FunctionPointerType) 
+                    continue;
+
+                var varBoogieType = Helpers.GetBoogieType(lv.Type);
+                IVariable initialValue = boogieTypeToLocalVariable[varBoogieType];
+                var storeInstruction = new LoadInstruction(0, lv, initialValue);
+                storeInstruction.Label = String.Empty;
+                instructions.Add(storeInstruction);
+            }
+
+
+            var fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
             if (methodBody.MethodDefinition.IsStaticConstructor)
             {
                 foreach (IFieldDefinition field in fields.Where(f => f.IsStatic))
