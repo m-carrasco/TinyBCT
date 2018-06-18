@@ -119,14 +119,22 @@ namespace TinyBCT
                 MethodCallInstruction methodCallIns 
                     = methodBody.Instructions[i] as MethodCallInstruction;
 
-                if (methodCallIns != null && methodCallIns.Arguments.IndexOf(var) != -1)
+                if (methodCallIns != null)
                 {
-                    // add one because of the "this" argument
-                    var idx = methodCallIns.Arguments.IndexOf(var) + (!methodCallIns.Method.IsStatic ? 1 : 0);
+                    if (!methodCallIns.Method.IsStatic && methodCallIns.Arguments.Count() == 1) // only 'this'
+                        continue;
 
-                    // not sure what happens to out parameters
-                    if (methodCallIns.Method.Parameters.ElementAt(idx).IsByReference)
-                        return true;
+                    if (methodCallIns.Arguments.IndexOf(var) != -1)
+                    {
+                        // subtract one because of the "this" argument
+                        var idx = methodCallIns.Arguments.IndexOf(var) + (!methodCallIns.Method.IsStatic ? -1 : 0);
+
+                        // not sure what happens to out parameters
+                        // here 'this' is not listed
+                        if (methodCallIns.Method.Parameters.ElementAt(idx).IsByReference)
+                            return true;
+                    }
+
                 }
             }
 
