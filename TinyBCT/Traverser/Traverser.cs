@@ -75,7 +75,7 @@ namespace TinyBCT
 
             }
 
-            var typeAnalysis = new TypeInferenceAnalysis(CFG);
+            var typeAnalysis = new TypeInferenceAnalysis(CFG, methodBody.MethodDefinition.Type);
             typeAnalysis.Analyze();
 
 
