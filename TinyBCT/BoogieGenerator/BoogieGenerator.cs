@@ -172,19 +172,40 @@ namespace TinyBCT
         {
             StringBuilder sb = new StringBuilder();
             var boogieProcedureName = Helpers.GetMethodName(procedure);
-            return ProcedureCall(boogieProcedureName, argumentList.Select(v => v.Name).ToList(), resultVariable == null ? String.Empty : resultVariable.Name);
+
+            int s = procedure.IsStatic ? 0 : 1;
+
+            // check behavior with out arguments
+            var referencedIndexes = procedure.Parameters.Where(p => p.IsByReference).Select(p => p.Index+s);
+
+            var resultArguments = new List<String>();
+            foreach (var i in referencedIndexes)
+                resultArguments.Add(argumentList[i].Name);
+
+            if (resultVariable != null)
+                resultArguments.Add(resultVariable.Name);
+
+            return ProcedureCall(boogieProcedureName, argumentList.Select(v => v.Name).ToList(), resultArguments);
         }
 
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, string resultVariable = null)
         {
+            var resultArguments = new List<string>();
+            if (resultVariable != null)
+                resultArguments.Add(resultVariable);
+
+            return ProcedureCall(boogieProcedureName, argumentList, resultArguments);
+        }
+
+        public string ProcedureCall(string boogieProcedureName, List<string> argumentList, IList<string> resultVariables )
+        {
             StringBuilder sb = new StringBuilder();
 
             var arguments = String.Join(",", argumentList);
-
-            if (!String.IsNullOrEmpty(resultVariable))
-                return string.Format("call {0} := {1}({2});", resultVariable, boogieProcedureName, arguments);
+            if (resultVariables.Count > 0)
+                return string.Format("call {0} := {1}({2});", String.Join(",",resultVariables), boogieProcedureName, arguments);
             else
-                return string.Format("call {1}({2});", resultVariable, boogieProcedureName, arguments);
+                return string.Format("call {0}({1});", boogieProcedureName, arguments);
         }
 
         public string VariableAssignment(IVariable variableA, IValue value)

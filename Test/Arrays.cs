@@ -115,10 +115,10 @@ namespace Test
 
         static void arrayLength(int[] a)
         {
-            var x = a[5];
-
-
             var l = a.Length;
+
+            Contract.Assert(l < 5); // this is not always true
+            var x = a[5];
             l = l + 1;
             Contract.Assert(a.Length + 1 == l);
         }

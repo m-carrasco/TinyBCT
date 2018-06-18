@@ -4,6 +4,7 @@ using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static Test.TestUtils;
+using Backend;
 
 [TestClass]
 public partial class TestsHelpers
@@ -149,6 +150,8 @@ public class TestsBase
 
         TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
         TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
+
+        TinyBCT.ImmutableArguments.MethodToMapping = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();
     }
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
@@ -1285,6 +1288,14 @@ public class TestsManu : TestsBase
     public void SplitFields1()
     {
         var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void RefKeyword1()
+    {
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
 

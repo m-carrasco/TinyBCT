@@ -16,6 +16,7 @@ using Backend.ThreeAddressCode.Values;
 using TinyBCT.Translators;
 using Backend.Model;
 using Backend.Utils;
+using Microsoft.Cci.Immutable;
 
 namespace TinyBCT
 {
@@ -42,6 +43,20 @@ namespace TinyBCT
             //var cfg = cfAnalysis.GenerateNormalControlFlow();
             CFG = cfAnalysis.GenerateExceptionalControlFlow();
 
+            /*foreach (var variable in methodBody.Variables)
+            {
+                if (variable.IsParameter && variable.Name!="this" && methodBody.Parameters.Any())
+                {
+                    var param = methodBody.MethodDefinition.Parameters.Single(p => p.Name.Value == variable.Name);
+                    if (param.IsByReference || param.IsOut)
+                    {
+
+                        var type = ManagedPointerType.GetManagedPointerType(param.Type, host.InternFactory);
+                        variable.Type = type ;// Types.Instance.PointerTargetType(variable.Type);
+                    }
+                }
+             }*/
+
             var splitter = new WebAnalysis(CFG, methodBody.MethodDefinition);
             splitter.Analyze();
             splitter.Transform();
@@ -58,6 +73,9 @@ namespace TinyBCT
             var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(CFG);
             backwardCopyAnalysis.Analyze();
             backwardCopyAnalysis.Transform(methodBody);*/
+
+            var refAlias = new RefAlias(methodBody);
+            refAlias.Transform();
 
             var immutableArguments = new ImmutableArguments(methodBody);
             immutableArguments.Transform();

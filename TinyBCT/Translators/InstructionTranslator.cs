@@ -304,6 +304,28 @@ namespace TinyBCT.Translators
 
             public override void Visit(ReturnInstruction instruction)
             {
+
+                // mapping between original parameters and copies created when a modification was spotted
+                // corral wants immutable paramters
+                IDictionary<IVariable, IVariable> argToNewVariable = null;
+                ImmutableArguments.MethodToMapping.TryGetValue(instTranslator.methodBody, out argToNewVariable);
+
+                foreach (var p in instTranslator.method.Parameters.Where(p => p.IsOut || p.IsByReference))
+                {
+                    IVariable pInMethodBody = instTranslator.methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
+
+                    if (argToNewVariable != null && argToNewVariable.ContainsKey(pInMethodBody))
+                    {
+                        AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), argToNewVariable[pInMethodBody].Name));
+
+                        // $outNombreDeLaVariableORIGINAL := variableMapeada;
+                    } else
+                    {
+                        AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), p.Name.Value));
+                        // $outNombreDeLaVariableORIGINAL := nombreDeLaVariableOriginal;
+                    }
+                }
+
                 if (instruction.HasOperand)
                     AddBoogie(boogieGenerator.VariableAssignment("$result", instruction.Operand.Name));
             }
@@ -362,10 +384,18 @@ namespace TinyBCT.Translators
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, cons));
                     } else
                     {
-                        string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                                        Helpers.Strings.fixStringLiteral(instructionOperand) :
-                                        instructionOperand.ToString();
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+
+                        var dereference = instruction.Operand as Dereference;
+                        if (dereference != null)
+                        {
+                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, dereference.Reference));
+                        } else
+                        {
+                            string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
+                Helpers.Strings.fixStringLiteral(instructionOperand) :
+                instructionOperand.ToString();
+                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                        }
                     }
                 }
 
@@ -562,7 +592,14 @@ namespace TinyBCT.Translators
                         AddBoogie(p);
                     }
                     else
-                        Contract.Assume(false);
+                    {
+                        var dereference = instruction.Result as Dereference;
+                        if (dereference != null)
+                        {
+                            AddBoogie(boogieGenerator.VariableAssignment(dereference.Reference, instruction.Operand));
+                        } else 
+                            Contract.Assume(false);
+                    }
                 }
             }
 

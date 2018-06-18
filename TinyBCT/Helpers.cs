@@ -62,8 +62,27 @@ namespace TinyBCT
                 return "Ref";
 
             // hack 
-            if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive) || type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+            if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
                 return "Ref";
+
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+            {
+                // manuel: we type a reference accordingly to its target type
+                // we just support reference writes/reads for arguments
+                // void foo (ref int x) -> writes/reads to x are supported
+                // {
+                // ....
+                // ref int y = ...; -> writes/reads to y are not supported
+                // ...
+                // }
+                // this is how bct works.
+                // x is considered as a variable with the target type and then is returned and assigned after the invokation
+                // call arg1 := foo(arg1);
+
+                IManagedPointerType t = type as IManagedPointerType;
+                Contract.Assume(t != null);
+                return GetBoogieType(t.TargetType);
+            }
 
             // void type will return null
             if (Types.Instance.PlatformType.SystemVoid.Equals(type))
@@ -110,7 +129,22 @@ namespace TinyBCT
             }
             var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
-            var returnType = Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void") ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(methodRef) + ")");
+            var returnType = String.Empty;
+
+            // manuel: i can't check for p.IsOut with a method reference, i need a method definition
+            // i think that is not possible if it is extern.
+            if (Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void") && !methodRef.Parameters.Any(p => p.IsByReference))
+            {
+                returnType = String.Empty;
+            } else
+            {
+                var returnVariables = new List<String>();
+                returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                if (!Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void"))
+                    returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
+
+                returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
+            }
 
             var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true);
 
@@ -619,7 +653,7 @@ namespace TinyBCT
             {
                 return s.Replace("::", ".")// for example: static fields
                     .Replace("<>", "__")  // class compiled generated
-                    .Replace('<', '$').Replace('>', '$').Replace(", ", "$").Replace("=", "$");
+                    .Replace('<', '$').Replace('>', '$').Replace(", ", "$").Replace("=", "$").Replace("[]", "$Array$");
 
                 //return s; // .Replace('<', '_').Replace('>', '_');
             }

@@ -18,8 +18,13 @@ namespace TinyBCT
     
     // TODO: check behaviour of this code when "ref" feature is implemented
     // void foo(ref a){...}
-    class ImmutableArguments : InstructionVisitor
+    public class ImmutableArguments : InstructionVisitor
     {
+        // manuel: useful to know argument versions when they are "cloned" by the ImmutableArguments transformation
+        // used for references as arguments
+        public static IDictionary<MethodBody, IDictionary<IVariable, IVariable>> MethodToMapping
+            = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();
+
         public ImmutableArguments(MethodBody mb) : base()
         {
             methodBody = mb;
@@ -42,6 +47,8 @@ namespace TinyBCT
 
             foreach (var ins in newLoads)
                 methodBody.Instructions.Insert(0, ins);
+
+            MethodToMapping.Add(methodBody, argumentToNewVariable);
         }
 
         private IVariable AddNewLocalVariable(IVariable var)
