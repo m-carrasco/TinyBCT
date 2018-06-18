@@ -49,36 +49,8 @@ namespace TinyBCT
 
             methodBody.UpdateVariables();
 
-            foreach (var ins in methodBody.Instructions)
-            {
-                /*foreach(var variable in ins.Variables)
-                {
-                    if (variable.IsParameter && variable.Name != "this" && methodBody.Parameters.Any())
-                    {
-                        var param = methodBody.MethodDefinition.Parameters.Single(p => p.Name.Value == variable.Name);
-                        if (param.IsByReference || param.IsOut)
-                        {
-
-                            var type = ManagedPointerType.GetManagedPointerType(param.Type, host.InternFactory);
-                            variable.Type = type;// Types.Instance.PointerTargetType(variable.Type);
-                        }
-                    }
-                }*/
-
-                // hack for: https://github.com/edgardozoppi/analysis-net/issues/6
-                if (ins is ReturnInstruction)
-                {
-                    var retIns = ins as ReturnInstruction;
-                    if (retIns.HasOperand)
-                        retIns.Operand.Type = methodBody.MethodDefinition.Type;
-                }
-
-            }
-
             var typeAnalysis = new TypeInferenceAnalysis(CFG, methodBody.MethodDefinition.Type);
             typeAnalysis.Analyze();
-
-
 
             /*var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(CFG);
             forwardCopyAnalysis.Analyze();
