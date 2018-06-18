@@ -60,6 +60,8 @@ namespace TinyBCT
             backwardCopyAnalysis.Analyze();
             backwardCopyAnalysis.Transform(methodBody);*/
 
+            // TinyBCT transformations
+
             var refAlias = new RefAlias(methodBody);
             refAlias.Transform();
 
