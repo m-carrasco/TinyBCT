@@ -1282,9 +1282,17 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    // fails because of analysis-net bug
     [TestMethod]
     [TestCategory("NotImplemented")]
+    public void Loops()
+    {
+        var corralResult = CorralTestHelper("Loops", "Test.Loops.Acum$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
     public void SplitFields1()
     {
         var corralResult = CorralTestHelper("SplitFields", "Test.SplitFields.test1", 10);
