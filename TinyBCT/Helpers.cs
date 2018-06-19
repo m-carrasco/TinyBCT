@@ -506,6 +506,11 @@ namespace TinyBCT
                 }
             } else
             {
+                // BUG: Hack
+                if(type is IArrayTypeReference) // && type.FullName()=="T[]")
+                {
+                    mentionedClasses.Add(type);
+                }
                 return "T$" + GetNormalizedType(type) + "()";
             }
         }

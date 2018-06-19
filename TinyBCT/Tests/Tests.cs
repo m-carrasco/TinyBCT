@@ -816,6 +816,31 @@ class Test {
         var corralResult = CorralTestHelperCode("TestArray1", "Test.Main", 10, source, useStubs: false, useCSC: true);
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestAssumeTypeArguments1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Base {
+    virtual public void Foo() {
+    }
+}
+class Derived : Base {
+    override public void Foo() {
+    }
+}
+class Test {
+    public static void Main(Base b)
+    {
+        b.Foo();
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestAssumeTypeArguments1", "Test.Main$Base", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
     [TestCategory("Fernan")]
     [TestMethod]
     public void TestConstructors1()

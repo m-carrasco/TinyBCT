@@ -65,7 +65,19 @@ namespace TinyBCT.Translators
 
         public void Translate(/*IList<Instruction> instructions, int idx*/)
         {
+            var bg = BoogieGenerator.Instance();
+
             var instructions = methodBody.Instructions;
+
+            foreach (var p in methodBody.MethodDefinition.Parameters)
+            {
+                if (Helpers.IsBoogieRefType(p.Type) && !p.IsByReference && !p.IsOut)
+                {
+                    // BUG BUG BUG BUG - by ref 
+                    AddBoogie(bg.Assume(bg.Subtype(bg.DynamicType(p.Name.Value), p.Type)));
+                }
+            }
+
             for (int idx = 0; idx < instructions.Count(); idx++)
             {
                 SetState(instructions, idx);
