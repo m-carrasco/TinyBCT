@@ -751,6 +751,36 @@ class Test {
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
 
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestDynamicDispatch1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+public interface Base {
+    void Foo();
+}
+interface Base2 : Base {
+    void Bar();
+}
+class Derived : Base2 {
+    public virtual void Foo() {
+        Contract.Assert(false);
+    }
+    public virtual void Bar() {
+    }
+}
+class Test {
+    public void Main(Base2 b) {
+        b.Foo();
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestDynamicDispatch1", "Test.Main$Base2", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
     [TestCategory("DocumentedImprecision")]
     [TestMethod]
     public void TestCast2()

@@ -472,7 +472,9 @@ namespace TinyBCT
             var type = originalType;
             bool callRecursively = typeArguments == null;
 
-            if(type is INamespaceTypeReference || type is INestedTypeReference)
+            mentionedClasses.Add(type);
+
+            if (type is INamespaceTypeReference || type is INestedTypeReference)
             { 
                 type = TypeHelper.GetInstanceOrSpecializedNestedType(type.ResolvedType);
             }
@@ -506,11 +508,6 @@ namespace TinyBCT
                 }
             } else
             {
-                // BUG: Hack
-                if(type is IArrayTypeReference) // && type.FullName()=="T[]")
-                {
-                    mentionedClasses.Add(type);
-                }
                 return "T$" + GetNormalizedType(type) + "()";
             }
         }
