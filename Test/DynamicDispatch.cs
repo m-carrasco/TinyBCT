@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -324,6 +325,26 @@ namespace DynamicDispatch
             }
         }
 
+        [DllImport("dummy.dll")]
+        public static extern Terrier ExternTerrier();
+
+        static void test8()
+        {
+            // since this is an extern procedure
+            // there will be no alloc
+            // and no type information.
+            Dog d = ExternTerrier();
+            d.hair = 3;
+
+            Dog d_alias = d;
+
+            var newHair = d_alias.GrowHair();
+
+            // if we don't add extra information telling that d is a terrier 
+            // dynamic dispatch will fail
+            Contract.Assert(newHair == 3 * 3 * 3);
+        }
+
     }
 
     abstract class Animal
@@ -376,6 +397,15 @@ namespace DynamicDispatch
         public new int SampleMethod()
         {
             return 2;
+        }
+    }
+
+    class Terrier : Dog
+    {
+        public override int GrowHair()
+        {
+            hair =  hair * hair * hair;
+            return hair;
         }
     }
 
