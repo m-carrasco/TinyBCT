@@ -275,9 +275,8 @@ namespace TinyBCT
 
                 //                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m,NameFormattingOptions.PreserveSpecialNames)
                 //                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames)));
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m, NameFormattingOptions.PreserveSpecialNames)
-                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames))
-                                                                                && ParametersAreCompatible(m,method));
+                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value==method.Name.Value
+                                                                                  && ParametersAreCompatible(m,method));
 
                 if (matchingMethod != null)
                 {
