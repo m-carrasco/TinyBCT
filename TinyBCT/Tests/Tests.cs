@@ -1013,7 +1013,7 @@ class Test {
     [TestCategory("Av-Regressions")]
     public void TestListSumOK()
     {
-        var corralResult = CorralTestHelper("ListSum", "PoirotMain.Main", 10);
+        var corralResult = CorralTestHelper("ListSum", "$Main_Wrapper_PoirotMain.Main", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1485,6 +1485,15 @@ public class TestsManu : TestsBase
         var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test5_Bugged", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DynamicDispatch6_Bugged()
+    {
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test8", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
 
     // ************************************* DELEGATES ******************************
 

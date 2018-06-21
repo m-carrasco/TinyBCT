@@ -149,42 +149,75 @@ namespace TinyBCT.Translators
                 }
             }
 
+            // THIS IS NOT THE HAPPIEST NAME FOR THIS FUNCTIOn
+            // THIS FUNCTION CAN BE CALLED EVEN IF METHOD CALL OPERATION IS STATIC!
+            // IN THAT CASE IT WILL DIRECTLY CALL funcOnPontentialCallee over "method"
             protected void DynamicDispatch(IMethodReference method, IVariable receiver, MethodCallOperation operation, Func<IMethodReference, string> funcOnPotentialCallee)
             {
                 var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
 
-                if (calless.Count > 1)
+                // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
+                var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
+
+                var args = new List<string>();
+                args.Add(receiver.Name);
+                AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
+
+                if (operation == MethodCallOperation.Virtual)
                 {
-                    // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                    var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
-                
-                    var args = new List<string>();
-                    args.Add(receiver.Name);
-                    AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
-                    // example:if ($tmp6 == T$DynamicDispatch.Dog())
-                    AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, calless.First().ContainingType), funcOnPotentialCallee(calless.First())));
 
-                    int i = 0;
-                    foreach (var impl in calless)
+                    if (calless.Count > 0)
                     {
-                        MentionedClasses.Add(impl.ContainingType);
-                        // first  invocation is not handled in this loop
-                        if (i == 0)
-                        {
-                            i++;
-                            continue;
-                        }
 
-                        AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, impl.ContainingType), funcOnPotentialCallee(impl)));
-                        i++;
+                        // example:if ($tmp6 == T$DynamicDispatch.Dog())
+                        AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, calless.First().ContainingType), funcOnPotentialCallee(calless.First())));
+
+                        int i = 0;
+                        foreach (var impl in calless)
+                        {
+                            MentionedClasses.Add(impl.ContainingType);
+                            // first  invocation is not handled in this loop
+                            if (i == 0)
+                            {
+                                i++;
+                                continue;
+                            }
+
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, impl.ContainingType), funcOnPotentialCallee(impl)));
+                            i++;
+                        }
                     }
 
-                    AddBoogie(boogieGenerator.Else(boogieGenerator.Assert("false")));
+                    // we need to extend the else if chain
+                    if (calless.Count > 0)
+                    {
+                        if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
+                        {
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                            AddBoogie(boogieGenerator.Else(boogieGenerator.Assert("false")));
+                        }
+                        else
+                        {
+                            AddBoogie(boogieGenerator.Else(boogieGenerator.Assert("false")));
+                        }
+                    }
+                    else
+                    {
+                        if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
+                        {
+                            AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                            AddBoogie(boogieGenerator.Else(boogieGenerator.Assert("false")));
+                        }
+                        else
+                        {
+                            AddBoogie(boogieGenerator.Assert("false"));
+                        }
+
+                    }
                 }
                 else
                 {
                     AddBoogie(funcOnPotentialCallee(method));
-                    SimpleTranslation.AddToExternalMethods(method);
                 }
 
                 if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
