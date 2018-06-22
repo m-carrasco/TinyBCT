@@ -233,6 +233,17 @@ namespace TinyBCT.Translators
 
                 return tempVar;
             }
+
+            public string AddSubtypeInformationToExternCall(MethodCallInstruction instruction)
+            {
+                var methodRef = instruction.Method;
+                // IsDelegateInvokation requires containing type != null - not sure if that always holds
+                if (methodRef.ResolvedMethod == null || Helpers.IsExternal(methodRef.ResolvedMethod) || DelegateInvokeTranslation.IsDelegateInvokation(instruction))
+                    if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
+                        return boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
+
+                return String.Empty;
+            }
         }
 
         // translates each instruction independently 
@@ -493,6 +504,8 @@ namespace TinyBCT.Translators
                 {
                     sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments));
                 }
+
+                sb.AppendLine(AddSubtypeInformationToExternCall(instruction));
 
                 return sb.ToString();
             }
@@ -1297,24 +1310,31 @@ namespace TinyBCT.Translators
                     // the union depends on the type of the arguments
                     var argType = Helpers.GetBoogieType(instruction.Result.Type);
                     if (Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
+                    {
+                        // we handle delegate invokations as extern for simplicity
+                        // they may point to an extern method
+                        AddBoogie(AddSubtypeInformationToExternCall(instruction));
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, localVar.Name));
+                    }
                     else
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(argType, localVar.Name)));
                 }
             }
 
-            public static bool IsDelegateInvokeTranslation(IList<Instruction> instructions, int idx)
+            public static bool IsDelegateInvokation(MethodCallInstruction instruction)
             {
-                MethodCallInstruction instruction = instructions[idx] as MethodCallInstruction;
-
-                if (instruction == null)
-                    return false;
-
                 if (instruction.Method.ContainingType.ResolvedType.IsDelegate &&
                     instruction.Method.Name.Value.Equals("Invoke")) // better way?
                     return true;
-
                 return false;
+            }
+            public static bool IsDelegateInvokeTranslation(IList<Instruction> instructions, int idx)
+            {
+                MethodCallInstruction instruction = instructions[idx] as MethodCallInstruction;
+                if (instruction == null)
+                    return false;
+
+                return IsDelegateInvokation(instruction);
             }
         }
     }

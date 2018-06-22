@@ -1488,9 +1488,33 @@ public class TestsManu : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("Manu")]
+    public void DynamicDispatch6_NoBugs()
+    {
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test8_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
     public void DynamicDispatch6_Bugged()
     {
-        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test8", 10);
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test8_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DynamicDispatch7_NoBugs()
+    {
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test9_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void DynamicDispatch7_Bugged()
+    {
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test9_Bugged", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
