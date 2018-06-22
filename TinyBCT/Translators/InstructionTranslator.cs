@@ -257,6 +257,14 @@ namespace TinyBCT.Translators
             {
             }
 
+            public override void Visit(UnaryInstruction instruction)
+            {
+                var exp = boogieGenerator.UnaryOperationExpression(instruction.Operand, instruction.Operation);
+                var assignment = boogieGenerator.VariableAssignment(instruction.Result.Name, exp);
+
+                AddBoogie(assignment);
+            }
+
             public override void Visit(BinaryInstruction instruction)
             {
                 //addLabel(instruction);

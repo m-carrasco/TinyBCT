@@ -169,6 +169,7 @@
     <Compile Include="RefKeyword.cs" />
     <Compile Include="SplitFields.cs" />
     <Compile Include="Static.cs" />
+    <Compile Include="UnaryOperations.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

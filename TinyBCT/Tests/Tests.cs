@@ -1894,6 +1894,56 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    // ************************************* Unary Operations ******************************
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void UnaryOperations1()
+    {
+        var corralResult = CorralTestHelper("UnaryOperations", "Test.UnaryOperations.test1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void UnaryOperations2()
+    {
+        var corralResult = CorralTestHelper("UnaryOperations", "Test.UnaryOperations.test2$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void UnaryOperations3()
+    {
+        var corralResult = CorralTestHelper("UnaryOperations", "Test.UnaryOperations.test3", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void UnaryOperations4()
+    {
+        var corralResult = CorralTestHelper("UnaryOperations", "Test.UnaryOperations.test1_float", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void UnaryOperations5()
+    {
+        var corralResult = CorralTestHelper("UnaryOperations", "Test.UnaryOperations.test2_float$System.Single", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void UnaryOperations6()
+    {
+        var corralResult = CorralTestHelper("UnaryOperations", "Test.UnaryOperations.test3_float", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* Exceptions ******************************
 
     [TestMethod, Timeout(10000)]

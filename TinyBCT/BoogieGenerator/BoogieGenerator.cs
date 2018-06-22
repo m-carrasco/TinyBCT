@@ -294,6 +294,18 @@ namespace TinyBCT
             return string.Format("{0} {1} {2}", op1, operation, op2);
         }
 
+        public string UnaryOperationExpression(IVariable var, UnaryOperation unaryOperation)
+        {
+            Contract.Assume(IsSupportedUnaryOperation(unaryOperation));
+            // currently just neg is supported, equivalent to * -1
+            return String.Format("-{0}", var.Name);
+        }
+
+        public bool IsSupportedUnaryOperation(UnaryOperation op)
+        {
+            return UnaryOperation.Neg.Equals(op);
+        }
+
         public string BinaryOperationExpression(IVariable op1, IVariable op2, BinaryOperation binaryOperation)
         {
             Contract.Assume(IsSupportedBinaryOperation(binaryOperation));
