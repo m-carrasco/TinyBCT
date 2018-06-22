@@ -100,10 +100,8 @@ namespace TinyBCT
             var attr = TranslateAttr();
             var parametersWithTypes = Helpers.GetParametersWithBoogieType(methodDefinition);
             var returnTypeIfAny = TranslateReturnTypeIfAny();
-            var typeFunction = String.Empty; // this should only be needed for extern methods
-            var ext = Helpers.IsExternal(methodDefinition) || Helpers.IsCurrentlyMissing(methodDefinition);
 
-            var boogieProcedureTemplate = new BoogieProcedureTemplate(methodName, attr, localVariables, ins, parametersWithTypes, returnTypeIfAny, ext, typeFunction);
+            var boogieProcedureTemplate = new BoogieProcedureTemplate(methodName, attr, localVariables, ins, parametersWithTypes, returnTypeIfAny, Helpers.IsExternal(methodDefinition) || Helpers.IsCurrentlyMissing(methodDefinition));
             return boogieProcedureTemplate.TransformText();
         }
 

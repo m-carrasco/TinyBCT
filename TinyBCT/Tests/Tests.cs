@@ -1491,7 +1491,7 @@ public class TestsManu : TestsBase
     public void DynamicDispatch6_Bugged()
     {
         var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test8", 10);
-        Assert.IsTrue(corralResult.NoBugs());
+        Assert.IsTrue(corralResult.AssertionFails());
     }
 
 

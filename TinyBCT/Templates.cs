@@ -17,7 +17,6 @@ namespace TinyBCT
         string parametersWithTypes;
         string returnTypeIfAny;
         bool isExtern;
-        string typeFunction;
 
         public BoogieProcedureTemplate(string pMethodName, 
                                         string pAttr, 
@@ -25,8 +24,7 @@ namespace TinyBCT
                                         string pInstructions, 
                                         string pParametersWithTypes, 
                                         string pReturnTypeIfAny,
-                                        bool pIsExtern,
-                                        string pTypeFunction)
+                                        bool pIsExtern)
         {
             methodName = pMethodName;
             attr = pAttr;
@@ -35,7 +33,6 @@ namespace TinyBCT
             parametersWithTypes = pParametersWithTypes;
             returnTypeIfAny = pReturnTypeIfAny;
             isExtern = pIsExtern;
-            typeFunction = pTypeFunction;
         }
 
         public string LocalVariablesDeclaration() { return localVariables; }
@@ -44,6 +41,5 @@ namespace TinyBCT
         public string ParametersWithType() { return parametersWithTypes; }
         public string ReturnTypeIfAny() { return returnTypeIfAny;  }
         public string Attributes() { return attr; }
-        public string TypeFunction() { return typeFunction; }
     }
 }
