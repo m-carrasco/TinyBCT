@@ -11,6 +11,8 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using TinyBCT.Translators;
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT
 {
@@ -130,6 +132,7 @@ namespace TinyBCT
             var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
             var returnType = String.Empty;
+            var typeFunction = String.Empty;
 
             // manuel: i can't check for p.IsOut with a method reference, i need a method definition
             // i think that is not possible if it is extern.
@@ -141,12 +144,16 @@ namespace TinyBCT
                 var returnVariables = new List<String>();
                 returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
                 if (!Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void"))
+                {
+                    if (Helpers.IsBoogieRefType(methodRef.Type))
+                        typeFunction = GetNormalizedTypeFunction(methodRef.Type, InstructionTranslator.MentionedClasses);
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
+                }
 
                 returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
             }
 
-            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true);
+            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true, typeFunction);
 
             return t.TransformText();
         }

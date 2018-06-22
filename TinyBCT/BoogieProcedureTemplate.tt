@@ -7,6 +7,9 @@
 
 <# if (isExtern){#>
 procedure {:extern} <#=ProcedureName()#>(<#=ParametersWithType()#>) <#=ReturnTypeIfAny()#>;
+<# if (!String.IsNullOrEmpty(TypeFunction())){#>
+	ensures $Subtype($DynamicType($result), <#=TypeFunction()#>);
+<# }#>
 <# }else{ #>
 procedure <#=Attributes()#> <#=ProcedureName()#>(<#=ParametersWithType()#>) <#=ReturnTypeIfAny()#>
 {
