@@ -257,6 +257,22 @@ namespace TinyBCT.Translators
             {
             }
 
+            public override void Visit(SwitchInstruction instruction)
+            {
+                StringBuilder sb = new StringBuilder();
+                var idx = 0;
+                foreach (var target in instruction.Targets)
+                {
+                    var indexCondition = boogieGenerator.BinaryOperationExpression(instruction.Operand.Name, idx.ToString(), "==");
+                    var body = boogieGenerator.Goto(target);
+                    sb.AppendLine(boogieGenerator.If(indexCondition, body));
+                    idx++;
+                }
+
+                var cond = boogieGenerator.BinaryOperationExpression(instruction.Operand.Name, instruction.Targets.Count.ToString(), "<");
+                AddBoogie(boogieGenerator.If(cond, sb.ToString()));
+            }
+
             public override void Visit(UnaryInstruction instruction)
             {
                 var exp = boogieGenerator.UnaryOperationExpression(instruction.Operand, instruction.Operation);

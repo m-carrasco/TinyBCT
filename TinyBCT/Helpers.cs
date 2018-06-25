@@ -34,7 +34,9 @@ namespace TinyBCT
                 inst is ThrowInstruction ||
                 inst is ConvertInstruction ||
                 inst is InitializeObjectInstruction ||
-                inst is CreateArrayInstruction)
+                inst is CreateArrayInstruction ||
+                inst is UnaryInstruction ||
+                inst is SwitchInstruction)
                 return true;
 
             return false;

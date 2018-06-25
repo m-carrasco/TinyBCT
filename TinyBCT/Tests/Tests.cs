@@ -1362,6 +1362,82 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    // ************************************* Switch ******************************
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch1_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_NoBugs$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch1_Bugged()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_Bugged$System.Int32", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch2_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_NoBugs$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch2_Bugged()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_Bugged$System.Int32", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch3_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_NoBugs$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch3_Bugged()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_Bugged$System.Int32", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch4_NoBugs()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_NoBugs$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Switch4_Bugged()
+    {
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_Bugged$System.Int32", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
     // ************************************* MissingConstructorInitializations ******************************
 
     [TestMethod]
