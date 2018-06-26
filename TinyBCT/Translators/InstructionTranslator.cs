@@ -5,6 +5,7 @@ using Backend.ThreeAddressCode.Instructions;
 using Backend.ThreeAddressCode.Values;
 using Backend.Visitors;
 using Microsoft.Cci;
+using Microsoft.Cci.Immutable;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -248,6 +249,7 @@ namespace TinyBCT.Translators
             }
         }
 
+        // http://community.bartdesmet.net/blogs/bart/archive/2008/08/21/how-c-array-initializers-work.aspx
         class AtomicArrayInitializationTranslation : Translation
         {
             public AtomicArrayInitializationTranslation(InstructionTranslator p) : base(p)
@@ -277,25 +279,55 @@ namespace TinyBCT.Translators
                 return false;
             }
 
-            private static LoadTokenInstruction token = null;
+            private static LoadTokenInstruction loadTokenIns = null;
 
             public override void Visit(LoadTokenInstruction instruction)
             {
                 // nothing
-                token = instruction;
+                loadTokenIns = instruction;
 
             }
 
             public override void Visit(MethodCallInstruction instruction)
             {
+                // this atomic initialization is expected to set all elements of the array in one operation
+                // we are not setting the specific elements because we should read the .data of the PE
+                // we want to havoc every element of the array, and they cannot be null (the elements)
 
-                // load token con el field loco que especifica tamaño
-                // call method de InitializeArray (el arreglo, el token loco)
+                // before processing this atomic initialization the array was recently created
+                // in boogie we set every element to be null after  creation
+                // that is done doing an assume like this: assume forall $tmp1: int :: $ArrayContents[ARRAY_REF][$tmp1] == null
+                // if we make a new assume statement doing assume forall $tmp1: int :: $ArrayContents[ARRAY_REF][$tmp1] != null
+                // our traces set would be empty
+                // check $HavocArrayElementsNoNull in the prelude
+                
+                IFieldDefinition f = loadTokenIns.Token as IFieldDefinition;              
 
-                // el initialize array lo voy a dejar como extern pero le voy a clavar un assume de que no sea nulo
-                // ademas del length del array. todo sobre el primer operando.
+                // hacky. In the debugger f.Type has property SizeOf which contains this value, but I can't access to it
+                var name = f.Type.GetName(); // .....=SIZE
+                Contract.Assume(name.Count(c => c == '=') == 1);
+                var byteSize = UInt32.Parse(name.Substring(name.IndexOf('=')+1));
+                Contract.Assert(byteSize > 0);
 
-                token = null;
+                IVariable array = instruction.Arguments[0];
+                Matrix arrayType = array.Type as Matrix;
+                PrimitiveTypeCode elementTypeCode = arrayType.ElementType.TypeCode;
+
+                // i think that the array cannot contain values that do not have a fixed size
+                // however if the value size cannot be predicted, we should havoc the array length
+                uint elementSize = Helpers.SizeOf(elementTypeCode);
+                Contract.Assert(elementSize > 0);
+                uint arrayLength = byteSize / elementSize;
+
+
+                AddBoogie(boogieGenerator.Assume(String.Format("{0} != {1}", array.Name, "null")));
+                AddBoogie(boogieGenerator.AssumeArrayLength(array, arrayLength.ToString()));
+                List<string> args = new List<string>();
+                args.Add(array.Name);
+                // sets all array elements different than null
+                AddBoogie(boogieGenerator.ProcedureCall("$HavocArrayElementsNoNull", args));
+
+                loadTokenIns = null;
             }
         }
 

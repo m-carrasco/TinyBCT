@@ -143,6 +143,15 @@ implementation $WriteArrayElement(array: Ref, index : int, data : Union)
 	$ArrayContents := $ArrayContents[array := $ArrayContents[array][index := data]];
 }
 
+// atomic initialization of array elements
+procedure $HavocArrayElementsNoNull(array: Ref);
+implementation $HavocArrayElementsNoNull(array: Ref)
+{
+	var $newArrayContents: [int]Union;
+	assume (forall $tmp1: int :: $newArrayContents[$tmp1][$tmp1] != null);
+	$ArrayContents := $ArrayContents[array := $newArrayContents];
+}
+
 const unique $BoolValueType: int;
 
 const unique $IntValueType: int;

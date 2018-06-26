@@ -41,6 +41,38 @@ namespace TinyBCT
 
             return false;
         }
+
+        public static uint SizeOf(PrimitiveTypeCode type)
+        {
+            uint elementTypeBytes = 0;
+            switch (type)
+            {
+                case PrimitiveTypeCode.Boolean:
+                    elementTypeBytes = 1;
+                    break;
+                case PrimitiveTypeCode.Char:
+                    elementTypeBytes = 2;
+                    break;
+                case PrimitiveTypeCode.Float32:
+                    elementTypeBytes = 4;
+                    break;
+                case PrimitiveTypeCode.Float64:
+                    elementTypeBytes = 8;
+                    break;
+                case PrimitiveTypeCode.Int32:
+                case PrimitiveTypeCode.UInt32:
+                    elementTypeBytes = 4;
+                    break;
+                default:
+                    // complete on demand
+                    // i guess there are some primitive types that do not have a fixed size
+                    // pointers may depend of architecture
+                    Contract.Assert(false);
+                    break;
+            }
+            return elementTypeBytes;
+        }
+
         public static String GetBoogieType(ITypeReference type)
         {
             if (type.TypeCode.Equals(PrimitiveTypeCode.Int32) || type.TypeCode.Equals(PrimitiveTypeCode.Int64) /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
