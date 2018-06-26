@@ -93,7 +93,9 @@ namespace TinyBCT.Translators
 
         void SetState(IList<Instruction> instructions, int idx)
         {
-           if (DelegateInvokeTranslation.IsDelegateInvokeTranslation(instructions, idx))
+            if (AtomicArrayInitializationTranslation.IsAtomicArrayInitializationTranslation(instructions, idx))
+                translation = new AtomicArrayInitializationTranslation(this);
+            else if (DelegateInvokeTranslation.IsDelegateInvokeTranslation(instructions, idx))
                 translation = new DelegateInvokeTranslation(this);
             else if (DelegateCreationTranslation.IsDelegateCreationTranslation(instructions, idx))
                 translation = new DelegateCreationTranslation(this);
@@ -246,6 +248,57 @@ namespace TinyBCT.Translators
             }
         }
 
+        class AtomicArrayInitializationTranslation : Translation
+        {
+            public AtomicArrayInitializationTranslation(InstructionTranslator p) : base(p)
+            {
+            }
+
+            // we expect the following pattern
+            // LoadTokenInstruction, MethodCallInstruction(InitializeArray)
+            public static bool IsAtomicArrayInitializationTranslation(IList<Instruction> instructions, int idx)
+            {
+                Instruction ins = instructions[idx];
+
+                if (ins is LoadTokenInstruction && idx+1 < instructions.Count && instructions[idx+1] is MethodCallInstruction)
+                {
+                    MethodCallInstruction methodCallIns = instructions[idx + 1] as MethodCallInstruction;
+                    if (methodCallIns.Method.Name.Value.Equals("InitializeArray"))
+                        return true;
+                }
+
+                if (ins is MethodCallInstruction && idx - 1 >= 0 && instructions[idx - 1] is LoadTokenInstruction)
+                {
+                    MethodCallInstruction methodCallIns = instructions[idx] as MethodCallInstruction;
+                    if (methodCallIns.Method.Name.Value.Equals("InitializeArray"))
+                        return true;
+                }
+
+                return false;
+            }
+
+            private static LoadTokenInstruction token = null;
+
+            public override void Visit(LoadTokenInstruction instruction)
+            {
+                // nothing
+                token = instruction;
+
+            }
+
+            public override void Visit(MethodCallInstruction instruction)
+            {
+
+                // load token con el field loco que especifica tamaño
+                // call method de InitializeArray (el arreglo, el token loco)
+
+                // el initialize array lo voy a dejar como extern pero le voy a clavar un assume de que no sea nulo
+                // ademas del length del array. todo sobre el primer operando.
+
+                token = null;
+            }
+        }
+
         // translates each instruction independently 
         class SimpleTranslation : Translation
         {
@@ -253,6 +306,12 @@ namespace TinyBCT.Translators
             {
             }
 
+            public override void Visit(LoadTokenInstruction instruction)
+            {
+                // unexpected LoadTokenInstruction
+                // only handled for array initialization, see the AtomicArrayInitializationTranslation.
+                Contract.Assert(false);
+            }
             public override void Visit(NopInstruction instruction)
             {
             }
