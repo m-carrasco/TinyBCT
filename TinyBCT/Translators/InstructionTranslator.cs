@@ -262,6 +262,9 @@ namespace TinyBCT.Translators
             {
                 Instruction ins = instructions[idx];
 
+                if (!Settings.AtomicInit)
+                    return false;
+
                 if (ins is LoadTokenInstruction && idx+1 < instructions.Count && instructions[idx+1] is MethodCallInstruction)
                 {
                     MethodCallInstruction methodCallIns = instructions[idx + 1] as MethodCallInstruction;
@@ -343,6 +346,7 @@ namespace TinyBCT.Translators
             {
                 // unexpected LoadTokenInstruction
                 // only handled for array initialization, see the AtomicArrayInitializationTranslation.
+                // if you want to handle array init set atomicInitArray=true in the command line
                 Contract.Assert(false);
             }
             public override void Visit(NopInstruction instruction)

@@ -22,6 +22,7 @@ namespace TinyBCT
         public static bool EmitLineNumbers = false;
         public static bool Exceptions = true;
         public static bool SplitFields = true;
+        public static bool AtomicInit = true;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -64,6 +65,11 @@ namespace TinyBCT
              .Callback(b => SplitFields = b)
              .SetDefault(true)
              .WithDescription("Models the heap splitting instance fields into different dictionaries.");
+
+            p.Setup<bool>('a', "atomicInitArray")
+            .Callback(b => AtomicInit = b)
+            .SetDefault(true)
+            .WithDescription("Handles atomic initialization of arrays.");
 
             var result = p.Parse(args);
 
