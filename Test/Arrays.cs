@@ -147,6 +147,54 @@ namespace Test
                 Contract.Assert(args[0] != null);
             }
         }
+
+        public static void ArrayAtomicInit1_NoBugs()
+        {
+            double[] a = { 1.5, 25.66, 44.4 };
+            int[] b = { 1, 2, 3, 4, 5 };
+            float[] c = { 0.0f };
+            bool[] d = { };
+
+            Contract.Assert(a.Length == 3);
+            Contract.Assert(b.Length == 5);
+            Contract.Assert(c.Length == 1);
+            Contract.Assert(d.Length == 0);
+        }
+
+        public static void ArrayAtomicInit1_Bugged()
+        {
+            double[] a = { 1.5, 25.66, 44.4 };
+            Contract.Assert(a.Length != 3);
+        }
+
+        public static void ArrayAtomicInit2_Bugged()
+        {
+            // in this case is not called InitializeArray
+            //bool[] a = { false, false, false };
+            bool[] a = { true, true, true };
+
+            // content is havoc
+            Contract.Assert(a[0] == true);
+        }
+
+        public static void ArrayAtomicInit3_Bugged()
+        {
+            bool[] a = { true, true, true };
+
+            // content is havoc
+            Contract.Assert(a[0] != true);
+        }
+
+        public static void ArrayAtomicInit4_NoBugs()
+        {
+            bool[] a = { true, true, false };
+
+            a[0] = true;
+
+            // content is havoc
+            Contract.Assert(a[0] == true);
+        }
+
     }
 
     class Foo

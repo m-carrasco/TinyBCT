@@ -299,8 +299,8 @@ namespace TinyBCT.Translators
                 // that is done doing an assume like this: assume forall $tmp1: int :: $ArrayContents[ARRAY_REF][$tmp1] == null
                 // if we make a new assume statement doing assume forall $tmp1: int :: $ArrayContents[ARRAY_REF][$tmp1] != null
                 // our traces set would be empty
-                // check $HavocArrayElementsNoNull in the prelude
-                
+                // therefore we will use $HavocArrayElementsNoNull (defined in the prelude)
+
                 IFieldDefinition f = loadTokenIns.Token as IFieldDefinition;              
 
                 // hacky. In the debugger f.Type has property SizeOf which contains this value, but I can't access to it
@@ -309,6 +309,7 @@ namespace TinyBCT.Translators
                 var byteSize = UInt32.Parse(name.Substring(name.IndexOf('=')+1));
                 Contract.Assert(byteSize > 0);
 
+                // accessing the element's typecode
                 IVariable array = instruction.Arguments[0];
                 Matrix arrayType = array.Type as Matrix;
                 PrimitiveTypeCode elementTypeCode = arrayType.ElementType.TypeCode;

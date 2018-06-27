@@ -148,7 +148,7 @@ procedure $HavocArrayElementsNoNull(array: Ref);
 implementation $HavocArrayElementsNoNull(array: Ref)
 {
 	var $newArrayContents: [int]Union;
-	assume (forall $tmp1: int :: $newArrayContents[$tmp1][$tmp1] != null);
+	assume (forall $tmp1: int :: $newArrayContents[$tmp1] != null);
 	$ArrayContents := $ArrayContents[array := $newArrayContents];
 }
 

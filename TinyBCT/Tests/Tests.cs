@@ -1362,6 +1362,53 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    // ************************************* Array Atomic Initilization ******************************
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ArrayAtomicInit1_NoBugs()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ArrayAtomicInit1_Bugged()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ArrayAtomicInit2_Bugged()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ArrayAtomicInit3_Bugged()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit3_Bugged", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ArrayAtomicInit4_NoBugs()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit4_NoBugs", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* Switch ******************************
 
     [TestMethod]
