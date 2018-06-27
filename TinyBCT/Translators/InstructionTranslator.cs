@@ -812,7 +812,9 @@ namespace TinyBCT.Translators
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), instruction.Operand.Name)));
                     else
-                        Contract.Assert(false);//AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instruction.Operand));
+                    {
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instruction.Operand));
+                    }
                 }
                 else 
                 {
