@@ -1362,6 +1362,33 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    // ************************************* Boxing ******************************
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Boxing1()
+    {
+        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void Boxing2()
+    {
+        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
+    [TestMethod]
+    [TestCategory("Repro")]//[TestCategory("Manu")]
+    public void Boxing3()
+    {
+        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test3", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
     // ************************************* Array Atomic Initilization ******************************
 
     [TestMethod]

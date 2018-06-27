@@ -807,7 +807,14 @@ namespace TinyBCT.Translators
                 } else if (instruction.Operation == ConvertOperation.Box)
                 {
                     AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction.Result));
-                } else 
+                } else if (instruction.Operation == ConvertOperation.Unbox)
+                {
+                    if (!Helpers.IsBoogieRefType(instruction.ConversionType))
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), instruction.Operand.Name)));
+                    else
+                        Contract.Assert(false);//AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instruction.Operand));
+                }
+                else 
                 {
                     ProcessAs(instruction);
                 }

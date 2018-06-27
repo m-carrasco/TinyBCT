@@ -36,7 +36,8 @@ namespace TinyBCT
                 inst is InitializeObjectInstruction ||
                 inst is CreateArrayInstruction ||
                 inst is UnaryInstruction ||
-                inst is SwitchInstruction)
+                inst is SwitchInstruction ||
+                inst is LoadTokenInstruction)
                 return true;
 
             return false;

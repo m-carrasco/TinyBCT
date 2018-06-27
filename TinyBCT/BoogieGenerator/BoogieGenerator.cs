@@ -53,7 +53,7 @@ namespace TinyBCT
 
         public string Union2PrimitiveType(IVariable value)
         {
-            Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
+            Contract.Assert(Helpers.IsBoogieRefType(value.Type));
             var boogieType = Helpers.GetBoogieType(value.Type);
 
             return Union2PrimitiveType(boogieType, value.ToString());
