@@ -871,6 +871,37 @@ class Test {
         var corralResult = CorralTestHelperCode("TestAssumeTypeArguments1", "Test.Main$Base", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestAxiomsGenerics1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Holds<T3> {
+ T3 other_value;
+ virtual public void Foo() {
+  Contract.Assert(false);
+ }
+}
+
+class SubHolds<T1, T2> : Holds<T2> {
+ T1 value_t1;
+ override public void Foo() {
+ }
+}
+
+class Test {
+  public static void Main() {
+    Holds<String> holds_ints = new SubHolds<Int32, String>();
+    holds_ints.Foo();
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestAxiomsGenerics1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
     [TestCategory("Fernan")]
     [TestMethod]
     public void TestConstructors1()
