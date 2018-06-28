@@ -2200,6 +2200,22 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTestRethrow1()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTestRethrow1.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Manu")]
+    public void ExceptionTestRethrow2()
+    {
+        var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTestRethrow2.Main", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\");

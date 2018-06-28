@@ -431,6 +431,71 @@ namespace Test
         }
     }
 
+    class ExceptionTestRethrow1
+    {
+        public static void Main()
+        {
+            int i = 0;
+            try
+            {
+                rethrow();
+                Contract.Assert(false);
+            } catch (Exception ex)
+            {
+                i = 10;
+            }
+
+            Contract.Assert(i == 10);
+        }
+
+        public static void rethrow()
+        {
+            try
+            {
+                throw new Exception();
+            }
+            catch
+            {
+                throw;
+            }
+
+            Contract.Assert(false);
+        }
+    }
+
+    class ExceptionTestRethrow2
+    {
+        public static void Main()
+        {
+            int i = 0;
+            try
+            {
+                rethrow();
+                Contract.Assert(false);
+            }
+            catch (Exception ex)
+            {
+                i = 10;
+            }
+
+            Contract.Assert(i != 10);
+        }
+
+        public static void rethrow()
+        {
+            try
+            {
+                throw new Exception();
+            }
+            catch
+            {
+                throw;
+            }
+
+            Contract.Assert(false);
+        }
+    }
+
     /*class Exceptions
     {
         public void test4()
