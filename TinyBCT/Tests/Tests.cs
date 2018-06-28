@@ -1250,7 +1250,7 @@ class Test {
         var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass5", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(30000)]
     [TestCategory("Av-Regressions")]
     public void TestSet6()
     {
