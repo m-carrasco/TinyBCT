@@ -144,7 +144,16 @@ namespace TinyBCT.Translators
             classes.Add(typeDef);
             return sb.ToString();
         }
-
+        private static IEnumerable<ITypeReference> GetArgumentsTypes(ITypeDefinition typeDefinition)
+        {
+            IEnumerable<ITypeReference> argTypes = null;
+            if (typeDefinition is IGenericTypeInstanceReference)
+            {
+                var instanciatedType = typeDefinition as IGenericTypeInstanceReference;
+                argTypes = instanciatedType.GenericArguments;
+            }
+            return argTypes;
+        }
         public static void GenerateTypeDefinition(StringBuilder sb, ITypeDefinition typeDefinition, string typeName)
         {
 
@@ -157,11 +166,10 @@ namespace TinyBCT.Translators
                 typeDefinition = TypeHelper.GetInstanceOrSpecializedNestedType(typeDefinition.ResolvedType);
             }
 
-            if (typeDefinition is IGenericTypeInstanceReference)
+            var typeArguments = GetArgumentsTypes(typeDefinition);
+            if (typeArguments != null)
             {
-                var instanciatedType = typeDefinition as IGenericTypeInstanceReference;
-                var typeArgs = instanciatedType.GenericArguments;
-                argsString = String.Join(",", typeArgs.Select(t => t.ToString() + " : Ref"));
+                argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref"));
             }
             
             sb.AppendLine(String.Format("function T${0}({1}) : Ref;", typeName, argsString));
@@ -172,21 +180,15 @@ namespace TinyBCT.Translators
                 superClass = Backend.Types.Instance.PlatformType.SystemObject;
             }
 
-            argsString = "";
-            IEnumerable<ITypeReference> typeArguments = null;
             if (typeDefinition is IGenericTypeInstanceReference)
             {
-                var instanciatedType = typeDefinition as IGenericTypeInstanceReference;
-                typeArguments = instanciatedType.GenericArguments;
-                argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref")) + ", ";
                 var callWithQuantifiedVars =
                 Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments);
                 var callWithGenericsTypes = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses);
                 /// subtype(generic($T), generic(T$T()) 
                 sb.AppendLine(
-                String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", argsString.Substring(0, argsString.Length - 2), callWithQuantifiedVars, callWithGenericsTypes));
+                String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", argsString, callWithQuantifiedVars, callWithGenericsTypes));
                 sb.AppendLine(String.Format("axiom $TypeConstructor({0}) == T${1};", callWithGenericsTypes, typeName));
-
             }
             else
             {
@@ -194,13 +196,17 @@ namespace TinyBCT.Translators
             }
             var funcCall = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments: typeArguments);
 
-            var superClassFuncCall = Helpers.GetNormalizedTypeFunction(superClass, InstructionTranslator.MentionedClasses, typeArguments);
+            var superClassTypeArgs = GetArgumentsTypes(superClass.ResolvedType);
+            var superClassFuncCall = Helpers.GetNormalizedTypeFunction(superClass, InstructionTranslator.MentionedClasses, superClassTypeArgs);
+            if (argsString != String.Empty)
+            {
+                argsString += ", ";
+            }
             sb.AppendLine(
                 String.Format("axiom(forall {0} $T: Ref:: {{  $Subtype({1}, $T) }} ", argsString, funcCall) +
                 String.Format("$Subtype({0}, $T) <==> {0} == $T || $Subtype({1}, $T));", funcCall, superClassFuncCall));
 
             parents.Add(superClass.ResolvedType);
-            
             sb.AppendLine();
         }
     }
