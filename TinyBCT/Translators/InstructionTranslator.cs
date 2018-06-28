@@ -200,11 +200,11 @@ namespace TinyBCT.Translators
                         if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                         {
                             AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                            boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "="), boogieGenerator.Assert("false"));
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
                         }
                         else
                         {
-                            boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "="), boogieGenerator.Assert("false"));
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
                         }
                     }
                     else
@@ -212,11 +212,11 @@ namespace TinyBCT.Translators
                         if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                         {
                             AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                            boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "="), boogieGenerator.Assert("false"));
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
                         }
                         else
                         {
-                            boogieGenerator.If(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "="), boogieGenerator.Assert("false"));
+                            AddBoogie(boogieGenerator.If(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
                         }
 
                     }
