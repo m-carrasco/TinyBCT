@@ -75,7 +75,7 @@ namespace TinyBCT.Translators
                 if (Helpers.IsBoogieRefType(p.Type) && !p.IsByReference && !p.IsOut)
                 {
                     // BUG BUG BUG BUG - by ref 
-                    var refNotNull = String.Format("{0} != null", p.Name.Value);
+                    var refNotNull = String.Format("{0} == null", p.Name.Value);
                     var subtype = bg.Subtype(bg.DynamicType(p.Name.Value), p.Type);
                     var or = string.Format("{0} || {1}", refNotNull, subtype);
                     AddBoogie(bg.Assume(or));
@@ -199,24 +199,28 @@ namespace TinyBCT.Translators
                     {
                         if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                         {
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            //AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                            //AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            AddBoogie(boogieGenerator.Else(funcOnPotentialCallee(method)));
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            //AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            AddBoogie(boogieGenerator.Else(funcOnPotentialCallee(method)));
                         }
                     }
                     else
                     {
                         if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                         {
-                            AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            AddBoogie(funcOnPotentialCallee(method));
+                            //AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                            //AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.If(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            //AddBoogie(boogieGenerator.If(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            AddBoogie(funcOnPotentialCallee(method));
                         }
 
                     }
