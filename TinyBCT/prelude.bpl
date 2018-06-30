@@ -69,7 +69,8 @@ function $DynamicType(Ref) : Type;
 function $Subtype(Type, Type) : bool;
 
 axiom(forall $T,$T1: Ref:: {  $Subtype($T1, $T) } ($Subtype($T1, $T) && $Subtype($T, $T1)) ==> $T1 == $T );
-
+axiom(forall $T,$T1,$T2: Ref:: {  $Subtype($T2, $T1), $Subtype($T1, $T) } ($Subtype($T2, $T1) && $Subtype($T1, $T)) ==> $Subtype($T2, $T) );
+axiom(forall $T,$T1,$T2: Ref:: {  $Subtype($T2, $T1), $Subtype($T2, $T) } ($Subtype($T2, $T1) && $Subtype($T1, $T)) ==> $Subtype($T2, $T) );
 
 function {:extern} T$System.Object() : Ref;
 const {:extern} unique T$System.Object: int;

@@ -144,13 +144,13 @@ namespace TinyBCT.Translators
             classes.Add(typeDef);
             return sb.ToString();
         }
-        private static IEnumerable<ITypeReference> GetArgumentsTypes(ITypeDefinition typeDefinition)
+        private static IEnumerable<ITypeDefinition> GetArgumentsTypes(ITypeDefinition typeDefinition)
         {
-            IEnumerable<ITypeReference> argTypes = null;
+            IEnumerable<ITypeDefinition> argTypes = null;
             if (typeDefinition is IGenericTypeInstanceReference)
             {
                 var instanciatedType = typeDefinition as IGenericTypeInstanceReference;
-                argTypes = instanciatedType.GenericArguments;
+                argTypes = instanciatedType.GenericArguments.Select(t => t.ResolvedType);
             }
             return argTypes;
         }
@@ -196,17 +196,28 @@ namespace TinyBCT.Translators
             }
             var funcCall = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments: typeArguments);
 
-            var superClassTypeArgs = GetArgumentsTypes(superClass.ResolvedType);
-            var superClassFuncCall = Helpers.GetNormalizedTypeFunction(superClass, InstructionTranslator.MentionedClasses, superClassTypeArgs);
             if (argsString != String.Empty)
             {
                 argsString += ", ";
             }
+            var superTypes = new List<ITypeReference>();
+            superTypes.Add(superClass.ResolvedType);
+            superTypes.AddRange(typeDefinition.Interfaces.Select(t => t.ResolvedType));
+            StringBuilder sbSubtypes = new StringBuilder();
+            foreach (var i in superTypes)
+            {
+                Func<ITypeReference, Boolean> forceRecursion = (t =>
+                    !(  (t is IGenericTypeParameter) && 
+                        (typeArguments != null && typeArguments.Contains(t))));
+                var superClassTypeArgs = GetArgumentsTypes(i.ResolvedType);
+                var superClassFuncCall = Helpers.GetNormalizedTypeFunction(i, InstructionTranslator.MentionedClasses, superClassTypeArgs, forceRecursion: forceRecursion);
+
+                parents.Add(i.ResolvedType);
+                sbSubtypes.Append(String.Format("|| $Subtype({1}, $T)", funcCall, superClassFuncCall));
+            }
             sb.AppendLine(
                 String.Format("axiom(forall {0} $T: Ref:: {{  $Subtype({1}, $T) }} ", argsString, funcCall) +
-                String.Format("$Subtype({0}, $T) <==> {0} == $T || $Subtype({1}, $T));", funcCall, superClassFuncCall));
-
-            parents.Add(superClass.ResolvedType);
+                String.Format("$Subtype({0}, $T) <==> ({0} == $T {1}));", funcCall, sbSubtypes.ToString()));
             sb.AppendLine();
         }
     }

@@ -499,10 +499,15 @@ namespace TinyBCT
         {
             methodsTranslated.Add(Helpers.GetMethodName(methodDefinition));
         }
-
         public static string GetNormalizedTypeFunction(
-            ITypeReference originalType, ISet<ITypeReference> mentionedClasses, IEnumerable<ITypeReference> typeArguments = null)
+            ITypeReference originalType, ISet<ITypeReference> mentionedClasses,
+            IEnumerable<ITypeReference> typeArguments = null,
+            Func<ITypeReference, Boolean> forceRecursion = null)
         {
+            if (forceRecursion == null)
+            {
+                forceRecursion = (t => !(t is IGenericTypeParameter));
+            }
             var type = originalType;
             bool callRecursively = typeArguments == null;
 
@@ -526,7 +531,7 @@ namespace TinyBCT
                     }
                     else
                     {
-                        f = (t => t.GetName());
+                        f = (t => !forceRecursion(t) ? t.GetName() : Helpers.GetNormalizedTypeFunction(t, mentionedClasses));
                     }
                     var typeArgsString = String.Join(",", typeArguments.Select(t => f(t)));
                     foreach (var t in typeArguments)

@@ -158,7 +158,7 @@ public class TestsBase
 
     protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalOptions = "", bool useCSC = false) {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
-        var uniqueDir = DoTest(source, testName, useStubs, prefixDir: pathTempDir, useCSC: useCSC);
+        var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         Console.WriteLine(corralResult.ToString());
@@ -750,7 +750,6 @@ class Test {
         var corralResult = CorralTestHelperCode("TestCast1", "Test.Main$System.Double", 10, source, useStubs: false, useCSC: true);
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
-
     [TestCategory("Repro")]
     [TestMethod]
     public void TestDynamicDispatch1()
@@ -779,6 +778,37 @@ class Test {
         ";
         var corralResult = CorralTestHelperCode("TestDynamicDispatch1", "Test.Main$Base2", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestDynamicDispatch2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+public interface Base {
+    void Foo();
+}
+interface Base2 : Base {
+    void Bar();
+}
+class Derived : Base2 {
+    public virtual void Foo() {
+    }
+    public virtual void Bar() {
+    }
+}
+class Test {
+    public void Main(Base2 b) {
+        if (b != null) {
+            b.Foo();
+        }
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestDynamicDispatch2", "Test.Main$Base2", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
     }
 
     [TestCategory("DocumentedImprecision")]
@@ -900,6 +930,32 @@ class Test {
 }
         ";
         var corralResult = CorralTestHelperCode("TestAxiomsGenerics1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestAxiomsGenerics2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class InnerBase<T3> {
+ T3 other_value;
+}
+
+class A<T> {
+   class Inner : InnerBase<T> {
+   }
+}
+
+class Test {
+  public static void Main() {
+    A<String> a = new A<String>();
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestAxiomsGenerics2", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [TestCategory("Fernan")]
@@ -1033,7 +1089,7 @@ class Test {
     }
 
     [TestCategory("Av-Regressions")]
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(30000)]
     public void TestForeachOK()
     {
         var corralResult = CorralTestHelper("ForEachOK", "PoirotMain.Main", 10);
@@ -1323,7 +1379,7 @@ class Test {
         var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldFail5", 10);
         Assert.IsTrue(corralResult.AssertionFails());
     }
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(30000)]
     [TestCategory("Av-Regressions")]
     public void TestSetBug6()
     {
