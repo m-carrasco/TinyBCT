@@ -70,6 +70,23 @@ namespace TinyBCT.Translators
 
             var instructions = methodBody.Instructions;
 
+            if (!methodBody.MethodDefinition.IsStatic) // this variable cannot be null
+            {
+                var this_var = methodBody.Parameters[0];
+                AddBoogie(bg.Assume(this_var.Name + " != null"));
+
+                if (!methodBody.MethodDefinition.IsConstructor)
+                {
+                    var subtype = bg.Subtype(bg.DynamicType(this_var.Name), this_var.Type);
+                    AddBoogie(bg.Assume(subtype));
+
+                    // hack useful for contractor
+                    //AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
+                }
+                else
+                    AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
+            }
+
             foreach (var p in methodBody.MethodDefinition.Parameters)
             {
                 if (Helpers.IsBoogieRefType(p.Type) && !p.IsByReference && !p.IsOut)
@@ -524,6 +541,9 @@ namespace TinyBCT.Translators
                 {
                     InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
                     AddBoogie(boogieGenerator.ReadInstanceField(instanceFieldOp, instruction.Result));
+
+                    if (Helpers.IsBoogieRefType(instanceFieldOp.Type))
+                        AddBoogie(boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), instanceFieldOp.Type)));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
