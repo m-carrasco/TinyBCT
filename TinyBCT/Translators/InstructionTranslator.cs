@@ -75,16 +75,17 @@ namespace TinyBCT.Translators
                 var this_var = methodBody.Parameters[0];
                 AddBoogie(bg.Assume(this_var.Name + " != null"));
 
-                if (!methodBody.MethodDefinition.IsConstructor)
+                var this_var_type = this_var.Type;
+                if(this_var_type is IManagedPointerType)
                 {
-                    var subtype = bg.Subtype(bg.DynamicType(this_var.Name), this_var.Type);
-                    AddBoogie(bg.Assume(subtype));
-
-                    // hack useful for contractor
-                    //AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
+                    this_var_type = (this_var_type as IManagedPointerType).TargetType;
                 }
-                else
-                    AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
+                
+                var subtype = bg.Subtype(bg.DynamicType(this_var.Name), this_var_type);
+                AddBoogie(bg.Assume(subtype));
+
+                // hack useful for contractor
+                //AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
             }
 
             foreach (var p in methodBody.MethodDefinition.Parameters)
