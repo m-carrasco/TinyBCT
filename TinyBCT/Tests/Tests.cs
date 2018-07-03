@@ -833,6 +833,64 @@ class Test {
         var corralResult = CorralTestHelperCode("TestCast2", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("VariableAssignment")]
+    [TestMethod]
+    public void TestLargeIntegers1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        int x = 5000000;
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestLargeIntegers1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("VariableAssignment")]
+    [TestMethod]
+    public void TestLargeIntegers2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        int x = 5000000;
+        int y = 1000000;
+        int z = 4000000;
+        Contract.Assert(x == y + z);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestLargeIntegers2", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestCategory("VariableAssignment")]
+    [TestMethod]
+    public void TestLargeIntegers3()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        int x = 5000000;
+        int y = 1000000;
+        int z = 4000001;
+        Contract.Assert(x == y + z);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestLargeIntegers3", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
     [TestCategory("Repro")]
     [TestMethod]
     public void TestStringNull1()
