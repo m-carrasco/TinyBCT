@@ -84,8 +84,9 @@ namespace TinyBCT.Translators
                 var subtype = bg.Subtype(bg.DynamicType(this_var.Name), this_var_type);
                 AddBoogie(bg.Assume(subtype));
 
-                // hack useful for contractor
-                //AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
+                // hack for contractor
+                if (methodBody.MethodDefinition.Name.Value.Contains("STATE$"))
+                    AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
             }
 
             foreach (var p in methodBody.MethodDefinition.Parameters)
