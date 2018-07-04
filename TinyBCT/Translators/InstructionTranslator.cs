@@ -1001,6 +1001,8 @@ namespace TinyBCT.Translators
                     var argType = Helpers.GetBoogieType(elementAccess.Type);
                     Contract.Assert(!String.IsNullOrEmpty(argType));
                     ReadArrayContent(instruction.Result, elementAccess.Array, elementAccess.Indices, argType);
+                    if (Helpers.IsBoogieRefType(instruction.Result.Type))
+                        AddBoogie(boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type)));
                     return;
                 }
             }
