@@ -1490,6 +1490,30 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ModOperator1()
+    {
+        var corralResult = CorralTestHelper("BinaryOperators", "Test.BinaryOperators.ModTest1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void ModOperator2()
+    {
+        var corralResult = CorralTestHelper("BinaryOperators", "Test.BinaryOperators.ModTest2", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("NotImplemented")]
+    public void ModOperator3()
+    {
+        var corralResult = CorralTestHelper("BinaryOperators", "Test.BinaryOperators.ModTest3", 10);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestMethod]
     [TestCategory("Manu")]

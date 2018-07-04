@@ -148,6 +148,7 @@
     <Compile Include="As2.cs" />
     <Compile Include="As3.cs" />
     <Compile Include="Assume.cs" />
+    <Compile Include="BinaryOperators.cs" />
     <Compile Include="Boxing.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="DynamicDispatch.cs" />

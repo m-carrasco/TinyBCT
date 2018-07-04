@@ -426,6 +426,11 @@ namespace TinyBCT.Translators
                     // When that happens, this should most likely be encapsulated within BoogieGenerator.
                     if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation))
                     {
+                        // mod keyword in boogie returns integer
+                        if (BinaryOperation.Rem == instruction.Operation && 
+                            Helpers.GetBoogieType(instruction.Result.Type) != "int")
+                            Contract.Assert(false);
+
                         var exp = boogieGenerator.BinaryOperationExpression(left, right, instruction.Operation);
                         var assignment = boogieGenerator.VariableAssignment(instruction.Result.ToString(), exp);
                         AddBoogie(assignment);

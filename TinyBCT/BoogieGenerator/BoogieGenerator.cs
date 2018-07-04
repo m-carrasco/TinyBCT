@@ -261,6 +261,7 @@ namespace TinyBCT
                 case BinaryOperation.Ge:
                 case BinaryOperation.Lt:
                 case BinaryOperation.Le:
+                case BinaryOperation.Rem:
                     return true;
                 default:
                     return false;
@@ -346,6 +347,7 @@ namespace TinyBCT
                 case BinaryOperation.Ge: operation = ">="; break;
                 case BinaryOperation.Lt: operation = "<"; break;
                 case BinaryOperation.Le: operation = "<="; break;
+                case BinaryOperation.Rem: operation = "mod";break;
                 default:
                     Contract.Assert(false);
                     break;
