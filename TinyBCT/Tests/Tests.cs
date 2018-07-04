@@ -833,6 +833,64 @@ class Test {
         var corralResult = CorralTestHelperCode("TestCast2", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("VariableAssignment")]
+    [TestMethod]
+    public void TestLargeIntegers1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        int x = 5000000;
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestLargeIntegers1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("VariableAssignment")]
+    [TestMethod]
+    public void TestLargeIntegers2()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        int x = 5000000;
+        int y = 1000000;
+        int z = 4000000;
+        Contract.Assert(x == y + z);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestLargeIntegers2", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestCategory("VariableAssignment")]
+    [TestMethod]
+    public void TestLargeIntegers3()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main()
+    {
+        int x = 5000000;
+        int y = 1000000;
+        int z = 4000001;
+        Contract.Assert(x == y + z);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestLargeIntegers3", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
     [TestCategory("Repro")]
     [TestMethod]
     public void TestStringNull1()
@@ -1459,21 +1517,44 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
     [TestMethod]
-    [TestCategory("Manu")]
+    [TestCategory("Repro")]//[TestCategory("Manu")]
     public void Boxing2()
     {
         var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
-
-    // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
+    
     [TestMethod]
-    [TestCategory("Repro")]//[TestCategory("Manu")]
+    [TestCategory("Manu")]
     public void Boxing3()
     {
         var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test3", 10);
         Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
+    [TestMethod]
+    [TestCategory("Repro")]//[TestCategory("Manu")]
+    public void Boxing4()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+class Test {
+  public static void Main() {
+    List<Object> h = new List<Object>();
+    h.Add(false);
+    bool pos0 = (bool) h[0];
+    Contract.Assert(pos0 == false);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("Boxing4", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.NoBugs());
     }
 
     // ************************************* Array Atomic Initilization ******************************

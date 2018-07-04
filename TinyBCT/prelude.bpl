@@ -43,24 +43,7 @@ function Int2Union(intValue: int) : Union;
 
 function Real2Union(realValue: real) : Union;
 
-axiom Union2Int(null) == 0;
-
-axiom Union2Real(null) == 0.0;
-
-axiom Union2Bool(null) == false;
-
 function Int2Bool(intValue: int) : bool;
-
-axiom Int2Bool(1) == true;
-
-axiom Int2Bool(0) == false;
-
-axiom(forall i:int :: {  Int2Union(i) } Union2Int(Int2Union(i)) == i);
-
-axiom(forall i:real :: {  Real2Union(i) } Union2Real(Real2Union(i)) == i);
-
-axiom(forall b:bool :: {  Bool2Union(b) } Union2Bool(Bool2Union(b)) == b);
-
 
 type Type = Ref;
 
