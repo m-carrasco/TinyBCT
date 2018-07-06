@@ -262,6 +262,8 @@ namespace TinyBCT
                 case BinaryOperation.Lt:
                 case BinaryOperation.Le:
                 case BinaryOperation.Rem:
+                case BinaryOperation.And:
+                case BinaryOperation.Or:
                     return true;
                 default:
                     return false;
@@ -348,6 +350,20 @@ namespace TinyBCT
                 case BinaryOperation.Lt: operation = "<"; break;
                 case BinaryOperation.Le: operation = "<="; break;
                 case BinaryOperation.Rem: operation = "mod";break;
+                case BinaryOperation.And:
+                    {
+                        Contract.Assert(Helpers.GetBoogieType(op1.Type) == "bool");
+                        Contract.Assert(Helpers.GetBoogieType(op2.Type) == "bool");
+                        operation = "&&";
+                        break;
+                    }
+                case BinaryOperation.Or:
+                    {
+                        Contract.Assert(Helpers.GetBoogieType(op1.Type) == "bool");
+                        Contract.Assert(Helpers.GetBoogieType(op2.Type) == "bool");
+                        operation = "||";
+                        break;
+                    }
                 default:
                     Contract.Assert(false);
                     break;

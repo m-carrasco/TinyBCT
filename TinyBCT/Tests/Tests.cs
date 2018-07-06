@@ -721,6 +721,26 @@ class Test {
     }
     [TestCategory("Repro")]
     [TestMethod]
+    public void TestReturns()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+class Test {
+    public bool Foo(bool b, bool c)
+    {
+        return b && c;
+    }
+    public void Main()
+    {
+        Contract.Assert(Foo(true, true) == true);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestReturns", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Repro")]
+    [TestMethod]
     public void TestExternMethod1()
     {
         var source = @"

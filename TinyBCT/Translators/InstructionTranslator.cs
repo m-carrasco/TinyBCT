@@ -531,6 +531,8 @@ namespace TinyBCT.Translators
 
                 if (instruction.HasOperand)
                     AddBoogie(boogieGenerator.VariableAssignment("$result", instruction.Operand.Name));
+
+                AddBoogie("return ;");
             }
 
             public override void Visit(LoadInstruction instruction)
