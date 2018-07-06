@@ -369,7 +369,7 @@ namespace TinyBCT.Translators
                 // unexpected LoadTokenInstruction
                 // only handled for array initialization, see the AtomicArrayInitializationTranslation.
                 // if you want to handle array init set atomicInitArray=true in the command line
-                Contract.Assert(false);
+                throw new NotImplementedException();
             }
             public override void Visit(NopInstruction instruction)
             {

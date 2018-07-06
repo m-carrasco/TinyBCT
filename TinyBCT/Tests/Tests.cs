@@ -156,21 +156,21 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
 
-    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalOptions = "", bool useCSC = false) {
+    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalTinyBCTOptions = "", bool useCSC = false) {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
-        var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC);
+        var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, additionalTinyBCTOptions: additionalTinyBCTOptions);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, string additionalOptions = "")
+    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, string additionalTinyBCTOptions = "")
     {
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
-        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalOptions: additionalOptions);
+        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalTinyBCTOptions: additionalTinyBCTOptions);
     }
 
-    protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "", bool useCSC = false)
+    protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "", bool useCSC = false, string additionalTinyBCTOptions = "")
     {
         System.Diagnostics.Contracts.Contract.Assume(
             prefixDir.Equals("") ||
@@ -195,11 +195,25 @@ public class TestsBase
             // If we need to recompile, use: csc /target:library /debug /D:DEBUG /D:CONTRACTS_FULL CollectionStubs.cs
             var dll = System.IO.Path.Combine(uniqueDir, assemblyName) + ".dll";
             var stubs = @"..\..\Dependencies\CollectionStubs.dll";
-            var args = useStubs ?
-                (new string[] { "-i", dll, stubs, "-l", "true",
-                "-b", @"..\..\Dependencies\poirot_stubs.bpl" }) :
-                (new string[] { "-i", dll, "-l", "true" });
-            TinyBCT.Program.Main(args);
+            List<string> argsList = new List<string>();
+            argsList.Add("-i");
+            argsList.Add(dll);
+            if (useStubs)
+            {
+                argsList.Add(stubs);
+            }
+            argsList.Add("-l");
+            argsList.Add("true");
+            if (useStubs)
+            {
+                argsList.Add("-b");
+                argsList.Add(@"..\..\Dependencies\poirot_stubs.bpl");
+            }
+            if (additionalTinyBCTOptions != String.Empty)
+            {
+                argsList.AddRange(additionalTinyBCTOptions.Split());
+            }
+            TinyBCT.Program.Main(argsList.ToArray());
         }
         else
         {
@@ -1374,7 +1388,7 @@ class Test {
         var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass2", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(30000)]
     [TestCategory("Av-Regressions")]
     public void TestSet3()
     {
@@ -1546,7 +1560,7 @@ public class TestsManu : TestsBase
     [TestCategory("Repro")]//[TestCategory("Manu")]
     public void Boxing2()
     {
-        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10);
+        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
     
@@ -1588,16 +1602,35 @@ class Test {
     public void ArrayAtomicInit1_NoBugs()
     {
 
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_NoBugs", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_NoBugs", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Repro")]
+    [ExpectedException(typeof(NotImplementedException))]
+    public void ArrayAtomicInitThrowsException1()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+class Test {
+  public static void Main() {
+    int[] b = { 1, 2, 3, 4, 5 };
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("ArrayAtomicInitThrowsException1", "Test.Main", 10, source, useStubs: false);
+        Assert.Fail();
     }
 
     [TestMethod]
     [TestCategory("Manu")]
     public void ArrayAtomicInit1_Bugged()
     {
-
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1606,7 +1639,7 @@ class Test {
     public void ArrayAtomicInit2_Bugged()
     {
 
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1615,7 +1648,7 @@ class Test {
     public void ArrayAtomicInit3_Bugged()
     {
 
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit3_Bugged", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit3_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1624,7 +1657,7 @@ class Test {
     public void ArrayAtomicInit4_NoBugs()
     {
 
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit4_NoBugs", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit4_NoBugs", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2066,7 +2099,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayStoreLoad1()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad1", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad1", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2074,7 +2107,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayStoreLoad2()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad2", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2082,7 +2115,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayStoreLoad3()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad3", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad3", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2090,7 +2123,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayStoreLoad4()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad4", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad4", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2108,7 +2141,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayCreate1()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate1", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate1", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2116,7 +2149,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayCreate2()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate2", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2124,7 +2157,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayOfArrays1()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays1", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays1", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2132,7 +2165,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayOfArrays2()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2140,7 +2173,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayOfArrays3()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays3", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays3", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2148,7 +2181,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayOfArrays4()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2156,7 +2189,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayLength()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayLength$System.Int32array", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayLength$System.Int32array", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2164,7 +2197,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArrayLengthIteration()
     {
-        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayFor", 10);
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayFor", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2172,7 +2205,7 @@ class Test {
     [TestCategory("Manu")]
     public void ArgsLength()
     {
-        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10);
+        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2408,10 +2441,10 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalOptions = "")
+    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalTinyBCTOptions = "")
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\");
-        return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalOptions);
+        return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalTinyBCTOptions: additionalTinyBCTOptions);
     }
  }
 
