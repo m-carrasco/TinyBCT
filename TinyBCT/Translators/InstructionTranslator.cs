@@ -214,12 +214,20 @@ namespace TinyBCT.Translators
                     }
 
                     // we need to extend the else if chain
+                    // Diego: Check to refactor to avoid duplication
                     if (calless.Count > 0)
                     {
                         if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                         {
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            if (Settings.AvoidSubtypeCheckingForInterfaces)
+                            {
+                                AddBoogie(boogieGenerator.Else(funcOnPotentialCallee(method)));
+                            }
+                            else
+                            {
+                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            }
                         }
                         else
                         {
@@ -230,8 +238,15 @@ namespace TinyBCT.Translators
                     {
                         if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                         {
-                            AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            if (Settings.AvoidSubtypeCheckingForInterfaces)
+                            {
+                                AddBoogie(funcOnPotentialCallee(method));
+                            }
+                            else
+                            {
+                                AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(receiver.Name, "null", "!="), boogieGenerator.Assert("false")));
+                            }
                         }
                         else
                         {

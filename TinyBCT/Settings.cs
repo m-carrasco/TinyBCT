@@ -23,6 +23,7 @@ namespace TinyBCT
         public static bool Exceptions = true;
         public static bool SplitFields = true;
         public static bool AtomicInit = false;
+        public static bool AvoidSubtypeCheckingForInterfaces = false;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -70,6 +71,11 @@ namespace TinyBCT
             .Callback(b => AtomicInit = b)
             .SetDefault(false)
             .WithDescription("Handles atomic initialization of arrays.");
+
+            p.Setup<bool>('t', "avoidSubtypeForInterfaces")
+            .Callback(b => AvoidSubtypeCheckingForInterfaces = b)
+            .SetDefault(false)
+            .WithDescription("Do not use subtypes hierarquies for variables/parameters of interface types (open world)");
 
             var result = p.Parse(args);
 

@@ -813,7 +813,38 @@ class Test {
         var corralResult = CorralTestHelperCode("TestDynamicDispatch1", "Test.Main$Base2", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("Repro")]
+    [TestMethod]
 
+    public void TestInterfaceParameterOptionTrue()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+public interface Base {
+    int Foo();
+}
+interface Base2 : Base {
+    void Bar();
+}
+class Derived : Base2 {
+    public virtual int Foo() {
+        return 5;
+    }
+    public virtual void Bar() {
+    }
+}
+class Test {
+    public void Main(Base2 b) {
+        var a = b.Foo();
+        Contract.Assert(a == 5);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestInterfaceParameterOptionTrue", "Test.Main$Base2", 10, source, useStubs: false,  additionalTinyBCTOptions: "/avoidSubtypeForInterfaces=false");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    
     [TestCategory("Repro")]
     [TestMethod]
     public void TestDynamicDispatch2()

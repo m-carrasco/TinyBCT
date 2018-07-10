@@ -202,7 +202,10 @@ namespace TinyBCT.Translators
             }
             var superTypes = new List<ITypeReference>();
             superTypes.Add(superClass.ResolvedType);
-            superTypes.AddRange(typeDefinition.Interfaces.Select(t => t.ResolvedType));
+            if (!Settings.AvoidSubtypeCheckingForInterfaces)
+            {
+                superTypes.AddRange(typeDefinition.Interfaces.Select(t => t.ResolvedType));
+            }
             StringBuilder sbSubtypes = new StringBuilder();
             foreach (var i in superTypes)
             {
