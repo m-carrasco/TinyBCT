@@ -127,7 +127,7 @@ namespace TinyBCT.Translators
             else if (ArrayTranslation.IsArrayTranslation(instructions, idx))
                 translation = new ArrayTranslation(this);
             else
-                translation = new SimpleTranslation(this);
+                translation = new NullDereferenceInstrumenter(this);
         }
 
         protected abstract class Translation : InstructionVisitor
@@ -371,6 +371,66 @@ namespace TinyBCT.Translators
                 loadTokenIns = null;
             }
         }
+
+        class NullDereferenceInstrumenter : SimpleTranslation
+        {
+            public NullDereferenceInstrumenter(InstructionTranslator p) : base(p)
+            {
+            }
+
+            public override void Visit(MethodCallInstruction instruction)
+            {
+                var unspecializedMethod = Helpers.GetUnspecializedVersion(instruction.Method);
+                // Instance methods, passing 'this'
+                if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
+                {
+                    AddBoogie(boogieGenerator.Assume(String.Format("{{:nonnull}} {0} != null", instruction.Arguments.ElementAt(0))));
+                }
+
+                base.Visit(instruction);
+            }
+            public override void Visit(LoadInstruction instruction)
+            {
+                string refString = null;
+                if (instruction.Operand is InstanceFieldAccess) // memory access handling
+                {
+                    var instanceFieldAccess = instruction.Operand as InstanceFieldAccess;
+                    refString = instanceFieldAccess.Instance.ToString();
+                }
+                else if (instruction.Operand is Dereference)
+                {
+                    var dereference = instruction.Operand as Dereference;
+                    refString = dereference.Reference.ToString();
+                }
+                if (refString != null)
+                {
+                    AddBoogie(boogieGenerator.Assume(String.Format("{{:nonnull}} {0} != null", refString)));
+                }
+
+                base.Visit(instruction);
+            }
+            public override void Visit(StoreInstruction instruction)
+            {
+                string refString = null;
+                if (instruction.Result is InstanceFieldAccess) // memory access handling
+                {
+                    var instanceFieldAccess = instruction.Result as InstanceFieldAccess;
+                    refString = instanceFieldAccess.Instance.ToString();
+                }
+                else if (instruction.Result is Dereference)
+                {
+                    var dereference = instruction.Result as Dereference;
+                    refString = dereference.Reference.ToString();
+                }
+                if (refString != null)
+                {
+                    AddBoogie(boogieGenerator.Assume(String.Format("{{:nonnull}} {0} != null", refString)));
+                }
+
+                base.Visit(instruction);
+            }
+        }
+
 
         // translates each instruction independently 
         class SimpleTranslation : Translation
