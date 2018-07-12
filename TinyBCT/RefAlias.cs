@@ -129,6 +129,11 @@ namespace TinyBCT
                         // subtract one because of the "this" argument
                         var idx = methodCallIns.Arguments.IndexOf(var) + (!methodCallIns.Method.IsStatic ? -1 : 0);
 
+                        // This is null
+                        if (idx == -1)
+                        {
+                            return false;
+                        }
                         // not sure what happens to out parameters
                         // here 'this' is not listed
                         if (methodCallIns.Method.Parameters.ElementAt(idx).IsByReference)
