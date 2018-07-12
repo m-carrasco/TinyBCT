@@ -37,43 +37,7 @@ namespace TinyBCT
             CHA = CHAnalysis;
 		}
 
-        private void transformBody(MethodBody methodBody)
-        {
-            var cfAnalysis = new ControlFlowAnalysis(methodBody);
-            //var cfg = cfAnalysis.GenerateNormalControlFlow();
-            CFG = cfAnalysis.GenerateExceptionalControlFlow();
-
-            var splitter = new WebAnalysis(CFG, methodBody.MethodDefinition);
-            splitter.Analyze();
-            splitter.Transform();
-
-            methodBody.UpdateVariables();
-
-            var typeAnalysis = new TypeInferenceAnalysis(CFG, methodBody.MethodDefinition.Type);
-            typeAnalysis.Analyze();
-
-            /*var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(CFG);
-            forwardCopyAnalysis.Analyze();
-            forwardCopyAnalysis.Transform(methodBody);
-
-            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(CFG);
-            backwardCopyAnalysis.Analyze();
-            backwardCopyAnalysis.Transform(methodBody);*/
-
-            // TinyBCT transformations
-
-            var refAlias = new RefAlias(methodBody);
-            refAlias.Transform();
-
-            var immutableArguments = new ImmutableArguments(methodBody);
-            immutableArguments.Transform();
-
-            var fieldInitialization = new FieldInitialization(methodBody);
-            fieldInitialization.Transform();
-
-            methodBody.RemoveUnusedLabels();
-        }
-
+       
         private List<System.Action<INamedTypeDefinition>> namedTypeDefinitionActions
             = new List<System.Action<INamedTypeDefinition>>();
 
@@ -121,10 +85,10 @@ namespace TinyBCT
 			streamWriter.WriteLine(sb);*/
 		}
 
-        private List<System.Action<IMethodDefinition,MethodBody>> methodDefinitionActions 
-            = new List<System.Action<IMethodDefinition, MethodBody>>();
+        private List<System.Action<IMethodDefinition, IMetadataHost, ISourceLocationProvider>> methodDefinitionActions 
+            = new List<System.Action<IMethodDefinition, IMetadataHost, ISourceLocationProvider>>();
 
-        public void AddMethodDefinitionAction(System.Action<IMethodDefinition, MethodBody> a)
+        public void AddMethodDefinitionAction(System.Action<IMethodDefinition, IMetadataHost, ISourceLocationProvider> a)
         {
             methodDefinitionActions.Add(a);
         }
@@ -136,12 +100,16 @@ namespace TinyBCT
             // calling Dissasembler on a external method will raise an exception.
             if (!methodDefinition.IsExternal)
             {
-                var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
-                var methodBody = disassembler.Execute();
-                transformBody(methodBody);
+                //MethodBody methodBody = null;
 
+                //if (methodDefinitionActions.Count > 0)
+                //{
+                //    var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
+                //    methodBody = disassembler.Execute();
+                //    transformBody(methodBody);
+                //}
                 foreach (var action in methodDefinitionActions)
-                    action(methodDefinition, methodBody);
+                    action(methodDefinition, this.host, this.sourceLocationProvider);
             }
 
             base.TraverseChildren(methodDefinition);

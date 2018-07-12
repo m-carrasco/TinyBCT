@@ -1,5 +1,6 @@
 ﻿using Backend;
 using Backend.ThreeAddressCode.Instructions;
+using Backend.Transformations;
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
@@ -17,10 +18,17 @@ namespace TinyBCT
 
         // called from Traverser
         // set in Main
-        public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)
+        public static void IMethodDefinitionTraverse(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
         {
-            TACWriter.AddMethod(mB);
-            TACWriter.Write();
+            if (!mD.IsExternal)
+            {
+                var disassembler = new Disassembler(host, mD, sourceLocationProvider);
+                MethodBody mB = disassembler.Execute();
+                MethodTranslator.transformBody(mB);
+
+                TACWriter.AddMethod(mB);
+                TACWriter.Write();
+            }
         }
 
         public static void Open(string inputFile)

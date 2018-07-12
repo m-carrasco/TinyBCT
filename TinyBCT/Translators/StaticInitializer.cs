@@ -16,7 +16,7 @@ namespace TinyBCT.Translators
         internal static ISet<IMethodDefinition> staticConstructors 
             = new HashSet<IMethodDefinition>();
 
-        public static void IMethodDefinitionTraverse(IMethodDefinition mD, MethodBody mB)
+        public static void IMethodDefinitionTraverse(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
         {
             if (mD.IsStaticConstructor)
             {
