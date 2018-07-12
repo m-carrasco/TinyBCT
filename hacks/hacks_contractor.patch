@@ -1,0 +1,39 @@
+diff --git a/TinyBCT/Translators/InstructionTranslator.cs b/TinyBCT/Translators/InstructionTranslator.cs
+index 87b2759..a441d8d 100644
+--- a/TinyBCT/Translators/InstructionTranslator.cs
++++ b/TinyBCT/Translators/InstructionTranslator.cs
+@@ -86,7 +86,22 @@ namespace TinyBCT.Translators
+ 
+                 // hack for contractor
+                 if (methodBody.MethodDefinition.Name.Value.Contains("STATE$"))
++                {
++                    if (methodBody.MethodDefinition.Name.Value.Contains("SetCapacity"))
++                        AddBoogie(bg.Assume("F$System.Collections2.Queue._array[this] != null"));
+                     AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
++
++                    if (methodBody.Parameters.Count > 1 && methodBody.Parameters[1].Type.GetName().Contains("ICollection"))
++                    {
++                        AddBoogie(bg.AssumeDynamicType(methodBody.Parameters[1].Name, this_var.Type));
++                        AddBoogie("assume " + methodBody.Parameters[1].Name + "!=" + this_var.Name + ";");
++                    }
++
++                    AddBoogie(bg.VariableAssignment("$Exception", "null"));
++                    AddBoogie(bg.VariableAssignment("$ExceptionType", "null"));
++                    AddBoogie(bg.VariableAssignment("$ExceptionInCatchHandler", "null"));
++                    AddBoogie(bg.VariableAssignment("$ExceptionInCatchHandlerType", "null"));
++                }
+             }
+ 
+             foreach (var p in methodBody.MethodDefinition.Parameters)
+diff --git a/TinyBCT/Traverser/Traverser.cs b/TinyBCT/Traverser/Traverser.cs
+index 2fb8ffe..10f3596 100644
+--- a/TinyBCT/Traverser/Traverser.cs
++++ b/TinyBCT/Traverser/Traverser.cs
+@@ -60,6 +60,7 @@ namespace TinyBCT
+             backwardCopyAnalysis.Analyze();
+             backwardCopyAnalysis.Transform(methodBody);*/
+ 
++
+             // TinyBCT transformations
+ 
+             var refAlias = new RefAlias(methodBody);
