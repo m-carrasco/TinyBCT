@@ -84,7 +84,7 @@ namespace TinyBCT
             .SetDefault(false)
             .WithDescription("Add assertions at every dereference checking that the reference is not null.");
 
-            p.Setup<bool>("DebugLargeDLL")
+            p.Setup<bool>('d', "DebugLargeDLL")
             .Callback(b => DebugLargeDLL = b)
             .SetDefault(false)
             .WithDescription("Do not use this option.");

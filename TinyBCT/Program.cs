@@ -58,7 +58,7 @@ namespace TinyBCT
 
                 // This can be used to obtain the allocated types and delegates
                 var allocationsAndDelelegatesAnalysis = new TypesAndDelegatesCollector(host);
-                allocationsAndDelelegatesAnalysis.Analyze();
+                //allocationsAndDelelegatesAnalysis.Analyze();
 
                 Action<string> writeTAC = (String inputFile) =>
                 {
@@ -76,7 +76,7 @@ namespace TinyBCT
                 };
 
 
-                ProcessFiles(writeTAC);
+                //ProcessFiles(writeTAC);
 
                 Action<string> translateTypeDefinitions = (String inputFile) =>
                 {
