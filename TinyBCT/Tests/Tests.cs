@@ -875,6 +875,7 @@ class Test {
         var corralResult = CorralTestHelperCode("TestDynamicDispatch2", "Test.Main$Base2", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
     [TestCategory("NullPtrInstrumentation")]
     [TestMethod]
     public void TestNullPointerInstrumentation1()
@@ -2588,6 +2589,13 @@ class Test {
     {
         var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTestRethrow2.Main", 10);
         Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod, Timeout(10000)]
+    [TestCategory("Repro")]
+    public void TestExceptionsWhen()
+    {
+        var corralResult = CorralTestHelper("TestExceptionsWhen", "TestExceptionsWhen.Main", 10);
     }
 
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalTinyBCTOptions = "")

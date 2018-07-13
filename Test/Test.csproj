@@ -150,6 +150,7 @@
     <Compile Include="Assume.cs" />
     <Compile Include="BinaryOperators.cs" />
     <Compile Include="Boxing.cs" />
+    <Compile Include="TestExceptionsWhen.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="DynamicDispatch.cs" />
     <Compile Include="Ex1.cs" />
