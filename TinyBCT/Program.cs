@@ -56,9 +56,10 @@ namespace TinyBCT
                 var CHAnalysis = CreateCHAnalysis(host);
                 Types.Initialize(host);
 
+                // TODO(diegog): Analysis not integrated yet
                 // This can be used to obtain the allocated types and delegates
-                var allocationsAndDelelegatesAnalysis = new TypesAndDelegatesCollector(host);
-                allocationsAndDelelegatesAnalysis.Analyze();
+                //var allocationsAndDelelegatesAnalysis = new TypesAndDelegatesCollector(host);
+                //allocationsAndDelelegatesAnalysis.Analyze();
 
                 Action<string> writeTAC = (String inputFile) =>
                 {
