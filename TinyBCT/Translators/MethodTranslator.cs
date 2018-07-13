@@ -60,6 +60,10 @@ namespace TinyBCT
 
         static bool whitelistContains(string name)
         {
+            if (!Settings.DebugLargeDLL)
+            {
+                return true;
+            }
             if (name.Contains("Analyzer1"))
                 return true;
             if (name.Contains("Project"))

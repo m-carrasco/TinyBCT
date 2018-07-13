@@ -24,6 +24,8 @@ namespace TinyBCT
         public static bool SplitFields = true;
         public static bool AtomicInit = false;
         public static bool AvoidSubtypeCheckingForInterfaces = false;
+        public static bool CheckNullDereferences = false;
+        public static bool DebugLargeDLL = false;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -76,6 +78,16 @@ namespace TinyBCT
             .Callback(b => AvoidSubtypeCheckingForInterfaces = b)
             .SetDefault(false)
             .WithDescription("Do not use subtypes hierarquies for variables/parameters of interface types (open world)");
+
+            p.Setup<bool>("checkNullDereferences")
+            .Callback(b => CheckNullDereferences = b)
+            .SetDefault(false)
+            .WithDescription("Add assertions at every dereference checking that the reference is not null.");
+
+            p.Setup<bool>("DebugLargeDLL")
+            .Callback(b => DebugLargeDLL = b)
+            .SetDefault(false)
+            .WithDescription("Do not use this option.");
 
             var result = p.Parse(args);
 

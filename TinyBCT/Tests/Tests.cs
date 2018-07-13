@@ -948,6 +948,31 @@ class Test {
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation3", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation4()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+public class Base {
+    public void Foo() {
+       Contract.Assert(false);
+    }
+}
+class Test {
+    public void Main() {
+        Base b = null;
+        // This method call is instrumented with the following Boogie code:
+        // assume {:nonnull} b != null;
+        // As such, the assert false within Base.Foo will not be reached.
+        b.Foo();
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation4", "Test.Main", 10, source, useStubs: false, additionalTinyBCTOptions: "/checkNullDereferences=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestCategory("DocumentedImprecision")]
     [TestMethod]

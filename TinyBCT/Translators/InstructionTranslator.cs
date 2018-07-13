@@ -384,7 +384,16 @@ namespace TinyBCT.Translators
                 // Instance methods, passing 'this'
                 if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
                 {
-                    AddBoogie(boogieGenerator.Assume(String.Format("{{:nonnull}} {0} != null", instruction.Arguments.ElementAt(0))));
+
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", instruction.Arguments.ElementAt(0));
+                    if (Settings.CheckNullDereferences)
+                    {
+                        AddBoogie(boogieGenerator.Assert(refNotNullStr));
+                    }
+                    else
+                    {
+                        AddBoogie(boogieGenerator.Assume(refNotNullStr));
+                    }
                 }
 
                 base.Visit(instruction);
@@ -404,7 +413,15 @@ namespace TinyBCT.Translators
                 }
                 if (refString != null)
                 {
-                    AddBoogie(boogieGenerator.Assume(String.Format("{{:nonnull}} {0} != null", refString)));
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", refString);
+                    if (Settings.CheckNullDereferences)
+                    {
+                        AddBoogie(boogieGenerator.Assert(refNotNullStr));
+                    }
+                    else
+                    {
+                        AddBoogie(boogieGenerator.Assume(refNotNullStr));
+                    }
                 }
 
                 base.Visit(instruction);
@@ -424,7 +441,15 @@ namespace TinyBCT.Translators
                 }
                 if (refString != null)
                 {
-                    AddBoogie(boogieGenerator.Assume(String.Format("{{:nonnull}} {0} != null", refString)));
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", refString);
+                    if (Settings.CheckNullDereferences)
+                    {
+                        AddBoogie(boogieGenerator.Assert(refNotNullStr));
+                    }
+                    else
+                    {
+                        AddBoogie(boogieGenerator.Assume(refNotNullStr));
+                    }
                 }
 
                 base.Visit(instruction);
