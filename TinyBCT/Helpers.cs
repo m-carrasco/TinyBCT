@@ -569,6 +569,13 @@ namespace TinyBCT
         public static bool IsGenericField(IFieldReference field)
         {
             var containingType = TypeHelper.UninstantiateAndUnspecialize(field.ContainingType).ResolvedType;
+
+            if (containingType.FullName().Equals("Microsoft.Cci.DummyTypeReference"))
+            {
+                // if we cannot know if this is a generic field
+                // we will consider it is and it will be declared with Union type
+                return true;
+            }
             var potentiallyGenericField = containingType.Fields.Single(f => field.Name == f.Name);
             return potentiallyGenericField.Type is IGenericTypeParameter;
         }
