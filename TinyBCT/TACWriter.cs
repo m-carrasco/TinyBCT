@@ -22,12 +22,23 @@ namespace TinyBCT
         {
             if (!mD.IsExternal)
             {
-                var disassembler = new Disassembler(host, mD, sourceLocationProvider);
-                MethodBody mB = disassembler.Execute();
-                MethodTranslator.transformBody(mB);
+                try
+                {
+                    var disassembler = new Disassembler(host, mD, sourceLocationProvider);
+                    MethodBody mB = disassembler.Execute();
+                    MethodTranslator.transformBody(mB);
 
-                TACWriter.AddMethod(mB);
-                TACWriter.Write();
+                    TACWriter.AddMethod(mB);
+                    TACWriter.Write();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + Helpers.GetMethodName(mD));
+                    if (!Settings.SilentExceptionsForMethods)
+                    {
+                        throw ex;
+                    }
+                }
             }
         }
 
