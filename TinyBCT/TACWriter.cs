@@ -31,9 +31,13 @@ namespace TinyBCT
                     TACWriter.AddMethod(mB);
                     TACWriter.Write();
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
                     Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + Helpers.GetMethodName(mD));
+                    if (!Settings.SilentExceptionsForMethods)
+                    {
+                        throw ex;
+                    }
                 }
             }
         }

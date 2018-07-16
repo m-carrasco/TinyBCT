@@ -103,9 +103,13 @@ namespace TinyBCT
                         Helpers.addTranslatedMethod(mD);
                     }
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
                     Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + Helpers.GetMethodName(mD));
+                    if (!Settings.SilentExceptionsForMethods)
+                    {
+                        throw ex;
+                    }
                 }
             }
 

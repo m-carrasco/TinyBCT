@@ -26,6 +26,7 @@ namespace TinyBCT
         public static bool AvoidSubtypeCheckingForInterfaces = false;
         public static bool CheckNullDereferences = false;
         public static bool DebugLargeDLL = false;
+        public static bool SilentExceptionsForMethods = false;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -88,6 +89,14 @@ namespace TinyBCT
             .Callback(b => DebugLargeDLL = b)
             .SetDefault(false)
             .WithDescription("Do not use this option.");
+
+            p.Setup<bool>("SilentExceptionsForMethods")
+            .Callback(b => SilentExceptionsForMethods = b)
+            .SetDefault(false)
+            .WithDescription(
+                "If InvalidOperationException is thrown during a method translation, " +
+                "the translation will continue silently and the method will be replaced " +
+                "with an extern method (not necessarily a sound over-approximation).");
 
             var result = p.Parse(args);
 
