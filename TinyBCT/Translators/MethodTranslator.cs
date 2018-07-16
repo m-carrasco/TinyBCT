@@ -88,17 +88,24 @@ namespace TinyBCT
         {
             if (!mD.IsExternal)
             {
-                if (whitelistContains(mD.ContainingType.FullName()))
+                try
                 {
-                    var disassembler = new Disassembler(host, mD, sourceLocationProvider);
-                    MethodBody mB = disassembler.Execute();
-                    transformBody(mB);
+                    if (whitelistContains(mD.ContainingType.FullName()))
+                    {
+                        var disassembler = new Disassembler(host, mD, sourceLocationProvider);
+                        MethodBody mB = disassembler.Execute();
+                        transformBody(mB);
 
-                    MethodTranslator methodTranslator = new MethodTranslator(mD, mB, Traverser.CHA);
-                    // todo: improve this piece of code
-                    StreamWriter streamWriter = Program.streamWriter;
-                    streamWriter.WriteLine(methodTranslator.Translate());
-                    Helpers.addTranslatedMethod(mD);
+                        MethodTranslator methodTranslator = new MethodTranslator(mD, mB, Traverser.CHA);
+                        // todo: improve this piece of code
+                        StreamWriter streamWriter = Program.streamWriter;
+                        streamWriter.WriteLine(methodTranslator.Translate());
+                        Helpers.addTranslatedMethod(mD);
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + Helpers.GetMethodName(mD));
                 }
             }
 
