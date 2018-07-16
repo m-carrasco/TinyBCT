@@ -406,11 +406,6 @@ namespace TinyBCT.Translators
                     var instanceFieldAccess = instruction.Operand as InstanceFieldAccess;
                     refString = instanceFieldAccess.Instance.ToString();
                 }
-                else if (instruction.Operand is Dereference)
-                {
-                    var dereference = instruction.Operand as Dereference;
-                    refString = dereference.Reference.ToString();
-                }
                 if (refString != null)
                 {
                     var refNotNullStr = String.Format("{{:nonnull}} {0} != null", refString);
@@ -433,11 +428,6 @@ namespace TinyBCT.Translators
                 {
                     var instanceFieldAccess = instruction.Result as InstanceFieldAccess;
                     refString = instanceFieldAccess.Instance.ToString();
-                }
-                else if (instruction.Result is Dereference)
-                {
-                    var dereference = instruction.Result as Dereference;
-                    refString = dereference.Reference.ToString();
                 }
                 if (refString != null)
                 {

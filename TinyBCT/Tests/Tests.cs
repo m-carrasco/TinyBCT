@@ -2591,7 +2591,7 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Repro")]
     public void TestExceptionsWhen()
     {
