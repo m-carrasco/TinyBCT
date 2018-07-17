@@ -456,10 +456,12 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadTokenInstruction instruction)
             {
-                // unexpected LoadTokenInstruction
-                // only handled for array initialization, see the AtomicArrayInitializationTranslation.
-                // if you want to handle array init set atomicInitArray=true in the command line
-                throw new NotImplementedException();
+                AddBoogie(boogieGenerator.HavocResult(instruction));
+
+                //// unexpected LoadTokenInstruction
+                //// only handled for array initialization, see the AtomicArrayInitializationTranslation.
+                //// if you want to handle array init set atomicInitArray=true in the command line
+                //throw new NotImplementedException();
             }
             public override void Visit(NopInstruction instruction)
             {
@@ -1617,6 +1619,7 @@ namespace TinyBCT.Translators
         public static void AddDelegatedMethodToGroup(ITypeReference tRef, IMethodReference mRef)
         {
             var k = Helpers.GetNormalizedTypeForDelegates(tRef);
+            
             if (MethodGrouping.ContainsKey(k))
                 MethodGrouping[k].Add(mRef);
             else
