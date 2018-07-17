@@ -572,11 +572,11 @@ namespace TinyBCT
             public static string GetNormalizedType(ITypeReference type)
         {
             type = TypeHelper.UninstantiateAndUnspecialize(type);
-            var result = TypeHelper.GetTypeName(type.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
+            var result = TypeHelper.GetTypeName(type, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
             var namedTypeReference = (type as INamedTypeReference);
             if (namedTypeReference != null)
             {
-                result = TypeHelper.GetTypeName(namedTypeReference.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix);
+                result = TypeHelper.GetTypeName(namedTypeReference, NameFormattingOptions.UseGenericTypeNameSuffix);
             }
             // Do this well 
             result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
