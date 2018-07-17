@@ -514,7 +514,7 @@ namespace TinyBCT.Translators
                     // each making slightly different translations, for example, bitvector representation
                     // of integers as opposed to Boogie int.
                     // When that happens, this should most likely be encapsulated within BoogieGenerator.
-                    if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation))
+                    if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation, left, right))
                     {
                         // mod keyword in boogie returns integer
                         if (BinaryOperation.Rem == instruction.Operation && 

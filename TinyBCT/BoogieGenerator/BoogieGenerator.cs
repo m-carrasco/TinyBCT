@@ -247,10 +247,13 @@ namespace TinyBCT
             return string.Format("{0} := {1};", variableA, expr);
         }
 
-        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation)
+        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, IVariable op1, IVariable op2)
         {
             switch (binaryOperation)
             {
+                case BinaryOperation.And:
+                case BinaryOperation.Or:
+                    return Helpers.GetBoogieType(op1.Type) == "bool" && Helpers.GetBoogieType(op2.Type) == "bool";
                 case BinaryOperation.Add:
                 case BinaryOperation.Sub:
                 case BinaryOperation.Mul:
@@ -262,8 +265,6 @@ namespace TinyBCT
                 case BinaryOperation.Lt:
                 case BinaryOperation.Le:
                 case BinaryOperation.Rem:
-                case BinaryOperation.And:
-                case BinaryOperation.Or:
                     return true;
                 default:
                     return false;
@@ -311,7 +312,7 @@ namespace TinyBCT
 
         public string BinaryOperationExpression(IVariable op1, IVariable op2, BinaryOperation binaryOperation)
         {
-            Contract.Assume(IsSupportedBinaryOperation(binaryOperation));
+            Contract.Assume(IsSupportedBinaryOperation(binaryOperation, op1, op2));
             string operation = String.Empty;
             switch (binaryOperation)
             {
