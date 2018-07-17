@@ -952,9 +952,17 @@ namespace TinyBCT.Translators
                 {
                     LoadInstruction loadInstruction = this.instTranslator.lastInstruction as LoadInstruction;
                     Contract.Assume(loadInstruction != null);
-                    Reference reference = (Reference) loadInstruction.Operand;
-                    //IAssignableValue where = reference.Value as IAssignableValue;
-                    var where = reference.Value;
+                    IValue where = null;
+                    if(loadInstruction.Operand is Reference)
+                    {
+                        Reference reference = (Reference)loadInstruction.Operand;
+                        //IAssignableValue where = reference.Value as IAssignableValue;
+                        where = reference.Value;
+                    }
+                    else
+                    {
+                        where = loadInstruction.Operand;
+                    }
                     Contract.Assume(where != null);
 
                     var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
