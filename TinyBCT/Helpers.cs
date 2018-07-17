@@ -76,7 +76,11 @@ namespace TinyBCT
 
         public static String GetBoogieType(ITypeReference type)
         {
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Char) || type.TypeCode.Equals(PrimitiveTypeCode.UInt32) || type.TypeCode.Equals(PrimitiveTypeCode.UInt8) || type.TypeCode.Equals(PrimitiveTypeCode.Int16) || type.TypeCode.Equals(PrimitiveTypeCode.Int32) || type.TypeCode.Equals(PrimitiveTypeCode.Int64) /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
+            INamedTypeDefinition namedType = type as INamedTypeDefinition;
+            if (namedType != null && type.IsEnum)
+                return GetBoogieType(namedType.UnderlyingType);
+
+            if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
                 return "int";
 
             // not sure about this
