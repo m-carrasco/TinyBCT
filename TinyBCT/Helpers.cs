@@ -310,8 +310,16 @@ namespace TinyBCT
 
                 //                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m,NameFormattingOptions.PreserveSpecialNames)
                 //                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames)));
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value==method.Name.Value
+                var matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.Value==method.Name.Value
                                                                                   && ParametersAreCompatible(m,method));
+
+                if(matchingMethods.Count()>1)
+                {
+                    matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.UniqueKey== method.Name.UniqueKey
+                                                                                                      && MemberHelper.SignaturesAreEqual(m, method));
+                }
+
+                var matchingMethod = matchingMethods.SingleOrDefault();
 
                 if (matchingMethod != null)
                 {
@@ -351,7 +359,14 @@ namespace TinyBCT
 
                 //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
                 var unspecializedMethod = Helpers.GetUnspecializedVersion(method);
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreCompatible(m, unspecializedMethod));
+                var matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreCompatible(m, unspecializedMethod));
+
+                if(matchingMethods.Count()>1)
+                {
+                    matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.UniqueKey == unspecializedMethod.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, unspecializedMethod));
+                }
+
+                var matchingMethod = matchingMethods.SingleOrDefault();
 
                 if (matchingMethod != null)
                 {
