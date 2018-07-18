@@ -2615,6 +2615,7 @@ using System;
 using System.Diagnostics.Contracts;
 public class A {
     public static void Bar(int n) {
+        Contract.Assert(n==5);
     }
 
     public static void Foo(int n) {
@@ -2628,7 +2629,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("Delegates1", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("Delegates1", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
