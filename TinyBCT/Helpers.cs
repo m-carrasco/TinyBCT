@@ -76,7 +76,11 @@ namespace TinyBCT
 
         public static String GetBoogieType(ITypeReference type)
         {
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Char) || type.TypeCode.Equals(PrimitiveTypeCode.UInt32) || type.TypeCode.Equals(PrimitiveTypeCode.UInt8) || type.TypeCode.Equals(PrimitiveTypeCode.Int16) || type.TypeCode.Equals(PrimitiveTypeCode.Int32) || type.TypeCode.Equals(PrimitiveTypeCode.Int64) /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
+            INamedTypeDefinition namedType = type as INamedTypeDefinition;
+            if (namedType != null && type.IsEnum)
+                return GetBoogieType(namedType.UnderlyingType);
+
+            if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
                 return "int";
 
             // not sure about this
@@ -310,8 +314,16 @@ namespace TinyBCT
 
                 //                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => MemberHelper.GetMemberSignature(m,NameFormattingOptions.PreserveSpecialNames)
                 //                                                                                .EndsWith(MemberHelper.GetMemberSignature(method,NameFormattingOptions.PreserveSpecialNames)));
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value==method.Name.Value
+                var matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.Value==method.Name.Value
                                                                                   && ParametersAreCompatible(m,method));
+
+                if(matchingMethods.Count()>1)
+                {
+                    matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.UniqueKey== method.Name.UniqueKey
+                                                                                                      && MemberHelper.SignaturesAreEqual(m, method));
+                }
+
+                var matchingMethod = matchingMethods.SingleOrDefault();
 
                 if (matchingMethod != null)
                 {
@@ -351,7 +363,14 @@ namespace TinyBCT
 
                 //var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.UniqueKey == method.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, method));
                 var unspecializedMethod = Helpers.GetUnspecializedVersion(method);
-                var matchingMethod = receiverTypeDef.Methods.SingleOrDefault(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreCompatible(m, unspecializedMethod));
+                var matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.Value == unspecializedMethod.Name.Value && ParametersAreCompatible(m, unspecializedMethod));
+
+                if(matchingMethods.Count()>1)
+                {
+                    matchingMethods = receiverTypeDef.Methods.Where(m => m.Name.UniqueKey == unspecializedMethod.Name.UniqueKey && MemberHelper.SignaturesAreEqual(m, unspecializedMethod));
+                }
+
+                var matchingMethod = matchingMethods.SingleOrDefault();
 
                 if (matchingMethod != null)
                 {
@@ -553,11 +572,11 @@ namespace TinyBCT
             public static string GetNormalizedType(ITypeReference type)
         {
             type = TypeHelper.UninstantiateAndUnspecialize(type);
-            var result = TypeHelper.GetTypeName(type.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
+            var result = TypeHelper.GetTypeName(type, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
             var namedTypeReference = (type as INamedTypeReference);
             if (namedTypeReference != null)
             {
-                result = TypeHelper.GetTypeName(namedTypeReference.ResolvedType, NameFormattingOptions.UseGenericTypeNameSuffix);
+                result = TypeHelper.GetTypeName(namedTypeReference, NameFormattingOptions.UseGenericTypeNameSuffix);
             }
             // Do this well 
             result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates

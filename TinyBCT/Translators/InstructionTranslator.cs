@@ -456,10 +456,12 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadTokenInstruction instruction)
             {
-                // unexpected LoadTokenInstruction
-                // only handled for array initialization, see the AtomicArrayInitializationTranslation.
-                // if you want to handle array init set atomicInitArray=true in the command line
-                throw new NotImplementedException();
+                AddBoogie(boogieGenerator.HavocResult(instruction));
+
+                //// unexpected LoadTokenInstruction
+                //// only handled for array initialization, see the AtomicArrayInitializationTranslation.
+                //// if you want to handle array init set atomicInitArray=true in the command line
+                //throw new NotImplementedException();
             }
             public override void Visit(NopInstruction instruction)
             {
@@ -514,7 +516,7 @@ namespace TinyBCT.Translators
                     // each making slightly different translations, for example, bitvector representation
                     // of integers as opposed to Boogie int.
                     // When that happens, this should most likely be encapsulated within BoogieGenerator.
-                    if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation))
+                    if (BoogieGenerator.IsSupportedBinaryOperation(instruction.Operation, left, right))
                     {
                         // mod keyword in boogie returns integer
                         if (BinaryOperation.Rem == instruction.Operation && 
@@ -952,9 +954,17 @@ namespace TinyBCT.Translators
                 {
                     LoadInstruction loadInstruction = this.instTranslator.lastInstruction as LoadInstruction;
                     Contract.Assume(loadInstruction != null);
-                    Reference reference = (Reference) loadInstruction.Operand;
-                    //IAssignableValue where = reference.Value as IAssignableValue;
-                    var where = reference.Value;
+                    IValue where = null;
+                    if(loadInstruction.Operand is Reference)
+                    {
+                        Reference reference = (Reference)loadInstruction.Operand;
+                        //IAssignableValue where = reference.Value as IAssignableValue;
+                        where = reference.Value;
+                    }
+                    else
+                    {
+                        where = loadInstruction.Operand;
+                    }
                     Contract.Assume(where != null);
 
                     var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
@@ -1609,6 +1619,7 @@ namespace TinyBCT.Translators
         public static void AddDelegatedMethodToGroup(ITypeReference tRef, IMethodReference mRef)
         {
             var k = Helpers.GetNormalizedTypeForDelegates(tRef);
+            
             if (MethodGrouping.ContainsKey(k))
                 MethodGrouping[k].Add(mRef);
             else

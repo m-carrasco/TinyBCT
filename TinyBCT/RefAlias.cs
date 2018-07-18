@@ -72,8 +72,9 @@ namespace TinyBCT
                 IsInMethodCallAsRef(instruction.Result))
             {
                 var r = instruction.Operand as Reference;
-                variableToParameter.Add(instruction.Result, r.Variables.First());
-
+                instruction.Result.Type = r.Value.Type;
+                instruction.Operand = r.Value;
+                //variableToParameter.Add(instruction.Result, r.Variables.First());
             }
 
 

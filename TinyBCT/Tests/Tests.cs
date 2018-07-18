@@ -1695,6 +1695,15 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [TestMethod]
+    [TestCategory("Manu")]
+    public void RefKeyword2()
+    {
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
     // ************************************* Boxing ******************************
 
     [TestMethod]
