@@ -958,15 +958,14 @@ using System;
 using System.Diagnostics.Contracts;
 public class Base {
     public void Foo() {
-       Contract.Assert(false);
     }
 }
 class Test {
     public void Main() {
         Base b = null;
         // This method call is instrumented with the following Boogie code:
-        // assume {:nonnull} b != null;
-        // As such, the assert false within Base.Foo will not be reached.
+        // assert {:nonnull} b != null;
+        // This assertion will fail.
         b.Foo();
     }
 }
