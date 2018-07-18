@@ -1722,6 +1722,15 @@ namespace TinyBCT.Translators
                 {
                     var receiverObject = String.Format("$RefToDelegateReceiver({0}, $this)", id);
                     args.Add(receiverObject);
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", receiverObject);
+                    if (Settings.CheckNullDereferences)
+                    {
+                        sb.AppendLine(BoogieGenerator.Instance().Assert(refNotNullStr));
+                    }
+                    else
+                    {
+                        sb.AppendLine(BoogieGenerator.Instance().Assume(refNotNullStr));
+                    }
                 }
 
                 // every argument is casted to Union (if they are Ref it is not necessary, they are alias)
