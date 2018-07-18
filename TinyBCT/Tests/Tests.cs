@@ -2597,6 +2597,31 @@ class Test {
     {
         var corralResult = CorralTestHelper("TestExceptionsWhen", "TestExceptionsWhen.Main", 10);
     }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void Delegates1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+public class A {
+    public static void Bar(int n) {
+    }
+
+    public static void Foo(int n) {
+        Contract.Assert(false);
+    }
+}
+class Test {
+    public static void Main() {
+        Action<int> new_delegate = delegate (int x) { A.Bar(x); };
+        new_delegate(5);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("Delegates1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalTinyBCTOptions = "")
     {
