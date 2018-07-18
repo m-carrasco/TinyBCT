@@ -2619,7 +2619,6 @@ public class A {
     }
 
     public static void Foo(int n) {
-        Contract.Assert(false);
     }
 }
 class Test {
