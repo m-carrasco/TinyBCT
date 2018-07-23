@@ -98,13 +98,12 @@ namespace TinyBCT
                 return "real";
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.String))
-                return "Ref";
+                return Settings.NewAddrModelling ? "Object" : "Ref";
 
-            // hack 
             if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
-                return "Ref";
+                return Settings.NewAddrModelling ? "Object" : "Ref";
 
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && !Settings.NewAddrModelling)
             {
                 // manuel: we type a reference accordingly to its target type
                 // we just support reference writes/reads for arguments
