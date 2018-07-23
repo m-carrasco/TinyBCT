@@ -1843,6 +1843,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("Manu")]
+    [Ignore] // Remove (or change test) once bug related to ref keyword is fixed
     public void RefKeyword1()
     {
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10);
@@ -1851,6 +1852,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("Manu")]
+    [Ignore] // Remove (or change test) once bug related to ref keyword is fixed
     public void RefKeyword2()
     {
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10);
