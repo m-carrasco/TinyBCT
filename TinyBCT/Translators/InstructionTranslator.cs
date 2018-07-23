@@ -679,6 +679,7 @@ namespace TinyBCT.Translators
                 else if (instructionOperand is StaticMethodReference) // delegates handling
                 {
                     // see DelegateTranslation
+                    Contract.Assert(false);
                 }
                 else
                 {
