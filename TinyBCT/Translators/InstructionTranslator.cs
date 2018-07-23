@@ -682,43 +682,29 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    Constant cons = instructionOperand as Constant;
-                    if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+                    var dereference = instructionOperand as Dereference;
+                    if (!Settings.NewAddrModelling && dereference != null)
                     {
-                        // default string representation of floating point types is not suitable for boogie
-                        // check boogieGenerator.VariableAssignment code
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, cons));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, dereference.Reference));
+                    } else if (Settings.NewAddrModelling && dereference != null)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
+                    {
+                        string operand = Helpers.Strings.fixStringLiteral(instructionOperand);
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                    } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
+                    {
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
+                    } else if (instructionOperand is Reference && Settings.NewAddrModelling)
+                    {
+                        throw new NotImplementedException();
                     } else
                     {
-                        var dereference = instructionOperand as Dereference;
-                        if (!Settings.NewAddrModelling && dereference != null)
-                        {
-                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, dereference.Reference));
-                        } else if (Settings.NewAddrModelling && dereference != null)
-                        {
-                            throw new NotImplementedException();
-                        }
-                        else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
-                        {
-                            string operand = Helpers.Strings.fixStringLiteral(instructionOperand);
-                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
-                        } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
-                        {
-                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
-                        } else if (instructionOperand is Reference && Settings.NewAddrModelling)
-                        {
-                            throw new NotImplementedException();
-                        } else
-                        {
-                            Contract.Assert(false);
-                        }
+                        Contract.Assert(false);
                     }
                 }
-                /*
-                string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                Helpers.Strings.fixStringLiteral(instructionOperand) :
-                instructionOperand.ToString();
-                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));*/
 
                 if (instruction.Result is IVariable &&
                     instruction.Result.Type.TypeCode.Equals(PrimitiveTypeCode.String))
