@@ -1081,6 +1081,20 @@ namespace TinyBCT.Translators
                 ArrayElementAccess elementAccess = instruction.Operand as ArrayElementAccess;
                 ArrayLengthAccess lengthAccess = instruction.Operand as ArrayLengthAccess;
 
+                if (elementAccess != null || lengthAccess != null)
+                {
+                    var receiverObject = lengthAccess != null ? lengthAccess.Instance : elementAccess.Array;
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", receiverObject);
+                    if (Settings.CheckNullDereferences)
+                    {
+                        AddBoogie(boogieGenerator.Assert(refNotNullStr));
+                    }
+                    else
+                    {
+                        AddBoogie(boogieGenerator.Assume(refNotNullStr));
+                    }
+                }
+
                 if (lengthAccess != null)
                 {
                     if (!onlyLengthNoConvert)
@@ -1149,6 +1163,17 @@ namespace TinyBCT.Translators
 
                 Contract.Assert(res != null);
 
+                var receiverObject = res.Array.Name;
+                var refNotNullStr = String.Format("{{:nonnull}} {0} != null", receiverObject);
+
+                if (Settings.CheckNullDereferences)
+                {
+                    AddBoogie(boogieGenerator.Assert(refNotNullStr));
+                }
+                else
+                {
+                    AddBoogie(boogieGenerator.Assume(refNotNullStr));
+                }
                 if (!Helpers.IsBoogieRefType(res.Type)) // Ref and Union are alias
                 {
                     /*
