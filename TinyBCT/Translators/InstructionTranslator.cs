@@ -630,14 +630,20 @@ namespace TinyBCT.Translators
             public override void Visit(LoadInstruction instruction)
             {
                 var instructionOperand = instruction.Operand;
-                if (instructionOperand is Reference)
+
+                // hack of old memory modelling
+                if (!Settings.NewAddrModelling && instructionOperand is Reference)
                 {
                     // Reference loading only found when using "default" keyword.
                     // Ignoring translation, the actual value referenced is used by accessing
                     // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
                     // TODO(rcastano): check that loaded references are only used in the assumed context.
                     instructionOperand = (instructionOperand as Reference).Value;
+                } else if (Settings.NewAddrModelling && instructionOperand is Reference)
+                {
+                    throw new NotImplementedException();
                 }
+            
                 if (instructionOperand is InstanceFieldAccess) // memory access handling
                 {
                     InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
@@ -676,7 +682,7 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    Constant cons = instruction.Operand as Constant;
+                    Constant cons = instructionOperand as Constant;
                     if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
                     {
                         // default string representation of floating point types is not suitable for boogie
@@ -684,20 +690,35 @@ namespace TinyBCT.Translators
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, cons));
                     } else
                     {
-
-                        var dereference = instruction.Operand as Dereference;
-                        if (dereference != null)
+                        var dereference = instructionOperand as Dereference;
+                        if (!Settings.NewAddrModelling && dereference != null)
                         {
                             AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, dereference.Reference));
+                        } else if (Settings.NewAddrModelling && dereference != null)
+                        {
+                            throw new NotImplementedException();
+                        }
+                        else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
+                        {
+                            string operand = Helpers.Strings.fixStringLiteral(instructionOperand);
+                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                        } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
+                        {
+                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
+                        } else if (instructionOperand is Reference && Settings.NewAddrModelling)
+                        {
+                            throw new NotImplementedException();
                         } else
                         {
-                            string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                Helpers.Strings.fixStringLiteral(instructionOperand) :
-                instructionOperand.ToString();
-                            AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                            Contract.Assert(false);
                         }
                     }
                 }
+                /*
+                string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
+                Helpers.Strings.fixStringLiteral(instructionOperand) :
+                instructionOperand.ToString();
+                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));*/
 
                 if (instruction.Result is IVariable &&
                     instruction.Result.Type.TypeCode.Equals(PrimitiveTypeCode.String))
