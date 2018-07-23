@@ -1871,6 +1871,7 @@ public class TestsManu : TestsBase
     // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
     [TestMethod]
     [TestCategory("Repro")]//[TestCategory("Manu")]
+    [Ignore]
     public void Boxing2()
     {
         var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
@@ -1888,6 +1889,7 @@ public class TestsManu : TestsBase
     // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
     [TestMethod]
     [TestCategory("Repro")]//[TestCategory("Manu")]
+    [Ignore]
     public void Boxing4()
     {
 
@@ -1921,6 +1923,7 @@ class Test {
     [TestMethod]
     [TestCategory("Repro")]
     [ExpectedException(typeof(NotImplementedException))]
+    [Ignore] // Remove when issue #51 is solved.
     public void ArrayAtomicInitThrowsException1()
     {
 
