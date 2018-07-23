@@ -99,7 +99,7 @@ namespace TinyBCT
                 "the translation will continue silently and the method will be replaced " +
                 "with an extern method (not necessarily a sound over-approximation).");
 
-            p.Setup<bool>('a', "NewAddrModelling")
+            p.Setup<bool>('m', "NewAddrModelling")
                 .Callback(b => NewAddrModelling = b)
                 .SetDefault(false)
                 .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
