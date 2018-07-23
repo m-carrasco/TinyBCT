@@ -40,11 +40,6 @@ var $memoryAddr : HeapAddr;
 var $memoryBool : HeapBool;
 var $memoryObject : HeapObject;
 
-// one heap per each field of every class
-var $Heap$Animal$val1 : InstanceFieldAddr;
-//var $Heap$Animal$f2 : InstanceFieldAddr;
-//var $Heap$Animal$f3 : InstanceFieldAddr;
-
 function {:inline true} LoadInstanceFieldAddr(H: InstanceFieldAddr, o: Object) : Addr
 {
   H[o]
