@@ -15,10 +15,45 @@ namespace TinyBCT
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
     {
+        // hides implementation in super class
         public new string AllocAddr(IVariable var)
         {
             return this.ProcedureCall("AllocAddr", new List<string>(), var.Name);
         }
+
+        // hides implementation in super class
+        //public new string VariableAssignment(string variableA, string expr)
+        //{
+        //    return string.Format("{0} := {1};", variableA, expr);
+        //}
+
+        public new string VariableAssignment(IVariable variableA, IValue value)
+        {
+            Constant cons = value as Constant;
+            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+            {
+                string formatedFloatValue = base.FormatFloatValue(cons);
+            }
+
+            var boogieType = Helpers.GetBoogieType(variableA.Type);
+
+            if (boogieType.Equals("int"))
+                return VariableAssignment("$memoryInt", "WriteInt($memoryInt, " +variableA.Name + ", " + value + " )");
+            else if (boogieType.Equals("bool"))
+                return VariableAssignment("$memoryBool", "WriteInt($memoryBool, " + variableA.Name + ", " + value + " )");
+            else if (boogieType.Equals("Object"))
+                return VariableAssignment("$memoryObject", "WriteInt($memoryObject, " + variableA.Name + ", " + value + " )");
+
+            Contract.Assert(false);
+
+            return "";
+        }
+
+        public new string VariableAssignment(IVariable variableA, string expr)
+        {
+            return VariableAssignment(variableA.ToString(), expr);
+        }
+
     }
 
     public class BoogieGenerator
@@ -37,6 +72,34 @@ namespace TinyBCT
 
             return singleton;
         }
+
+        protected string FormatFloatValue(Constant cons)
+        {
+            // default string representation of floating point types is not suitable for boogie
+            // boogie wants dot instead of ,
+            // "F" forces to add decimal part
+            string str = "";
+            if (cons.Value is Single)
+            {
+                Single v = (Single)cons.Value;
+                str = v.ToString("F").Replace(",", ".");
+            }
+            else if (cons.Value is Double)
+            {
+                Double v = (Double)cons.Value;
+                str = v.ToString("F").Replace(",", ".");
+            }
+            else if (cons.Value is Decimal)
+            {
+                Decimal v = (Decimal)cons.Value;
+                str = v.ToString("F").Replace(",", ".");
+            } else
+            {
+                Contract.Assert(false);
+            }
+
+            return str;
+        } 
 
         // this should be abstract
         public string AllocAddr(IVariable var)
@@ -237,20 +300,7 @@ namespace TinyBCT
                 // default string representation of floating point types is not suitable for boogie
                 // boogie wants dot instead of ,
                 // "F" forces to add decimal part
-                string str = "";
-                if (cons.Value is Single)
-                {
-                    Single v = (Single)cons.Value;
-                    str = v.ToString("F").Replace(",", ".");
-                } else if (cons.Value is Double)
-                {
-                    Double v = (Double)cons.Value;
-                    str = v.ToString("F").Replace(",", ".");
-                } else if (cons.Value is Decimal)
-                {
-                    Decimal v = (Decimal)cons.Value;
-                    str = v.ToString("F").Replace(",", ".");
-                }
+                string str = FormatFloatValue(cons);
 
                 return VariableAssignment(variableA.ToString(), str);
             }
