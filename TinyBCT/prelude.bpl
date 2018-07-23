@@ -3,7 +3,7 @@
 type Addr;
 type Object;
 
-var $Alloc: [Addr]bool;
+var $AllocAddr: [Addr]bool;
 var $AllocObject: [Object]bool;
 
 //const unique null_addr: Addr;
@@ -18,12 +18,12 @@ type HeapObject = [Addr]Object;
 type InstanceFieldAddr = [Object]Addr;
 
 procedure {:inline 1} AllocAddr() returns (x: Addr);
-  modifies $Alloc;
+  modifies $AllocAddr;
 
 implementation {:inline 1} AllocAddr() returns (x: Addr)
 {
-    assume $Alloc[x] == false; //&& x != null_addr;
-    $Alloc[x] := true;
+    assume $AllocAddr[x] == false; //&& x != null_addr;
+    $AllocAddr[x] := true;
 }
 
 procedure {:inline 1} AllocObject() returns (x: Object);
