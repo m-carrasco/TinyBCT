@@ -50,6 +50,16 @@ function {:inline true} StoreInstanceFieldAddr(H: InstanceFieldAddr, o: Object, 
   H[o := v]
 }
 
+function {:inline true} ReadBool(H: HeapBool, a: Addr) : bool
+{
+  H[a]
+}
+
+function {:inline true} WriteBool(H: HeapBool, a: Addr, v : bool) : HeapBool
+{
+  H[a := v]
+}
+
 function {:inline true} ReadInt(H: HeapInt, a: Addr) : int
 {
   H[a]
