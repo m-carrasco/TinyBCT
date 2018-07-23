@@ -164,10 +164,10 @@ public class TestsBase
         Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, string additionalTinyBCTOptions = "")
+    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, bool useStubs = true, string additionalTinyBCTOptions = "")
     {
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
-        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalTinyBCTOptions: additionalTinyBCTOptions);
+        return CorralTestHelperCode(testName, mainMethod, recursionBound, source,useStubs:useStubs, additionalTinyBCTOptions: additionalTinyBCTOptions);
     }
 
     protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "", bool useCSC = false, string additionalTinyBCTOptions = "")
@@ -1699,9 +1699,9 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("Addresses")]
-    public void Test1()
+    public void SyntaxTest1()
     {
-        var corralResult = CorralTestHelper("AddressesSimple", "", 10, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest1", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2683,10 +2683,10 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalTinyBCTOptions = "")
+    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, bool useStubs = true, string additionalTinyBCTOptions = "")
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\");
-        return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalTinyBCTOptions: additionalTinyBCTOptions);
+        return base.CorralTestHelper(testName, mainMethod, recusionBound, useStubs:useStubs, additionalTinyBCTOptions: additionalTinyBCTOptions);
     }
  }
 

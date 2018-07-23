@@ -8,5 +8,14 @@ namespace Test
 {
     class AddressesSimple
     {
+        public static void SyntaxTest1()
+        {
+            int x;
+            x = 1;
+            bool y;
+            y = true;
+
+            bool w = true;
+        }
     }
 }
