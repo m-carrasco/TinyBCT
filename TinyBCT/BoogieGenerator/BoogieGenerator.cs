@@ -15,7 +15,10 @@ namespace TinyBCT
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
     {
-
+        public new string AllocAddr(IVariable var)
+        {
+            return this.ProcedureCall("AllocAddr", new List<string>(), var.Name);
+        }
     }
 
     public class BoogieGenerator
@@ -33,6 +36,12 @@ namespace TinyBCT
             }
 
             return singleton;
+        }
+
+        // this should be abstract
+        public string AllocAddr(IVariable var)
+        {
+            throw new NotImplementedException();
         }
 
         public string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
