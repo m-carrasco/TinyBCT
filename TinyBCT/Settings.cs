@@ -27,6 +27,7 @@ namespace TinyBCT
         public static bool CheckNullDereferences = false;
         public static bool DebugLargeDLL = false;
         public static bool SilentExceptionsForMethods = false;
+        public static bool NewAddrModelling = false;
 
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
@@ -97,6 +98,11 @@ namespace TinyBCT
                 "If InvalidOperationException is thrown during a method translation, " +
                 "the translation will continue silently and the method will be replaced " +
                 "with an extern method (not necessarily a sound over-approximation).");
+
+            p.Setup<bool>('a', "NewAddrModelling")
+                .Callback(b => NewAddrModelling = b)
+                .SetDefault(false)
+                .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
 
             var result = p.Parse(args);
 

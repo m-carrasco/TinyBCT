@@ -11,6 +11,13 @@ using TinyBCT.Translators;
 
 namespace TinyBCT
 {
+    // TODO: improve inheritance
+    // BoogieGenerator class should not have memory specific methods
+    public class BoogieGeneratorAddr : BoogieGenerator
+    {
+
+    }
+
     public class BoogieGenerator
     {
         private static BoogieGenerator singleton;
@@ -18,7 +25,12 @@ namespace TinyBCT
         public static BoogieGenerator Instance()
         {
             if (singleton == null)
-                singleton = new BoogieGenerator();
+            {
+                if (!Settings.NewAddrModelling)
+                    singleton = new BoogieGenerator();
+                else
+                    singleton = new BoogieGeneratorAddr();
+            }
 
             return singleton;
         }
