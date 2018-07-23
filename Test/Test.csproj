@@ -143,6 +143,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AddressesSimple.cs" />
     <Compile Include="Arrays.cs" />
     <Compile Include="As.cs" />
     <Compile Include="As2.cs" />

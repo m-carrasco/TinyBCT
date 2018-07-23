@@ -1698,6 +1698,14 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test1()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "", 10, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
     [TestCategory("Manu")]
     public void ModOperator1()
     {
