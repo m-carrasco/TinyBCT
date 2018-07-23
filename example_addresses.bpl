@@ -13,17 +13,12 @@ type HeapAddr = [Addr]Addr;
 type HeapObject = [Addr]Object;
 
 // for fields
-type HeapFieldInt = [Object]int;
-type HeapFieldBool = [Object]bool;
-type HeapFieldAddr = [Object]Addr;
-type HeapFieldObject = [Object]Object;
-
 type InstanceFieldAddr = [Object]Addr;
 
-procedure {:inline 1} Alloc() returns (x: Addr);
+procedure {:inline 1} AllocAddr() returns (x: Addr);
   modifies $Alloc;
 
-implementation {:inline 1} Alloc() returns (x: Addr)
+implementation {:inline 1} AllocAddr() returns (x: Addr)
 {
     assume $Alloc[x] == false; //&& x != null_addr;
     $Alloc[x] := true;
@@ -94,7 +89,7 @@ procedure AllocAnimalInstanceFields(o : Object)
   var _a1 : Addr;
 
   // val1 allocation
-  call _a1 := Alloc();
+  call _a1 := AllocAddr();
   $memoryInt := WriteInt($memoryInt, _a1, 0);
 
   $Heap$Animal$val1 := StoreInstanceFieldAddr($Heap$Animal$val1, o, _a1);
@@ -121,13 +116,13 @@ procedure sum(x_value: int, y_value : int) returns (return_value: int)
   var $res_read : int;
   
   // alloc stack space and store argument values there
-  call _x := Alloc();
+  call _x := AllocAddr();
   $memoryInt := WriteInt($memoryInt, _x, x_value);
-  call _y := Alloc();
+  call _y := AllocAddr();
   $memoryInt := WriteInt($memoryInt, _y, y_value);
   
   // alloc stack space for local variables (not arguments)
-  call _res := Alloc();
+  call _res := AllocAddr();
   $memoryInt := WriteInt($memoryInt, _res, 0);
   
   // read x and y values for sum
@@ -180,7 +175,7 @@ procedure Main_Test1()
   var _r4 : int;
 
   // allocating
-  call _a := Alloc();
+  call _a := AllocAddr();
 
   call _r1 := AllocObject();
   call AllocAnimalInstanceFields(_r1);
@@ -210,7 +205,7 @@ procedure Animal.Foo(a_value: Object)
   var _r2 : Addr;
 
   // allocate space for stack and copy argument values
-  call _a := Alloc();
+  call _a := AllocAddr();
   $memoryObject := WriteObject($memoryObject, _a, a_value);
 
   // read object from stack
@@ -284,12 +279,12 @@ procedure Main_Test2()
   var _temp1 : Object;
 
   // alloc stack
-  call _x := Alloc();
-  call _y := Alloc(); 
-  call _z := Alloc();
-  call _w := Alloc();
-  call _r7 := Alloc(); 
-  call _r8 := Alloc();
+  call _x := AllocAddr();
+  call _y := AllocAddr(); 
+  call _z := AllocAddr();
+  call _w := AllocAddr();
+  call _r7 := AllocAddr(); 
+  call _r8 := AllocAddr();
 
   // x = 5;
   $memoryInt := WriteInt($memoryInt, _x, 5);
