@@ -16,7 +16,7 @@ namespace TinyBCT
     public class BoogieGeneratorAddr : BoogieGenerator
     {
         // hides implementation in super class
-        public new string AllocAddr(IVariable var)
+        public override string AllocAddr(IVariable var)
         {
             return this.ProcedureCall("AllocAddr", new List<string>(), var.Name);
         }
@@ -27,7 +27,43 @@ namespace TinyBCT
         //    return string.Format("{0} := {1};", variableA, expr);
         //}
 
-        public new string VariableAssignment(IVariable variableA, IValue value)
+        // it is IVariable for now, but it may have to be something more generic
+        public override string ReadAddr(IVariable var)
+        {
+            var boogieType = Helpers.GetBoogieType(var.Type);
+
+            if (boogieType.Equals("int"))
+                return String.Format("ReadInt({0}, {1})", "$memoryInt", var.Name);
+            else if (boogieType.Equals("bool"))
+                return String.Format("ReadBool({0}, {1})", "$memoryBool", var.Name);
+            else if (boogieType.Equals("Object"))
+                return String.Format("ReadObject({0}, {1})", "$memoryObject", var.Name);
+
+            Contract.Assert(false);
+            return "";
+        }
+
+        public override string WriteAddr(IVariable addr, IValue value)
+        {
+            return WriteAddr(addr, value.ToString());
+        }
+
+        public override string WriteAddr(IVariable addr, String value)
+        {
+            var boogieType = Helpers.GetBoogieType(addr.Type);
+
+            if (boogieType.Equals("int"))
+                return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addr.Name, value));
+            else if (boogieType.Equals("bool"))
+                return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addr.Name, value));
+            else if (boogieType.Equals("Object"))
+                return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addr.Name, value));
+
+            Contract.Assert(false);
+            return "";
+        }
+
+        public override string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
             if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
@@ -37,19 +73,21 @@ namespace TinyBCT
 
             var boogieType = Helpers.GetBoogieType(variableA.Type);
 
-            if (boogieType.Equals("int"))
-                return VariableAssignment("$memoryInt", "WriteInt($memoryInt, " +variableA.Name + ", " + value + " )");
-            else if (boogieType.Equals("bool"))
-                return VariableAssignment("$memoryBool", "WriteInt($memoryBool, " + variableA.Name + ", " + value + " )");
-            else if (boogieType.Equals("Object"))
-                return VariableAssignment("$memoryObject", "WriteInt($memoryObject, " + variableA.Name + ", " + value + " )");
+            if (value is Constant)
+            {
+                return WriteAddr(variableA, value);
+            } else if (value is IVariable)
+            {
+                return WriteAddr(variableA, ReadAddr(value as IVariable));
+            }
+
 
             Contract.Assert(false);
 
             return "";
         }
 
-        public new string VariableAssignment(IVariable variableA, string expr)
+        public override string VariableAssignment(IVariable variableA, string expr)
         {
             return VariableAssignment(variableA.ToString(), expr);
         }
@@ -99,10 +137,28 @@ namespace TinyBCT
             }
 
             return str;
-        } 
+        }
 
         // this should be abstract
-        public string AllocAddr(IVariable var)
+        public virtual string WriteAddr(IVariable addr, String value)
+        {
+            throw new NotImplementedException();
+        }
+
+        // this should be abstract
+        public virtual string WriteAddr(IVariable addr, IValue value)
+        {
+            throw new NotImplementedException();
+        }
+
+        // this should be abstract
+        public virtual string ReadAddr(IVariable var)
+        {
+            throw new NotImplementedException();
+        }
+
+        // this should be abstract
+        public virtual string AllocAddr(IVariable var)
         {
             throw new NotImplementedException();
         }
@@ -292,7 +348,7 @@ namespace TinyBCT
                 return string.Format("call {0}({1});", boogieProcedureName, arguments);
         }
 
-        public string VariableAssignment(IVariable variableA, IValue value)
+        public virtual string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
             if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
@@ -308,7 +364,7 @@ namespace TinyBCT
             return VariableAssignment(variableA.ToString(), value.ToString());
         }
 
-        public string VariableAssignment(IVariable variableA, string expr)
+        public virtual string VariableAssignment(IVariable variableA, string expr)
         {
             return VariableAssignment(variableA.ToString(), expr);
         }
