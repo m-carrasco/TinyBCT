@@ -2750,7 +2750,7 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(20000)]
     [TestCategory("Manu")]
     public void ExceptionTestRethrow2()
     {
