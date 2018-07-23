@@ -1,4 +1,93 @@
-﻿type Ref;
+﻿// ************** NEW MEMORY MODELLING ************
+
+type Addr;
+type Object;
+
+var $Alloc: [Addr]bool;
+var $AllocObject: [Object]bool;
+
+//const unique null_addr: Addr;
+const unique null_object : Object;
+
+type HeapInt = [Addr]int;
+type HeapBool = [Addr]bool;
+type HeapAddr = [Addr]Addr;
+type HeapObject = [Addr]Object;
+
+// for fields
+type InstanceFieldAddr = [Object]Addr;
+
+procedure {:inline 1} AllocAddr() returns (x: Addr);
+  modifies $Alloc;
+
+implementation {:inline 1} AllocAddr() returns (x: Addr)
+{
+    assume $Alloc[x] == false; //&& x != null_addr;
+    $Alloc[x] := true;
+}
+
+procedure {:inline 1} AllocObject() returns (x: Object);
+  modifies $AllocObject;
+
+implementation {:inline 1} AllocObject() returns (x: Object)
+{
+    assume $AllocObject[x] == false && x != null_object;
+    $AllocObject[x] := true;
+}
+
+var $memoryInt : HeapInt;
+var $memoryAddr : HeapAddr;
+var $memoryBool : HeapBool;
+var $memoryObject : HeapObject;
+
+// one heap per each field of every class
+var $Heap$Animal$val1 : InstanceFieldAddr;
+//var $Heap$Animal$f2 : InstanceFieldAddr;
+//var $Heap$Animal$f3 : InstanceFieldAddr;
+
+function {:inline true} LoadInstanceFieldAddr(H: InstanceFieldAddr, o: Object) : Addr
+{
+  H[o]
+}
+
+function {:inline true} StoreInstanceFieldAddr(H: InstanceFieldAddr, o: Object, v : Addr) : InstanceFieldAddr
+{
+  H[o := v]
+}
+
+function {:inline true} ReadInt(H: HeapInt, a: Addr) : int
+{
+  H[a]
+}
+
+function {:inline true} WriteInt(H: HeapInt, a: Addr, v : int) : HeapInt
+{
+  H[a := v]
+}
+
+function {:inline true} ReadAddr(H: HeapAddr, a: Addr) : Addr
+{
+  H[a]
+}
+
+function {:inline true} WriteAddr(H: HeapAddr, a: Addr, v : Addr) : HeapAddr
+{
+  H[a := v]
+}
+
+function {:inline true} ReadObject(H: HeapObject, a: Addr) : Object
+{
+  H[a]
+}
+
+function {:inline true} WriteObject(H: HeapObject, a: Addr, v : Object) : HeapObject
+{
+  H[a := v]
+}
+
+// **************************
+
+type Ref;
 
 type Field;
 
