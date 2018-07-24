@@ -146,6 +146,11 @@ namespace TinyBCT
 
             return sb.ToString();
         }
+
+        protected override string ValueOfVariable(IVariable var)
+        {
+            return ReadAddr(var);
+        }
     }
 
     public class BoogieGeneratorALaBCT : BoogieGenerator
@@ -185,6 +190,12 @@ namespace TinyBCT
         public override string WriteAddr(IVariable addr, IValue value)
         {
             return String.Empty;
+        }
+
+        // in this memory addressing the value of a variable is the variable itself 
+        protected override string ValueOfVariable(IVariable var)
+        {
+            return var.Name;
         }
     }
 
@@ -244,6 +255,8 @@ namespace TinyBCT
         public abstract string ReadAddr(IVariable var);
 
         public abstract string AllocAddr(IVariable var);
+
+        protected abstract string ValueOfVariable(IVariable var);
 
         public string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
         {
@@ -397,18 +410,22 @@ namespace TinyBCT
             var boogieProcedureName = Helpers.GetMethodName(procedure);
 
             int s = procedure.IsStatic ? 0 : 1;
-
-            // check behavior with out arguments
-            var referencedIndexes = procedure.Parameters.Where(p => p.IsByReference).Select(p => p.Index+s);
-
             var resultArguments = new List<String>();
-            foreach (var i in referencedIndexes)
-                resultArguments.Add(argumentList[i].Name);
+
+            // using inheritance this should be moved to the boogie generator a la bct
+            if (!Settings.NewAddrModelling)
+            {
+                // check behavior with out arguments
+                var referencedIndexes = procedure.Parameters.Where(p => p.IsByReference).Select(p => p.Index + s);
+
+                foreach (var i in referencedIndexes)
+                    resultArguments.Add(ValueOfVariable(argumentList[i]));
+            }
 
             if (resultVariable != null)
-                resultArguments.Add(resultVariable.Name);
+                resultArguments.Add(ValueOfVariable(resultVariable));
 
-            return ProcedureCall(boogieProcedureName, argumentList.Select(v => v.Name).ToList(), resultArguments);
+            return ProcedureCall(boogieProcedureName, argumentList.Select(v => ValueOfVariable(v)).ToList(), resultArguments);
         }
 
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, string resultVariable = null)
