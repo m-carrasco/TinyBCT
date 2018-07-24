@@ -127,7 +127,13 @@ namespace TinyBCT.Translators
             else if (ArrayTranslation.IsArrayTranslation(instructions, idx))
                 translation = new ArrayTranslation(this);
             else
-                translation = new NullDereferenceInstrumenter(this);
+            {
+                if (Settings.NewAddrModelling)
+                    translation = new SimpleTranslation(this);
+                else
+                    // for now this is disable for new memory modeling
+                    translation = new NullDereferenceInstrumenter(this);
+            }
         }
 
         protected abstract class Translation : InstructionVisitor
