@@ -66,7 +66,8 @@ namespace TinyBCT
             return WriteAddr(addr, value.ToString());
         }
 
-        public override string WriteAddr(IVariable addr, String value)
+        // it may have to be public but i have not found an example yet.
+        private string WriteAddr(IVariable addr, String value)
         {
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
@@ -110,9 +111,84 @@ namespace TinyBCT
             throw new NotImplementedException();
         }
 
+        public override string AllocLocalVariables(IList<IVariable> variables)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var v in variables)
+                sb.AppendLine(AllocAddr(v));
+
+            // load values into stack space
+            foreach (var paramVariable in variables.Where(v => v.IsParameter))
+            {
+                // paramValue are variables in the three address code
+                // however in boogie they are treated as values
+                // those values are loaded into the stack memory space
+
+                /*
+                 void foo(int x){
+                 }
+
+                 procedure foo(x : int){
+                    var _x : Addr; // stack space (done in previous loop)
+                    x_ := AllocAddr();
+
+                    data(_x) := x; // we are doing this conceptually
+                 }
+                 */
+
+                Constant constantValue = new Constant(paramVariable);
+                constantValue.Type = paramVariable.Type;
+
+                // boogie generator knows that must fetch paramVariable's address (_x and not x)
+                sb.AppendLine(VariableAssignment(paramVariable, constantValue));
+            }
+
+            return sb.ToString();
+        }
     }
 
-    public class BoogieGenerator
+    public class BoogieGeneratorALaBCT : BoogieGenerator
+    {
+        public override string AllocLocalVariables(IList<IVariable> variables)
+        {
+            return String.Empty;
+        }
+
+        public override string DeclareLocalVariables(IList<IVariable> variables)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            variables.Where(v => !v.IsParameter)
+            .Select(v =>
+                    String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
+            return sb.ToString();
+        }
+
+        public override string VarAddress(IVariable var)
+        {
+            return var.Name;
+        }
+
+        public override string ReadAddr(IVariable var)
+        {
+            return String.Empty;
+        }
+
+        public override string AllocAddr(IVariable var)
+        {
+            return String.Empty;
+        }
+
+        public override string WriteAddr(IVariable addr, IValue value)
+        {
+            return String.Empty;
+        }
+    }
+
+    public abstract class BoogieGenerator
     {
         private static BoogieGenerator singleton;
 
@@ -121,7 +197,7 @@ namespace TinyBCT
             if (singleton == null)
             {
                 if (!Settings.NewAddrModelling)
-                    singleton = new BoogieGenerator();
+                    singleton = new BoogieGeneratorALaBCT();
                 else
                     singleton = new BoogieGeneratorAddr();
             }
@@ -157,46 +233,17 @@ namespace TinyBCT
             return str;
         }
 
-        public virtual string DeclareLocalVariables(IList<IVariable> variables)
-        {
-            StringBuilder sb = new StringBuilder();
+        public abstract string DeclareLocalVariables(IList<IVariable> variables);
 
-            variables.Where(v => !v.IsParameter)
-            .Select(v =>
-                    String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
-            ).ToList().ForEach(str => sb.AppendLine(str));
+        public abstract string AllocLocalVariables(IList<IVariable> variables);
 
-            return sb.ToString();
-        }
+        public abstract string VarAddress(IVariable var);
 
-        public virtual string VarAddress(IVariable var)
-        {
-            return var.Name;
-        }
+        public abstract string WriteAddr(IVariable addr, IValue value);
 
-        // this should be abstract
-        public virtual string WriteAddr(IVariable addr, String value)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract string ReadAddr(IVariable var);
 
-        // this should be abstract
-        public virtual string WriteAddr(IVariable addr, IValue value)
-        {
-            throw new NotImplementedException();
-        }
-
-        // this should be abstract
-        public virtual string ReadAddr(IVariable var)
-        {
-            throw new NotImplementedException();
-        }
-
-        // this should be abstract
-        public virtual string AllocAddr(IVariable var)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract string AllocAddr(IVariable var);
 
         public string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
         {
@@ -219,6 +266,7 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(value.Type);
             return PrimitiveType2Union(boogieType, value.ToString());
         }
+
         public string PrimitiveType2Union(string boogieType, string value)
         {
             // int -> Int, bool -> Bool
