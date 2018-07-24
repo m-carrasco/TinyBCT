@@ -100,14 +100,14 @@ type Union = Ref;
 
 type HeapType = [Ref][Field]Union;
 
-const unique null: Ref;
+const {:allocated} unique null: Ref;
 
 var $Alloc: [Ref]bool;
 
-procedure {:inline 1} Alloc() returns (x: Ref);
+procedure {:allocator} {:inline 1} Alloc() returns (x: Ref);
   modifies $Alloc;
 
-implementation {:inline 1} Alloc() returns (x: Ref)
+implementation {:allocator} {:inline 1} Alloc() returns (x: Ref)
 {
     assume $Alloc[x] == false && x != null;
     $Alloc[x] := true;
@@ -211,14 +211,19 @@ procedure $ReadArrayElement(array: Ref, index : int) returns ($result: Union);
 implementation $ReadArrayElement(array: Ref, index : int) returns ($result: Union)
 {
     //assert $ArrayLength(array) > index && index >= 0;
-	$result := $ArrayContents[array][index];
+	var m : [int]Union;
+	m := $ArrayContents[array];
+	$result := m[index];
 }
 
 procedure $WriteArrayElement(array: Ref, index : int, data : Union);
 implementation $WriteArrayElement(array: Ref, index : int, data : Union)
 {
     //assert $ArrayLength(array) > index && index >= 0;
-	$ArrayContents := $ArrayContents[array := $ArrayContents[array][index := data]];
+	var m : [int]Union;
+	m := $ArrayContents[array];
+	m[index] := data;
+	$ArrayContents[array] := m;
 }
 
 // atomic initialization of array elements
@@ -227,7 +232,7 @@ implementation $HavocArrayElementsNoNull(array: Ref)
 {
 	var $newArrayContents: [int]Union;
 	assume (forall $tmp1: int :: $newArrayContents[$tmp1] != null);
-	$ArrayContents := $ArrayContents[array := $newArrayContents];
+	$ArrayContents[array] := $newArrayContents;
 }
 
 const unique $BoolValueType: int;

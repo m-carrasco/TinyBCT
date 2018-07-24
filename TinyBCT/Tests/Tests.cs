@@ -1017,6 +1017,117 @@ class Test {
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation6", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, additionalTinyBCTOptions: "/checkNullDereferences=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation7()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main() {
+        int [] a = null;
+        // This should be instrumented for null pointer dereference (with an assume statement) and the assert false should not be reached.
+        int x = a[0];
+        Contract.Assert(false);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation8()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main() {
+        int [] a = null;
+        // This should be instrumented for null pointer dereference (with an assume statement) and the assert false should not be reached.
+        int x = a.Length;
+        Contract.Assert(false);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation9()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main() {
+        int [] a = null;
+        // This should be instrumented for null pointer dereference (with an assume statement) and the assert false should not be reached.
+        a[0] = 5;
+        Contract.Assert(false);
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation10()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main() {
+        int [] a = null;
+        // This should be instrumented for null pointer dereference with an assertion that should fail.
+        int x = a[0];
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, additionalTinyBCTOptions: "/checkNullDereferences=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation11()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main() {
+        int [] a = null;
+        // This should be instrumented for null pointer dereference with an assertion that should fail.
+        int x = a.Length;
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, additionalTinyBCTOptions: "/checkNullDereferences=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestCategory("NullPtrInstrumentation")]
+    [TestMethod]
+    public void TestNullPointerInstrumentation12()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+class Test {
+    public static void Main() {
+        int [] a = null;
+        // This should be instrumented for null pointer dereference with an assertion that should fail.
+        a[0] = 5;
+    }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, additionalTinyBCTOptions: "/checkNullDereferences=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestCategory("DocumentedImprecision")]
     [TestMethod]
@@ -1740,6 +1851,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("Manu")]
+    [Ignore] // Remove (or change test) once bug related to ref keyword is fixed
     public void RefKeyword1()
     {
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10);
@@ -1748,6 +1860,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("Manu")]
+    [Ignore] // Remove (or change test) once bug related to ref keyword is fixed
     public void RefKeyword2()
     {
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10);
@@ -1768,6 +1881,7 @@ public class TestsManu : TestsBase
     // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
     [TestMethod]
     [TestCategory("Repro")]//[TestCategory("Manu")]
+    [Ignore]
     public void Boxing2()
     {
         var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
@@ -1785,6 +1899,7 @@ public class TestsManu : TestsBase
     // MOVE ONEC EDGARD FIXED ISSUE https://github.com/edgardozoppi/analysis-net/issues/7
     [TestMethod]
     [TestCategory("Repro")]//[TestCategory("Manu")]
+    [Ignore]
     public void Boxing4()
     {
 
@@ -1815,10 +1930,10 @@ class Test {
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_NoBugs", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
-
     [TestMethod]
     [TestCategory("Repro")]
     [ExpectedException(typeof(NotImplementedException))]
+    [Ignore] // Remove when issue #51 is solved.
     public void ArrayAtomicInitThrowsException1()
     {
 
@@ -2643,7 +2758,7 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(20000)]
     [TestCategory("Manu")]
     public void ExceptionTestRethrow2()
     {
