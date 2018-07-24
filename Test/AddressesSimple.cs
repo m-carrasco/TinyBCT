@@ -17,5 +17,10 @@ namespace Test
 
             bool w = true;
         }
+
+        public static void SyntaxTest2(int x, bool y, Object z)
+        {
+            y = true;
+        }
     }
 }
