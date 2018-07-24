@@ -11,6 +11,7 @@ using TinyBCT.Translators;
 
 namespace TinyBCT
 {
+
     // TODO: improve inheritance
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
@@ -18,7 +19,7 @@ namespace TinyBCT
         // hides implementation in super class
         public override string AllocAddr(IVariable var)
         {
-            return this.ProcedureCall("AllocAddr", new List<string>(), var.Name);
+            return this.ProcedureCall("AllocAddr", new List<string>(), VarAddress(var));
         }
 
         // hides implementation in super class
@@ -27,17 +28,34 @@ namespace TinyBCT
         //    return string.Format("{0} := {1};", variableA, expr);
         //}
 
+
+        // the variable that represents var's address is $_var.name
+        public override string VarAddress(IVariable var)
+        {
+            return String.Format("_{0}", var.Name);
+        }
+
+        public override string DeclareLocalVariables(IList<IVariable> variables)
+        {
+            StringBuilder sb = new StringBuilder();
+            variables.Select(v =>
+                    String.Format("\tvar {0} : {1};", VarAddress(v), "Addr")
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
+            return sb.ToString();
+        }
+
         // it is IVariable for now, but it may have to be something more generic
         public override string ReadAddr(IVariable var)
         {
             var boogieType = Helpers.GetBoogieType(var.Type);
 
             if (boogieType.Equals("int"))
-                return String.Format("ReadInt({0}, {1})", "$memoryInt", var.Name);
+                return String.Format("ReadInt({0}, {1})", "$memoryInt", VarAddress(var));
             else if (boogieType.Equals("bool"))
-                return String.Format("ReadBool({0}, {1})", "$memoryBool", var.Name);
+                return String.Format("ReadBool({0}, {1})", "$memoryBool", VarAddress(var));
             else if (boogieType.Equals("Object"))
-                return String.Format("ReadObject({0}, {1})", "$memoryObject", var.Name);
+                return String.Format("ReadObject({0}, {1})", "$memoryObject", VarAddress(var));
 
             Contract.Assert(false);
             return "";
@@ -53,11 +71,11 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
             if (boogieType.Equals("int"))
-                return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addr.Name, value));
+                return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", VarAddress(addr), value));
             else if (boogieType.Equals("bool"))
-                return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addr.Name, value));
+                return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", VarAddress(addr), value));
             else if (boogieType.Equals("Object"))
-                return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addr.Name, value));
+                return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", VarAddress(addr), value));
 
             Contract.Assert(false);
             return "";
@@ -89,7 +107,7 @@ namespace TinyBCT
 
         public override string VariableAssignment(IVariable variableA, string expr)
         {
-            return VariableAssignment(variableA.ToString(), expr);
+            throw new NotImplementedException();
         }
 
     }
@@ -137,6 +155,23 @@ namespace TinyBCT
             }
 
             return str;
+        }
+
+        public virtual string DeclareLocalVariables(IList<IVariable> variables)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            variables.Where(v => !v.IsParameter)
+            .Select(v =>
+                    String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
+            return sb.ToString();
+        }
+
+        public virtual string VarAddress(IVariable var)
+        {
+            return var.Name;
         }
 
         // this should be abstract

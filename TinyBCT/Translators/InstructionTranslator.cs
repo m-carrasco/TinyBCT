@@ -647,6 +647,7 @@ namespace TinyBCT.Translators
                     instructionOperand = (instructionOperand as Reference).Value;
                 } else if (Settings.NewAddrModelling && instructionOperand is Reference)
                 {
+
                     throw new NotImplementedException();
                 }
             
@@ -699,8 +700,17 @@ namespace TinyBCT.Translators
                     }
                     else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
                     {
-                        string operand = Helpers.Strings.fixStringLiteral(instructionOperand);
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
+                        // strings values that appear in the three address code are declared globally in the .bpl
+                        // stringVariableName is the name of the declared global variable
+
+                        string stringVariableName = Helpers.Strings.fixStringLiteral(instructionOperand);
+
+                        // it is not a LocalVariable but it is useful to declare it at least as variable
+                        // otherwise BoogieGenerator would work with a plain string
+                        IVariable var = new LocalVariable(stringVariableName, instTranslator.method);
+                        var.Type = instructionOperand.Type;
+
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, var));
                     } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
