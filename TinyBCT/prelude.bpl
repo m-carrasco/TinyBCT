@@ -1,7 +1,9 @@
 ﻿// ************** NEW MEMORY MODELLING ************
 
 type Addr;
-type Object;
+type Object = Union;
+// already declared in old prelude
+// type Union;
 
 var $AllocAddr: [Addr]bool;
 var $AllocObject: [Object]bool;
