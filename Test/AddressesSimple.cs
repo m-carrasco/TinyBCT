@@ -22,5 +22,19 @@ namespace Test
         {
             y = true;
         }
+
+        public static void SyntaxTest3(AddressesSimple a)
+        {
+            int i = a.i;
+        }
+
+        public static void SyntaxTest4()
+        {
+            int localVar = z;
+        }
+
+        static int z;
+
+        int i;
     }
 }

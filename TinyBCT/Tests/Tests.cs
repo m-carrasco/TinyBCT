@@ -1817,6 +1817,22 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
+    [TestCategory("Addresses")]
+    public void SyntaxTest4()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest4", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void SyntaxTest3()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest3$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
     [TestCategory("Manu")]
     public void ModOperator1()
     {
