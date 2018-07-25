@@ -71,6 +71,8 @@ namespace TinyBCT
                 return String.Format("ReadBool({0}, {1})", "$memoryBool", addr.Expr);
             else if (boogieType.Equals("Object"))
                 return String.Format("ReadObject({0}, {1})", "$memoryObject", addr.Expr);
+            else if (boogieType.Equals("real"))
+                return String.Format("ReadReal({0}, {1})", "$memoryReal", addr.Expr);
 
             Contract.Assert(false);
             return "";
@@ -92,6 +94,8 @@ namespace TinyBCT
                 return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", VarAddress(addr), value));
             else if (boogieType.Equals("Object"))
                 return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", VarAddress(addr), value));
+            else if (boogieType.Equals("real"))
+                return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", VarAddress(addr), value));
 
             Contract.Assert(false);
             return "";

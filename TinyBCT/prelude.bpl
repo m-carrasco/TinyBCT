@@ -13,6 +13,7 @@ const unique null_object : Object;
 
 type HeapInt = [Addr]int;
 type HeapBool = [Addr]bool;
+type HeapReal = [Addr]real;
 type HeapAddr = [Addr]Addr;
 type HeapObject = [Addr]Object;
 
@@ -40,6 +41,7 @@ implementation {:inline 1} AllocObject() returns (x: Object)
 var $memoryInt : HeapInt;
 var $memoryAddr : HeapAddr;
 var $memoryBool : HeapBool;
+var $memoryReal : HeapReal;
 var $memoryObject : HeapObject;
 
 function {:inline true} LoadInstanceFieldAddr(H: InstanceFieldAddr, o: Object) : Addr
@@ -71,6 +73,17 @@ function {:inline true} WriteInt(H: HeapInt, a: Addr, v : int) : HeapInt
 {
   H[a := v]
 }
+
+function {:inline true} ReadReal(H: HeapReal, a: Addr) : Real
+{
+  H[a]
+}
+
+function {:inline true} WriteReal(H: HeapReal, a: Addr, v : int) : HeapReal
+{
+  H[a := v]
+}
+
 
 function {:inline true} ReadAddr(H: HeapAddr, a: Addr) : Addr
 {
