@@ -79,7 +79,7 @@ function {:inline true} ReadReal(H: HeapReal, a: Addr) : real
   H[a]
 }
 
-function {:inline true} WriteReal(H: HeapReal, a: Addr, v : int) : HeapReal
+function {:inline true} WriteReal(H: HeapReal, a: Addr, v : real) : HeapReal
 {
   H[a := v]
 }
