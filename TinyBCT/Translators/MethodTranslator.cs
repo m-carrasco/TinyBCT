@@ -164,14 +164,14 @@ namespace TinyBCT
 
         String TranslateReturnTypeIfAny()
         {
-            if (Helpers.GetMethodBoogieReturnType(methodDefinition).Equals("Void") && !methodDefinition.Parameters.Any(p => p.IsByReference || p.IsOut))
+            if (Helpers.GetMethodBoogieReturnType(methodDefinition).Equals("Void") &&  (!methodDefinition.Parameters.Any(p => p.IsByReference || p.IsOut) && !Settings.NewAddrModelling))
             {
                 return String.Empty;
             }
             else
             {
                 var returnVariables = new List<String>();
-                returnVariables = methodDefinition.Parameters.Where(p => p.IsByReference).Select(p => String.Format("{0}$out : {1}", p.Name.Value, Helpers.GetBoogieType(p.Type))).ToList();
+                returnVariables = methodDefinition.Parameters.Where(p => p.IsByReference && !Settings.NewAddrModelling).Select(p => String.Format("{0}$out : {1}", p.Name.Value, Helpers.GetBoogieType(p.Type))).ToList();
                 if (!Helpers.GetMethodBoogieReturnType(methodDefinition).Equals("Void"))
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodDefinition)));
 

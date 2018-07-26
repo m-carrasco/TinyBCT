@@ -73,6 +73,8 @@ namespace TinyBCT
                 return String.Format("ReadObject({0}, {1})", "$memoryObject", addr.Expr);
             else if (boogieType.Equals("real"))
                 return String.Format("ReadReal({0}, {1})", "$memoryReal", addr.Expr);
+            else if (boogieType.Equals("Addr"))
+                return String.Format("ReadAddr({0}, {1})", "$memoryAddr", addr.Expr);
 
             Contract.Assert(false);
             return "";
@@ -96,6 +98,8 @@ namespace TinyBCT
                 return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", VarAddress(addr), value));
             else if (boogieType.Equals("real"))
                 return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", VarAddress(addr), value));
+            else if (boogieType.Equals("Addr"))
+                return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", VarAddress(addr), value));
 
             Contract.Assert(false);
             return "";
@@ -116,7 +120,19 @@ namespace TinyBCT
                 return WriteAddr(variableA, value);
             } else if (value is IVariable)
             {
-                return WriteAddr(variableA, ReadAddr(value as IVariable));
+                return WriteAddr(variableA, ValueOfVariable(value as IVariable));
+            } else if (value is Dereference)
+            {
+                var dereference = value as Dereference;
+                // read addr of the reference
+                // index that addr into the corresponding 'heap'
+                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference));
+                return WriteAddr(variableA, ReadAddr(addr));
+            } else if (value is Reference)
+            {
+                var reference = value as Reference;
+                var addr = AddressOf(reference.Value);
+                return WriteAddr(variableA, addr.ToString());
             }
 
             Contract.Assert(false);
@@ -176,6 +192,43 @@ namespace TinyBCT
             return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
         }
 
+        public AddressExpression AddressOf(IValue value)
+        {
+            if (value is InstanceFieldAccess)
+            {
+                return AddressOf(value as InstanceFieldAccess);
+            }
+            else if (value is StaticFieldAccess)
+            {
+                return AddressOf(value as StaticFieldAccess);
+            }
+            else if (value is IVariable)
+            {
+                return AddressOf(value as IVariable);
+            }
+            else
+                // arrays?
+                throw new NotImplementedException();
+        }
+
+        public AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
+        {
+            return LoadInstanceFieldAddr(instanceFieldAccess.Field, instanceFieldAccess.Instance);
+        }
+
+        public AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
+        {
+            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
+            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
+            return address;
+        }
+
+        public AddressExpression AddressOf(IVariable var)
+        {
+            return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
+        }
+
+
         public override string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
         {
             var fieldAddr = LoadInstanceFieldAddr(instanceFieldAccess.Field, instanceFieldAccess.Instance);
@@ -208,6 +261,31 @@ namespace TinyBCT
 
     public class BoogieGeneratorALaBCT : BoogieGenerator
     {
+        public override string VariableAssignment(IVariable variableA, IValue value)
+        {
+            Constant cons = value as Constant;
+            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+            {
+                // default string representation of floating point types is not suitable for boogie
+                // boogie wants dot instead of ,
+                // "F" forces to add decimal part
+                string str = FormatFloatValue(cons);
+
+                return VariableAssignment(variableA.ToString(), str);
+            } else if (value is Dereference)
+            {
+                var dereference = value as Dereference;
+                return VariableAssignment(variableA, dereference.Reference);
+            }
+
+            return VariableAssignment(variableA.ToString(), value.ToString());
+        }
+
+        public override string VariableAssignment(IVariable variableA, string expr)
+        {
+            return VariableAssignment(variableA.ToString(), expr);
+        }
+
         public override string AllocLocalVariables(IList<IVariable> variables)
         {
             return String.Empty;
@@ -522,26 +600,8 @@ namespace TinyBCT
                 return string.Format("call {0}({1});", boogieProcedureName, arguments);
         }
 
-        public virtual string VariableAssignment(IVariable variableA, IValue value)
-        {
-            Constant cons = value as Constant;
-            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
-            {
-                // default string representation of floating point types is not suitable for boogie
-                // boogie wants dot instead of ,
-                // "F" forces to add decimal part
-                string str = FormatFloatValue(cons);
-
-                return VariableAssignment(variableA.ToString(), str);
-            }
-
-            return VariableAssignment(variableA.ToString(), value.ToString());
-        }
-
-        public virtual string VariableAssignment(IVariable variableA, string expr)
-        {
-            return VariableAssignment(variableA.ToString(), expr);
-        }
+        public abstract string VariableAssignment(IVariable variableA, IValue value);
+        public abstract string VariableAssignment(IVariable variableA, string expr);
 
         public string VariableAssignment(string variableA, string expr)
         {

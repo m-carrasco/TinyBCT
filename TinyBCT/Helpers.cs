@@ -103,6 +103,9 @@ namespace TinyBCT
             if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
                 return Settings.NewAddrModelling ? "Object" : "Ref";
 
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && Settings.NewAddrModelling)
+                return "Addr";
+
             if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && !Settings.NewAddrModelling)
             {
                 // manuel: we type a reference accordingly to its target type
@@ -171,13 +174,13 @@ namespace TinyBCT
 
             // manuel: i can't check for p.IsOut with a method reference, i need a method definition
             // i think that is not possible if it is extern.
-            if (Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void") && !methodRef.Parameters.Any(p => p.IsByReference))
+            if (Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void") && !Settings.NewAddrModelling && !methodRef.Parameters.Any(p => p.IsByReference))
             {
                 returnType = String.Empty;
             } else
             {
                 var returnVariables = new List<String>();
-                returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                returnVariables = methodRef.Parameters.Where(p => p.IsByReference && !Settings.NewAddrModelling).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
                 if (!Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void"))
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
 

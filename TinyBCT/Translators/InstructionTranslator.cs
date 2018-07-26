@@ -611,19 +611,22 @@ namespace TinyBCT.Translators
                 IDictionary<IVariable, IVariable> argToNewVariable = null;
                 ImmutableArguments.MethodToMapping.TryGetValue(instTranslator.methodBody, out argToNewVariable);
 
-                foreach (var p in instTranslator.method.Parameters.Where(p => p.IsOut || p.IsByReference))
+                if (!Settings.NewAddrModelling)
                 {
-                    IVariable pInMethodBody = instTranslator.methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
-
-                    if (argToNewVariable != null && argToNewVariable.ContainsKey(pInMethodBody))
+                    foreach (var p in instTranslator.method.Parameters.Where(p => p.IsOut || p.IsByReference))
                     {
-                        AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), argToNewVariable[pInMethodBody].Name));
+                        IVariable pInMethodBody = instTranslator.methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
 
-                        // $outNombreDeLaVariableORIGINAL := variableMapeada;
-                    } else
-                    {
-                        AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), p.Name.Value));
-                        // $outNombreDeLaVariableORIGINAL := nombreDeLaVariableOriginal;
+                        if (argToNewVariable != null && argToNewVariable.ContainsKey(pInMethodBody))
+                        {
+                            AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), argToNewVariable[pInMethodBody].Name));
+
+                            // $outNombreDeLaVariableORIGINAL := variableMapeada;
+                        } else
+                        {
+                            AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), p.Name.Value));
+                            // $outNombreDeLaVariableORIGINAL := nombreDeLaVariableOriginal;
+                        }
                     }
                 }
 
@@ -645,10 +648,6 @@ namespace TinyBCT.Translators
                     // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
                     // TODO(rcastano): check that loaded references are only used in the assumed context.
                     instructionOperand = (instructionOperand as Reference).Value;
-                } else if (Settings.NewAddrModelling && instructionOperand is Reference)
-                {
-
-                    throw new NotImplementedException();
                 }
             
                 if (instructionOperand is InstanceFieldAccess) // memory access handling
@@ -690,15 +689,13 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    var dereference = instructionOperand as Dereference;
-                    if (!Settings.NewAddrModelling && dereference != null)
+                    if (Settings.NewAddrModelling && instructionOperand is Reference)
                     {
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, dereference.Reference));
-                    } else if (Settings.NewAddrModelling && dereference != null)
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
+                    } else if (instructionOperand is Dereference)
                     {
-                        throw new NotImplementedException();
-                    }
-                    else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
+                    } else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
                     {
                         // strings values that appear in the three address code are declared globally in the .bpl
                         // stringVariableName is the name of the declared global variable
@@ -842,7 +839,7 @@ namespace TinyBCT.Translators
                     int arg_i =
                         unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ?
                         i : i + 1;
-                    var paramType = Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
+                    var paramType = unspecializedMethod.Parameters.ElementAt(i).IsByReference && Settings.NewAddrModelling ? "Addr" : Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
                     var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i).Type);
                     if (!paramType.Equals(argType))
                     {
