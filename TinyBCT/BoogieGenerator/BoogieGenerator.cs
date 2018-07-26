@@ -304,7 +304,7 @@ namespace TinyBCT
 
         public override string ReadAddr(IVariable var)
         {
-            return String.Empty;
+            return var.Name;
         }
 
         public override string AllocAddr(IVariable var)
@@ -601,7 +601,7 @@ namespace TinyBCT
             //    opStr = Helpers.Strings.fixStringLiteral(value);
 
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            WriteAddr(AddressOf(staticFieldAccess), ReadAddr(value));
+            sb.Append(WriteAddr(AddressOf(staticFieldAccess), ReadAddr(value)));
             return sb.ToString();
         }
 
