@@ -12,6 +12,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TinyBCT;
 
 namespace TinyBCT.Translators
 {
@@ -900,30 +901,31 @@ namespace TinyBCT.Translators
             public override void Visit(StoreInstruction instruction)
             {
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
+                var staticFieldAccess = instruction.Result as StaticFieldAccess;
+                var dereference = instruction.Result as Dereference;
+
                 if (instanceFieldAccess != null)
                 {
                     var p = boogieGenerator.WriteInstanceField(instanceFieldAccess, instruction.Operand);
                     AddBoogie(p);
                 }
-                else
+                else if (staticFieldAccess != null)
                 {
-                    // static fields are considered global variables
-                    var staticFieldAccess = instruction.Result as StaticFieldAccess;
-                    if (staticFieldAccess != null)
-                    {
-                        var p = boogieGenerator.WriteStaticField(staticFieldAccess, instruction.Operand);
-                        AddBoogie(p);
-                    }
-                    else
-                    {
-                        var dereference = instruction.Result as Dereference;
-                        if (dereference != null)
-                        {
-                            AddBoogie(boogieGenerator.VariableAssignment(dereference.Reference, instruction.Operand));
-                        } else 
-                            Contract.Assume(false);
-                    }
+                    var p = boogieGenerator.WriteStaticField(staticFieldAccess, instruction.Operand);
+                    AddBoogie(p);
+
                 }
+                else if (dereference != null && !Settings.NewAddrModelling)
+                {
+                    AddBoogie(boogieGenerator.VariableAssignment(dereference.Reference, instruction.Operand));
+                }
+                else if (dereference != null && Settings.NewAddrModelling)
+                {
+                    var address = new AddressExpression(dereference.Type,boogieGenerator.ReadAddr(dereference.Reference));
+                    AddBoogie(boogieGenerator.WriteAddr(address, boogieGenerator.ReadAddr(instruction.Operand)));
+                }
+                else
+                    throw new NotImplementedException();
             }
 
             private void ProcessAs(ConvertInstruction instruction)

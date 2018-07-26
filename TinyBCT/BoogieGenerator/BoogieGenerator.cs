@@ -30,6 +30,18 @@ namespace TinyBCT
         public string Expr;
     }
 
+    // todo: refactor hierarchy
+    // only used when we are not using split fields and the old mem addressing
+    public class AddressExpressionUnionHeap : AddressExpression
+    {
+        public IFieldReference Field;
+        public IVariable Instance;
+
+        public AddressExpressionUnionHeap(ITypeReference t, string e) : base(t, e)
+        {
+        }
+    }
+
     // TODO: improve inheritance
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
@@ -37,7 +49,7 @@ namespace TinyBCT
         // hides implementation in super class
         public override string AllocAddr(IVariable var)
         {
-            return this.ProcedureCall("AllocAddr", new List<string>(), VarAddress(var).ToString());
+            return this.ProcedureCall("AllocAddr", new List<string>(), AddressOf(var).ToString());
         }
 
         // hides implementation in super class
@@ -50,7 +62,7 @@ namespace TinyBCT
         {
             StringBuilder sb = new StringBuilder();
             variables.Select(v =>
-                    String.Format("\tvar {0} : {1};", VarAddress(v), "Addr")
+                    String.Format("\tvar {0} : {1};", AddressOf(v), "Addr")
             ).ToList().ForEach(str => sb.AppendLine(str));
 
             return sb.ToString();
@@ -58,7 +70,7 @@ namespace TinyBCT
 
         public override string ReadAddr(IVariable addr)
         {
-            return ReadAddr(VarAddress(addr));
+            return ReadAddr(AddressOf(addr));
         }
 
         public override string ReadAddr(AddressExpression addr)
@@ -80,26 +92,21 @@ namespace TinyBCT
             return "";
         }
 
-        public override string WriteAddr(IVariable addr, IValue value)
-        {
-            return WriteAddr(addr, value.ToString());
-        }
-
         // it may have to be public but i have not found an example yet.
-        private string WriteAddr(IVariable addr, String value)
+        public override string WriteAddr(AddressExpression addr, String value)
         {
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
             if (boogieType.Equals("int"))
-                return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", VarAddress(addr), value));
+                return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addr.Expr, value));
             else if (boogieType.Equals("bool"))
-                return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", VarAddress(addr), value));
+                return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addr.Expr, value));
             else if (boogieType.Equals("Object"))
-                return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", VarAddress(addr), value));
+                return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addr.Expr, value));
             else if (boogieType.Equals("real"))
-                return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", VarAddress(addr), value));
+                return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", addr.Expr, value));
             else if (boogieType.Equals("Addr"))
-                return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", VarAddress(addr), value));
+                return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", addr.Expr, value));
 
             Contract.Assert(false);
             return "";
@@ -187,43 +194,25 @@ namespace TinyBCT
         }
 
         // the variable that represents var's address is $_var.name
-        public override AddressExpression VarAddress(IVariable var)
+        /*public override AddressExpression VarAddress(IVariable var)
         {
             return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
-        }
+        }*/
 
-        public AddressExpression AddressOf(IValue value)
+        public override AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
-            if (value is InstanceFieldAccess)
-            {
-                return AddressOf(value as InstanceFieldAccess);
-            }
-            else if (value is StaticFieldAccess)
-            {
-                return AddressOf(value as StaticFieldAccess);
-            }
-            else if (value is IVariable)
-            {
-                return AddressOf(value as IVariable);
-            }
-            else
-                // arrays?
-                throw new NotImplementedException();
+            String map = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
+            return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance)));
         }
 
-        public AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
-        {
-            return LoadInstanceFieldAddr(instanceFieldAccess.Field, instanceFieldAccess.Instance);
-        }
-
-        public AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
+        public override AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
         {
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
             var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
             return address;
         }
 
-        public AddressExpression AddressOf(IVariable var)
+        public override AddressExpression AddressOf(IVariable var)
         {
             return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
         }
@@ -231,7 +220,7 @@ namespace TinyBCT
 
         public override string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
         {
-            var fieldAddr = LoadInstanceFieldAddr(instanceFieldAccess.Field, instanceFieldAccess.Instance);
+            var fieldAddr = AddressOf(instanceFieldAccess);
             var readValue = ReadAddr(fieldAddr);
 
             // dependiendo del type (del result?) indexo en el $memoryInt
@@ -252,10 +241,20 @@ namespace TinyBCT
             }
         }
 
-        public override AddressExpression LoadInstanceFieldAddr(IFieldReference field, IVariable var)
+        public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
         {
-            String map = FieldTranslator.GetFieldName(field);
-            return new AddressExpression(field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(var)));
+            StringBuilder sb = new StringBuilder();
+
+            var boogieType = Helpers.GetBoogieType(value.Type);
+            if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Object"))
+            {
+                sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
+                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(boogieType, ReadAddr(value))));
+            }
+            else
+                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), ReadAddr(value)));
+
+            return sb.ToString();
         }
     }
 
@@ -303,11 +302,6 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public override AddressExpression VarAddress(IVariable var)
-        {
-            return new AddressExpression(var.Type, var.Name);
-        }
-
         public override string ReadAddr(IVariable var)
         {
             return String.Empty;
@@ -318,15 +312,53 @@ namespace TinyBCT
             return String.Empty;
         }
 
-        public override string WriteAddr(IVariable addr, IValue value)
-        {
-            return String.Empty;
-        }
-
         // in this memory addressing the value of a variable is the variable itself 
         protected override string ValueOfVariable(IVariable var)
         {
             return var.Name;
+        }
+
+        public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
+
+            //var addr = AddressOf(instanceFieldAccess);
+            //var writeAddr = WriteAddr(addr, value);
+
+            if (!Settings.SplitFields)
+            {
+                if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
+                {
+                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
+                    //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
+                }
+                else
+                {
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), value.Name));
+                    //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, value.Name));
+                }
+            }
+            else
+            {
+                var boogieType = Helpers.GetBoogieType(value.Type);
+                Contract.Assert(!string.IsNullOrEmpty(boogieType));
+               // var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
+                //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
+
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                {
+                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
+                    //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(boogieType, value.Name)));
+                }
+                else
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), value.Name));
+            }
+
+            return sb.ToString();
         }
 
         public override string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
@@ -369,14 +401,54 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public override AddressExpression LoadInstanceFieldAddr(IFieldReference field, IVariable obj)
-        {
-            throw new NotImplementedException();
-        }
-
         public override string ReadAddr(AddressExpression addr)
         {
-            return addr.Expr;
+            if (addr is AddressExpressionUnionHeap)
+            {
+                var a = addr as AddressExpressionUnionHeap;
+                return String.Format("Read($Heap,{0},{1})", a.Instance, FieldTranslator.GetFieldName(a.Field));
+            } else
+                return addr.Expr;
+        }
+
+        public override AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
+        {
+            if (Settings.SplitFields)
+            {
+                String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
+                return new AddressExpression(instanceFieldAccess.Field.Type, String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name));
+            } else
+            {
+                var a = new AddressExpressionUnionHeap(instanceFieldAccess.Type, "");
+                a.Field = instanceFieldAccess.Field;
+                a.Instance = instanceFieldAccess.Instance;
+                return a;
+            }
+        }
+
+        public override AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
+        {
+            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
+            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
+            return address;
+        }
+
+        public override AddressExpression AddressOf(IVariable var)
+        {
+            return new AddressExpression(var.Type, var.Name);
+        }
+
+        public override string WriteAddr(AddressExpression addr, string value)
+        {
+            if (addr is AddressExpressionUnionHeap)
+            {
+                var a = addr as AddressExpressionUnionHeap;
+                var fieldName = FieldTranslator.GetFieldName(a.Field);
+                return String.Format("$Heap := Write($Heap, {0}, {1}, {2});", a.Instance, fieldName, value);
+            } else
+            {
+                return VariableAssignment(addr.Expr, value);
+            }
         }
     }
 
@@ -427,15 +499,49 @@ namespace TinyBCT
 
         public abstract string ReadAddr(AddressExpression addr);
 
-        public abstract AddressExpression LoadInstanceFieldAddr(IFieldReference field, IVariable obj);
-
         public abstract string DeclareLocalVariables(IList<IVariable> variables);
 
         public abstract string AllocLocalVariables(IList<IVariable> variables);
 
-        public abstract AddressExpression VarAddress(IVariable var);
+        public AddressExpression AddressOf(IValue value)
+        {
+            if (value is InstanceFieldAccess)
+            {
+                return AddressOf(value as InstanceFieldAccess);
+            }
+            else if (value is StaticFieldAccess)
+            {
+                return AddressOf(value as StaticFieldAccess);
+            }
+            else if (value is IVariable)
+            {
+                return AddressOf(value as IVariable);
+            }
+            else
+                // arrays?
+                throw new NotImplementedException();
+        }
 
-        public abstract string WriteAddr(IVariable addr, IValue value);
+        public abstract AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess);
+        public abstract AddressExpression AddressOf(StaticFieldAccess staticFieldAccess);
+        public abstract AddressExpression AddressOf(IVariable var);
+
+        public string WriteAddr(IVariable addr, IValue value)
+        {
+            return WriteAddr(AddressOf(addr), value.ToString());
+        }
+
+        public string WriteAddr(IVariable addr, String value)
+        {
+            return WriteAddr(AddressOf(addr), value.ToString());
+        }
+
+        public string WriteAddr(AddressExpression addr, IValue value)
+        {
+            return WriteAddr(addr, value.ToString());
+        }
+
+        public abstract string WriteAddr(AddressExpression addr, string value);
 
         public abstract string ReadAddr(IVariable var);
 
@@ -490,13 +596,12 @@ namespace TinyBCT
         {
             StringBuilder sb = new StringBuilder();
 
-            string opStr = value.ToString();
-            if (value.Type.TypeCode.Equals(PrimitiveTypeCode.String))
-                opStr = Helpers.Strings.fixStringLiteral(value);
+            //string opStr = value.ToString();
+            //if (value.Type.TypeCode.Equals(PrimitiveTypeCode.String))
+            //    opStr = Helpers.Strings.fixStringLiteral(value);
 
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            sb.Append(VariableAssignment(fieldName, opStr));
-
+            WriteAddr(AddressOf(staticFieldAccess), ReadAddr(value));
             return sb.ToString();
         }
 
@@ -504,8 +609,7 @@ namespace TinyBCT
         {
             StringBuilder sb = new StringBuilder();
 
-            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
+            var address = AddressOf(staticFieldAccess);
 
             sb.Append(VariableAssignment(value, ReadAddr(address)));
             //sb.Append(VariableAssignment(value, fieldName));
@@ -513,46 +617,7 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
-        {
-            StringBuilder sb = new StringBuilder();
-
-            string opStr = value.ToString();
-            if (value.Type.TypeCode.Equals(PrimitiveTypeCode.String))
-                opStr = Helpers.Strings.fixStringLiteral(value);
-
-            String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-
-            if (!Settings.SplitFields)
-            {
-                if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
-                {
-                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                    sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), opStr)));
-                }
-                else
-                {
-                    sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, opStr));
-                }
-            }
-            else
-            {
-                var boogieType = Helpers.GetBoogieType(value.Type);
-                Contract.Assert(!string.IsNullOrEmpty(boogieType));
-                var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
-                //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
-
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
-                {
-                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                    sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, opStr)));
-                } else
-                    sb.AppendLine(VariableAssignment(heapAccess, opStr));
-            }
-
-
-            return sb.ToString();
-        }
+        public abstract string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value);
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
 
