@@ -464,9 +464,9 @@ namespace TinyBCT
             var parameters = String.Empty;
             IMethodDefinition methodDef = methodRef as IMethodDefinition;
             if (methodDef != null)
-                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + GetBoogieType(v.Type)));
+                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.NewAddrModelling && v.IsByReference ? "Addr" : GetBoogieType(v.Type))));
             else
-                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + GetBoogieType(v.Type)));
+                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.NewAddrModelling && v.IsByReference ? "Addr" : GetBoogieType(v.Type))));
 
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);
@@ -680,7 +680,7 @@ namespace TinyBCT
 
             Contract.Assert(!string.IsNullOrEmpty(type));
 
-            return type.Equals("Ref");
+            return type.Equals("Ref") || type.Equals("Object");
         }
 
         public static class Strings

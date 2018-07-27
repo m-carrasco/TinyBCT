@@ -46,10 +46,24 @@ namespace TinyBCT
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
     {
+        public override string NullObject()
+        {
+            return "null_object";
+        }
+
         // hides implementation in super class
         public override string AllocAddr(IVariable var)
         {
             return this.ProcedureCall("AllocAddr", new List<string>(), AddressOf(var).ToString());
+        }
+
+        public override string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable)
+        {
+            shouldCreateValueVariable.Add(var);
+            var sb = new StringBuilder();
+            sb.AppendLine(this.ProcedureCall("AllocObject", new List<string>(), var.Name));
+            sb.AppendLine(this.VariableAssignment(var, var.Name));
+            return sb.ToString();
         }
 
         // hides implementation in super class
@@ -187,7 +201,14 @@ namespace TinyBCT
 
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
                 sb.AppendLine(VariableAssignment(paramVariable, constantValue));
-                sb.AppendLine(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
+
+                if (Helpers.GetBoogieType(paramVariable.Type).Equals("Object"))
+                {
+                    sb.AppendLine(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
+                } else if (Helpers.GetBoogieType(paramVariable.Type).Equals("Addr"))
+                {
+                    sb.AppendLine(String.Format("assume $AllocAddr[{0}] == true || {0} != null_addr;", paramVariable));
+                }
             }
 
             return sb.ToString();
@@ -265,6 +286,11 @@ namespace TinyBCT
 
     public class BoogieGeneratorALaBCT : BoogieGenerator
     {
+        public override string NullObject()
+        {
+            return "null";
+        }
+
         public override string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
@@ -315,6 +341,11 @@ namespace TinyBCT
         public override string AllocAddr(IVariable var)
         {
             return String.Empty;
+        }
+
+        public override string AllocObject(IVariable var, ISet<IVariable> _shouldCreateValueVariable)
+        {
+            return this.ProcedureCall("Alloc", new List<string>(), AddressOf(var).ToString());
         }
 
         // in this memory addressing the value of a variable is the variable itself 
@@ -551,6 +582,7 @@ namespace TinyBCT
         public abstract string WriteAddr(AddressExpression addr, string value);
 
         public abstract string AllocAddr(IVariable var);
+        public abstract string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable);
 
         protected abstract string ValueOfVariable(IVariable var);
 
@@ -626,7 +658,7 @@ namespace TinyBCT
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
 
-        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, ISet<IVariable> assignedInMethodCalls, IVariable resultVariable = null)
+        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, ISet<IVariable> shouldCreateValueVariable, IVariable resultVariable = null)
         {
             StringBuilder sb = new StringBuilder();
             var boogieProcedureName = Helpers.GetMethodName(procedure);
@@ -647,7 +679,7 @@ namespace TinyBCT
             if (resultVariable != null)
             {
                 resultArguments.Add(resultVariable.Name);
-                assignedInMethodCalls.Add(resultVariable);
+                shouldCreateValueVariable.Add(resultVariable);
             }
 
             var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v)));
@@ -887,6 +919,8 @@ namespace TinyBCT
             return String.Format("assume {0};", cond);
         }
 
+        public abstract string NullObject();
+
         public string If(string condition, string body)
         {
             StringBuilder sb = new StringBuilder();
@@ -927,7 +961,7 @@ namespace TinyBCT
         public string As(IVariable arg1, ITypeReference arg2)
         {
             // TODO(rcastano): Fix for generics
-            return String.Format("$As({0},{1})", arg1, Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses));
+            return String.Format("$As({0},{1})", ReadAddr(arg1), Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses));
         }
 
         public string Subtype(IVariable var, ITypeReference type)
