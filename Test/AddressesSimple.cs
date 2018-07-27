@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -57,9 +58,62 @@ namespace Test
             a.i = 1;
         }
 
+        public static void Test1()
+        {
+            int var1 = 1;
+            bool var2 = true;
+            float var3 = 5.0f;
+            string var4 = "hello boogie";
 
-       static int z;
+            Contract.Assert(var1 == 1);
+            Contract.Assert(var2 == true);
+            Contract.Assert(var3 == 5.0f);
+            Contract.Assert(var4 == "hello boogie");
+        }
 
-       public int i;
+        public static void Test2(AddressesSimple a)
+        {
+            if (a != null && a.i > 5)
+            {
+                Contract.Assert(a.i > 5);
+            }
+        }
+
+        public static void Test3(AddressesSimple a)
+        {
+            Contract.Assume(a != null && a.i <= 5);
+
+            if (a != null && a.i > 5)
+            {
+                Contract.Assert(a.i > 5);
+            }
+            else
+            {
+                Contract.Assert(false);
+            }
+        }
+
+        public static void Test4(AddressesSimple a)
+        {
+            if (a != null)
+            {
+                Contract.Assert(a != null);
+            }
+        }
+        public static void Test5(AddressesSimple a)
+        {
+            Contract.Assume(a != null);
+            Contract.Assert(a != null);
+        }
+        public static void Test6(AddressesSimple a)
+        {
+            Contract.Assume(a != null);
+            Contract.Assume(a.i > 5);
+            Contract.Assert(a.i > 5);
+        }
+
+        static int z;
+
+        public int i;
     }
 }

@@ -26,8 +26,11 @@ procedure {:inline 1} AllocAddr() returns (x: Addr);
 implementation {:inline 1} AllocAddr() returns (x: Addr)
 {
     assume $AllocAddr[x] == false; //&& x != null_addr;
+	assume (forall aA : InstanceFieldAddr, oA : Object :: LoadInstanceFieldAddr(aA, oA) != x);
     $AllocAddr[x] := true;
 }
+
+axiom (forall aA, aB : InstanceFieldAddr, oA, oB : Object :: oA != oB ==> LoadInstanceFieldAddr(aA, oA) != LoadInstanceFieldAddr(aB, oB));
 
 procedure {:inline 1} AllocObject() returns (x: Object);
   modifies $AllocObject;

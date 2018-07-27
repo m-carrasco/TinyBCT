@@ -77,7 +77,7 @@ namespace TinyBCT
                 };
 
 
-                //ProcessFiles(writeTAC);
+                ProcessFiles(writeTAC);
 
                 Action<string> translateTypeDefinitions = (String inputFile) =>
                 {

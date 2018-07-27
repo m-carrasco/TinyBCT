@@ -126,10 +126,12 @@ namespace TinyBCT
             this.CHA = CHA;
         }
 
-        String TranslateInstructions()
+        String TranslateInstructions(ref ISet<IVariable> assignedInMethodCalls)
         {
             InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody);
             instTranslator.Translate();
+
+            assignedInMethodCalls = instTranslator.AssignedInMethodCalls;
 
             foreach (var v in instTranslator.RemovedVariables)
                 methodBody.Variables.Remove(v);
@@ -140,13 +142,13 @@ namespace TinyBCT
             return instTranslator.Boogie();
         }
 
-        String TranslateLocalVariables()
+        String TranslateLocalVariables(ISet<IVariable> assignedInMethodCalls)
         {
             StringBuilder localVariablesSb = new StringBuilder();
             var bg = BoogieGenerator.Instance();
 
             var allVariables = methodBody.Variables.Union(methodBody.Parameters).ToList();
-            localVariablesSb.AppendLine(bg.DeclareLocalVariables(allVariables));
+            localVariablesSb.AppendLine(bg.DeclareLocalVariables(allVariables, assignedInMethodCalls));
 
             localVariablesSb.Append(bg.AllocLocalVariables(allVariables));
 
@@ -185,8 +187,9 @@ namespace TinyBCT
             // modification to local variables can ocurr while instruction translation is done
             // for example when delegate creation is detected some local variables are deleted.
 
-            var ins = TranslateInstructions();
-            var localVariables = TranslateLocalVariables();
+            ISet<IVariable> assignedInMethodCalls = null;
+            var ins = TranslateInstructions(ref assignedInMethodCalls);
+            var localVariables = TranslateLocalVariables(assignedInMethodCalls);
             var methodName = Helpers.GetMethodName(methodDefinition);
             var attr = TranslateAttr();
             var parametersWithTypes = Helpers.GetParametersWithBoogieType(methodDefinition);

@@ -58,11 +58,15 @@ namespace TinyBCT
         //    return string.Format("{0} := {1};", variableA, expr);
         //}
 
-        public override string DeclareLocalVariables(IList<IVariable> variables)
+        public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls)
         {
             StringBuilder sb = new StringBuilder();
             variables.Select(v =>
                     String.Format("\tvar {0} : {1};", AddressOf(v), "Addr")
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
+            assignedInMethodCalls.Select(v =>
+                    String.Format("\tvar {0} : {1};", v, Helpers.GetBoogieType(v.Type))
             ).ToList().ForEach(str => sb.AppendLine(str));
 
             return sb.ToString();
@@ -92,7 +96,6 @@ namespace TinyBCT
             return "";
         }
 
-        // it may have to be public but i have not found an example yet.
         public override string WriteAddr(AddressExpression addr, String value)
         {
             var boogieType = Helpers.GetBoogieType(addr.Type);
@@ -115,16 +118,17 @@ namespace TinyBCT
         public override string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
+            string formatedFloatValue = null;
             if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
             {
-                string formatedFloatValue = base.FormatFloatValue(cons);
+                formatedFloatValue = base.FormatFloatValue(cons);
             }
 
             var boogieType = Helpers.GetBoogieType(variableA.Type);
 
             if (value is Constant)
             {
-                return WriteAddr(variableA, value);
+                return WriteAddr(variableA, formatedFloatValue ?? value.ToString());
             } else if (value is IVariable)
             {
                 return WriteAddr(variableA, ValueOfVariable(value as IVariable));
@@ -183,6 +187,7 @@ namespace TinyBCT
 
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
                 sb.AppendLine(VariableAssignment(paramVariable, constantValue));
+                sb.AppendLine(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
             }
 
             return sb.ToString();
@@ -290,7 +295,7 @@ namespace TinyBCT
             return String.Empty;
         }
 
-        public override string DeclareLocalVariables(IList<IVariable> variables)
+        public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -454,7 +459,7 @@ namespace TinyBCT
 
     public abstract class BoogieGenerator
     {
-        private static BoogieGenerator singleton;
+        public static BoogieGenerator singleton;
 
         public static BoogieGenerator Instance()
         {
@@ -497,9 +502,11 @@ namespace TinyBCT
             return str;
         }
 
+        public abstract string ReadAddr(IVariable var);
+
         public abstract string ReadAddr(AddressExpression addr);
 
-        public abstract string DeclareLocalVariables(IList<IVariable> variables);
+        public abstract string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls);
 
         public abstract string AllocLocalVariables(IList<IVariable> variables);
 
@@ -542,8 +549,6 @@ namespace TinyBCT
         }
 
         public abstract string WriteAddr(AddressExpression addr, string value);
-
-        public abstract string ReadAddr(IVariable var);
 
         public abstract string AllocAddr(IVariable var);
 
@@ -621,7 +626,7 @@ namespace TinyBCT
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
 
-        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, IVariable resultVariable = null)
+        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, ISet<IVariable> assignedInMethodCalls, IVariable resultVariable = null)
         {
             StringBuilder sb = new StringBuilder();
             var boogieProcedureName = Helpers.GetMethodName(procedure);
@@ -640,9 +645,27 @@ namespace TinyBCT
             }
 
             if (resultVariable != null)
-                resultArguments.Add(ValueOfVariable(resultVariable));
+            {
+                resultArguments.Add(resultVariable.Name);
+                assignedInMethodCalls.Add(resultVariable);
+            }
 
-            return ProcedureCall(boogieProcedureName, argumentList.Select(v => ValueOfVariable(v)).ToList(), resultArguments);
+            var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v)));
+            if (resultArguments.Count > 0)
+            {
+                sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
+                if (Settings.NewAddrModelling)
+                {
+                    Contract.Assert(resultArguments.Count == 1);
+                    Contract.Assert(resultArguments.Contains(resultVariable.Name));
+                    sb.Append(WriteAddr(resultVariable, resultVariable.Name));
+                }
+                return sb.ToString();
+            }
+            else
+                return string.Format("call {0}({1});", boogieProcedureName, arguments);
+
+            //return ProcedureCall(boogieProcedureName, argumentList.Select(v => ValueOfVariable(v)).ToList(), resultArguments);
         }
 
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, string resultVariable = null)
@@ -716,7 +739,7 @@ namespace TinyBCT
                 case BranchOperation.Le: operation = "<="; break;
             }
 
-            return BranchOperationExpression(op1.Name, op2.ToString(), operation);
+            return BranchOperationExpression(ReadAddr(op1).ToString(), op2 is Constant ? op2.ToString() : ReadAddr(AddressOf(op2)).ToString(), operation);
         }
 
         public string BranchOperationExpression(string op1, string op2, string operation)
@@ -796,7 +819,7 @@ namespace TinyBCT
                     break;
             }
 
-            return BinaryOperationExpression(op1.Name, op2.Name, operation);
+            return BinaryOperationExpression(ReadAddr(op1), ReadAddr(op2), operation);
         }
 
         public string BinaryOperationExpression(string op1, string op2, string operation)
@@ -821,7 +844,7 @@ namespace TinyBCT
 
         public string AssumeDynamicType(IVariable reference, ITypeReference type)
         {
-            return AssumeDynamicType(reference.Name, type);
+            return AssumeDynamicType(ReadAddr(reference), type);
         }
 
         public string AssumeDynamicType(string name, ITypeReference type)
@@ -834,9 +857,9 @@ namespace TinyBCT
             return String.Format("$TypeConstructor({0})", type);
         }
 
-        public string AssumeTypeConstructor(string arg, ITypeReference type)
+        public string AssumeTypeConstructor(IVariable arg, ITypeReference type)
         {
-            return AssumeTypeConstructor(arg, type.ToString());
+            return AssumeTypeConstructor(ReadAddr(arg), type.ToString());
         }
 
         public string AssumeTypeConstructor(string arg, string type)
@@ -846,7 +869,7 @@ namespace TinyBCT
 
         public string Assert(IVariable cond)
         {
-            return Assert(cond.Name);
+            return Assert(ReadAddr(cond));
         }
 
         public string Assert(string cond)
@@ -856,7 +879,7 @@ namespace TinyBCT
 
         public string Assume(IVariable cond)
         {
-            return Assume(cond.Name);
+            return Assume(ReadAddr(cond));
         }
 
         public string Assume(string cond)

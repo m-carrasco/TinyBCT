@@ -132,6 +132,8 @@ public class TestsBase
     [TestInitialize]
     public void TestInitialize()
     {
+        TinyBCT.BoogieGenerator.singleton = null;
+
         TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
@@ -1829,6 +1831,54 @@ public class TestsManu : TestsBase
     public void SyntaxTest3()
     {
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest3$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test1()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test1", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test2()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test2$Test.AddressesSimple", 10, useStubs: false /*, additionalTinyBCTOptions: "/NewAddrModelling=true"*/);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test3()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test3$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test4()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test4$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test5()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test5$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test6()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test6$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
