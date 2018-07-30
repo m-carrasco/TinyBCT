@@ -99,6 +99,10 @@ namespace TinyBCT
                         MethodBody mB = disassembler.Execute();
                         transformBody(mB);
 
+                        var refAnalysis = new ManagerPointerFinder(mB);
+                        var refs = refAnalysis.Analyze();
+                        BoogieGenerator.Instance().SetRefs(refs);
+
                         MethodTranslator methodTranslator = new MethodTranslator(mD, mB, Traverser.CHA);
                         // todo: improve this piece of code
                         StreamWriter streamWriter = Program.streamWriter;

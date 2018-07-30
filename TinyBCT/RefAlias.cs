@@ -156,4 +156,80 @@ namespace TinyBCT
             return res.Count() > 0;
         }
     }
-}
+    public class ManagerPointerFinder : InstructionVisitor
+    {
+        public ManagerPointerFinder(MethodBody mb) : base()
+        {
+            methodBody = mb;
+        }
+
+        MethodBody methodBody;
+        int instructionIndex = 0;
+
+        public ISet<IValue> Analyze()
+        {
+            foreach(var p in methodBody.Parameters)
+            {
+                //Maybe we need to add this
+                if (IsRefArgument(p))
+                {
+                    refs.Add(p);
+                }
+            }
+            foreach (var ins in methodBody.Instructions)
+            {
+                ins.Accept(this);
+                instructionIndex++;
+            }
+            return refs;
+        }
+
+        private class MyComparer : IEqualityComparer<IValue>
+        {
+            public int Compare(IValue x, IValue y)
+            {
+                return String.Compare(x.ToString(), y.ToString());
+            }
+
+            public bool Equals(IValue x, IValue y)
+            {
+                return x.ToString() ==y.ToString();
+            }
+
+            public int GetHashCode(IValue obj)
+            {
+                return obj.ToString().GetHashCode();
+            }
+        }
+
+        public ISet<IValue> refs = new HashSet<IValue>(new MyComparer());
+
+
+        public override void Visit(LoadInstruction instruction)
+        {
+            base.Visit(instruction);
+            var operand = instruction.Operand;
+            string name = instruction.Operand.ToString();
+            var v = instruction.Operand as IVariable;
+
+            if (operand is Reference)
+            {
+                var r = instruction.Operand as Reference;
+                var val = r.Value;
+                if (val is IVariable ||val is InstanceFieldAccess || val is StaticFieldAccess)
+                {
+                    refs.Add(val);
+                }
+            }
+
+        }
+        public bool IsRefArgument(IVariable var)
+        {
+            var res = methodBody.MethodDefinition.Parameters.Where(p => p.Name.Value.Equals(var.Name) && (p.IsByReference || p.IsOut));
+
+            Contract.Assert(res.Count() == 0 || res.Count() == 1);
+
+            return res.Count() > 0;
+        }
+    }
+    }

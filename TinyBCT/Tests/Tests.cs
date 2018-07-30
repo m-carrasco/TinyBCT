@@ -1883,6 +1883,16 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test7()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test7$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+
+
+    [TestMethod]
     [TestCategory("Manu")]
     public void ModOperator1()
     {

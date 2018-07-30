@@ -14,10 +14,11 @@ namespace TinyBCT
     // expr field is an expression that in boogie will be typed as Addr
     public class AddressExpression
     {
-        public AddressExpression(ITypeReference t, string e)
+        public AddressExpression(ITypeReference t, string e, IValue origin)
         {
             Type = t;
             Expr = e;
+            Origin = origin;
         }
 
         public override string ToString()
@@ -28,6 +29,7 @@ namespace TinyBCT
         // make them only readable
         public ITypeReference Type;
         public string Expr;
+        public IValue Origin;
     }
 
     // todo: refactor hierarchy
@@ -37,7 +39,7 @@ namespace TinyBCT
         public IFieldReference Field;
         public IVariable Instance;
 
-        public AddressExpressionUnionHeap(ITypeReference t, string e) : base(t, e)
+        public AddressExpressionUnionHeap(ITypeReference t, string e, IValue o) : base(t, e, o)
         {
         }
     }
@@ -46,6 +48,7 @@ namespace TinyBCT
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
     {
+        private BoogieGenerator aLaBCT = new BoogieGeneratorALaBCT();
         public override string NullObject()
         {
             return "null_object";
@@ -54,16 +57,22 @@ namespace TinyBCT
         // hides implementation in super class
         public override string AllocAddr(IVariable var)
         {
-            return this.ProcedureCall("AllocAddr", new List<string>(), AddressOf(var).ToString());
+            if (this.refs.Contains(var))
+                return this.ProcedureCall("AllocAddr", new List<string>(), AddressOf(var).ToString());
+            return aLaBCT.AllocAddr(var);
         }
 
         public override string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable)
         {
-            shouldCreateValueVariable.Add(var);
-            var sb = new StringBuilder();
-            sb.AppendLine(this.ProcedureCall("AllocObject", new List<string>(), var.Name));
-            sb.AppendLine(this.VariableAssignment(var, var.Name));
-            return sb.ToString();
+            if (this.refs.Contains(var))
+            {
+                shouldCreateValueVariable.Add(var);
+                var sb = new StringBuilder();
+                sb.AppendLine(this.ProcedureCall("AllocObject", new List<string>(), var.Name));
+                sb.AppendLine(this.VariableAssignment(var, var.Name));
+                return sb.ToString();
+            }
+            return aLaBCT.AllocObject(var, shouldCreateValueVariable);
         }
 
         // hides implementation in super class
@@ -75,11 +84,20 @@ namespace TinyBCT
         public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls)
         {
             StringBuilder sb = new StringBuilder();
-            variables.Select(v =>
+            variables.Where(v => refs.Contains(v))
+            .Select(v =>
                     String.Format("\tvar {0} : {1};", AddressOf(v), "Addr")
             ).ToList().ForEach(str => sb.AppendLine(str));
 
-            assignedInMethodCalls.Select(v =>
+            variables.Where(v => !v.IsParameter && !refs.Contains(v))
+            .Select(v =>
+                    String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
+
+
+            assignedInMethodCalls.Where(v => refs.Contains(v))
+                    .Select(v =>
                     String.Format("\tvar {0} : {1};", v, Helpers.GetBoogieType(v.Type))
             ).ToList().ForEach(str => sb.AppendLine(str));
 
@@ -88,11 +106,15 @@ namespace TinyBCT
 
         public override string ReadAddr(IVariable addr)
         {
-            return ReadAddr(AddressOf(addr));
+            if(refs.Contains(addr))
+                return ReadAddr(AddressOf(addr));
+            return aLaBCT.ReadAddr(addr);
         }
 
         public override string ReadAddr(AddressExpression addr)
         {
+            if (!refs.Contains(addr.Origin))
+                return aLaBCT.ReadAddr(addr);
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
             if (boogieType.Equals("int"))
@@ -112,6 +134,9 @@ namespace TinyBCT
 
         public override string WriteAddr(AddressExpression addr, String value)
         {
+            if (!refs.Contains(addr.Origin))
+                return aLaBCT.WriteAddr(addr, value);
+
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
             if (boogieType.Equals("int"))
@@ -131,6 +156,9 @@ namespace TinyBCT
 
         public override string VariableAssignment(IVariable variableA, IValue value)
         {
+            //if (!refs.Contains(variableA) && !refs.Contains(value))
+            //    return aLaBCT.VariableAssignment(variableA, value);
+
             Constant cons = value as Constant;
             string formatedFloatValue = null;
             if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
@@ -151,7 +179,7 @@ namespace TinyBCT
                 var dereference = value as Dereference;
                 // read addr of the reference
                 // index that addr into the corresponding 'heap'
-                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference));
+                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference), dereference.Reference);
                 return WriteAddr(variableA, ReadAddr(addr));
             } else if (value is Reference)
             {
@@ -174,11 +202,11 @@ namespace TinyBCT
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (var v in variables)
+            foreach (var v in variables.Where(v => refs.Contains(v)))
                 sb.AppendLine(AllocAddr(v));
 
             // load values into stack space
-            foreach (var paramVariable in variables.Where(v => v.IsParameter))
+            foreach (var paramVariable in variables.Where(v => v.IsParameter && refs.Contains(v)))
             {
                 // paramValue are variables in the three address code
                 // however in boogie they are treated as values
@@ -227,25 +255,37 @@ namespace TinyBCT
 
         public override AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
+            if (!refs.Contains(instanceFieldAccess))
+                return aLaBCT.AddressOf(instanceFieldAccess);
+
             String map = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-            return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance)));
+            return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance)),instanceFieldAccess);
         }
 
         public override AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
         {
+            if (!refs.Contains(staticFieldAccess))
+                return aLaBCT.AddressOf(staticFieldAccess);
+
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
+            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName, staticFieldAccess);
             return address;
         }
 
         public override AddressExpression AddressOf(IVariable var)
         {
-            return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
+            if (!refs.Contains(var))
+                return aLaBCT.AddressOf(var);
+
+            return new AddressExpression(var.Type, String.Format("_{0}", var.Name), var);
         }
 
 
         public override string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
         {
+            if (!refs.Contains(instanceFieldAccess))
+                return aLaBCT.ReadInstanceField(instanceFieldAccess, result);
+
             var fieldAddr = AddressOf(instanceFieldAccess);
             var readValue = ReadAddr(fieldAddr);
 
@@ -269,6 +309,9 @@ namespace TinyBCT
 
         public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
         {
+            if (!refs.Contains(instanceFieldAccess))
+                return aLaBCT.WriteInstanceField(instanceFieldAccess, value);
+
             StringBuilder sb = new StringBuilder();
 
             var boogieType = Helpers.GetBoogieType(value.Type);
@@ -452,10 +495,10 @@ namespace TinyBCT
             if (Settings.SplitFields)
             {
                 String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-                return new AddressExpression(instanceFieldAccess.Field.Type, String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name));
+                return new AddressExpression(instanceFieldAccess.Field.Type, String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name),instanceFieldAccess);
             } else
             {
-                var a = new AddressExpressionUnionHeap(instanceFieldAccess.Type, "");
+                var a = new AddressExpressionUnionHeap(instanceFieldAccess.Type, "", instanceFieldAccess);
                 a.Field = instanceFieldAccess.Field;
                 a.Instance = instanceFieldAccess.Instance;
                 return a;
@@ -465,13 +508,13 @@ namespace TinyBCT
         public override AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
         {
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
+            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName, staticFieldAccess);
             return address;
         }
 
         public override AddressExpression AddressOf(IVariable var)
         {
-            return new AddressExpression(var.Type, var.Name);
+            return new AddressExpression(var.Type, var.Name, var);
         }
 
         public override string WriteAddr(AddressExpression addr, string value)
@@ -491,6 +534,7 @@ namespace TinyBCT
     public abstract class BoogieGenerator
     {
         public static BoogieGenerator singleton;
+        protected ISet<IValue> refs;
 
         public static BoogieGenerator Instance()
         {
@@ -686,7 +730,7 @@ namespace TinyBCT
             if (resultArguments.Count > 0)
             {
                 sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
-                if (Settings.NewAddrModelling)
+                if (Settings.NewAddrModelling && refs.Contains(resultVariable))
                 {
                     Contract.Assert(resultArguments.Count == 1);
                     Contract.Assert(resultArguments.Contains(resultVariable.Name));
@@ -1058,6 +1102,11 @@ namespace TinyBCT
             args.Add(op1.Name);
 
             return ProcedureCall(boxFromProcedure, args, result.Name);
+        }
+
+        internal void SetRefs(ISet<IValue> refs)
+        {
+            this.refs = refs;
         }
     }
 }
