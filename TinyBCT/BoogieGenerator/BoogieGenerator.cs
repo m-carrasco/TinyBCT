@@ -220,11 +220,11 @@ namespace TinyBCT
                 if (cons.Value is Single)
                 {
                     Single v = (Single)cons.Value;
-                    str = v.ToString("F").Replace(",", ".");
+                    str = v.ToString("F9").Replace(",", ".");
                 } else if (cons.Value is Double)
                 {
                     Double v = (Double)cons.Value;
-                    str = v.ToString("F").Replace(",", ".");
+                    str = v.ToString("F17").Replace(",", ".");
                 } else if (cons.Value is Decimal)
                 {
                     Decimal v = (Decimal)cons.Value;
@@ -236,7 +236,19 @@ namespace TinyBCT
 
             return VariableAssignment(variableA.ToString(), value.ToString());
         }
-
+        public string NullOrZero(ITypeReference type)
+        {
+            if (TypeHelper.IsPrimitiveInteger(type))
+            {
+                return "0";
+            } else if (type.TypeCode.Equals(TypeCode.Single) || type.TypeCode.Equals(TypeCode.Double))
+            {
+                return "0.0";
+            } else
+            {
+                return "null";
+            }
+        }
         public string VariableAssignment(IVariable variableA, string expr)
         {
             return VariableAssignment(variableA.ToString(), expr);

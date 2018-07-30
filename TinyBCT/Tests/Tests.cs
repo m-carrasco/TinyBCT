@@ -875,6 +875,144 @@ class Test {
         var corralResult = CorralTestHelperCode("TestDynamicDispatch2", "Test.Main$Base2", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
+    [TestMethod]
+    [TestCategory("Repro")]
+    [TestCategory("DefaultKeyword")]
+    public void DefaultNull1()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+class A {
+}
+class Test {
+  public static void Main() {
+    A a = default;
+    Contract.Assert(a == null);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DefaultNull1", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod]
+    [TestCategory("Repro")]
+    [TestCategory("DefaultKeyword")]
+    public void DefaultNull2()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+class A {
+}
+class Test {
+  public static void Main() {
+    A a = default;
+    Contract.Assert(a != null);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DefaultNull2", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Repro")]
+    [TestCategory("DefaultKeyword")]
+    public void DefaultDouble1()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static double Abs(double d) {
+    if (d > 0.0) return d;
+    return -d;
+  }
+  public static void Main() {
+    double a = default;
+    Contract.Assert(Abs(a - 0.0) < 0.001);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DefaultDouble1", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod]
+    [TestCategory("Repro")]
+    [TestCategory("DefaultKeyword")]
+    public void DefaultDouble2()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static double Abs(double d) {
+    if (d >= 0.0) return d;
+    return -d;
+  }
+  public static void Main() {
+    double a = default;
+    Contract.Assert(!(Abs(a - 0.0) < 0.001));
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DefaultDouble2", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Repro")]
+    [TestCategory("DefaultKeyword")]
+    public void DefaultInt1()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int a = default;
+    Contract.Assert(a == 0);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DefaultInt1", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod]
+    [TestCategory("Repro")]
+    [TestCategory("DefaultKeyword")]
+    public void DefaultInt2()
+    {
+
+        var source = @"
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int a = default;
+    Contract.Assert(a != 0);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("DefaultInt2", "Test.Main", 10, source, useStubs: true);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestCategory("NullPtrInstrumentation")]
     [TestMethod]
