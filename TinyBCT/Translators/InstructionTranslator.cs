@@ -994,14 +994,14 @@ namespace TinyBCT.Translators
 
                     var instanceFieldAccess = where as InstanceFieldAccess; // where it is stored
 
-                    var valueZero = AddNewLocalVariableToMethod("$initialize", Types.Instance.PlatformType.SystemInt32);
-                    AddBoogie(boogieGenerator.VariableAssignment(valueZero, "0"));
-
                     if (instanceFieldAccess != null)
                     {
                         String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
                         var bg = boogieGenerator;
+                        var desiredTyped = instanceFieldAccess.Field.Type;
+                        var valueZero = AddNewLocalVariableToMethod("$initialize", desiredTyped);
+                        AddBoogie(boogieGenerator.VariableAssignment(valueZero, boogieGenerator.NullOrZero(desiredTyped)));
                         AddBoogie(bg.WriteInstanceField(instanceFieldAccess, valueZero));
                     }
                     else 
@@ -1010,12 +1010,18 @@ namespace TinyBCT.Translators
                         var staticFieldAccess = where as StaticFieldAccess;
                         if (staticFieldAccess != null)
                         {
+                            var desiredTyped = staticFieldAccess.Field.Type;
+                            var valueZero = AddNewLocalVariableToMethod("$initialize", desiredTyped);
+                            AddBoogie(boogieGenerator.VariableAssignment(valueZero, boogieGenerator.NullOrZero(desiredTyped)));
                             AddBoogie(boogieGenerator.WriteStaticField(staticFieldAccess, valueZero));
                         }
                         else if(where is IVariable)
                         {
                             // Diego BUG BUG
                             // We need to handle default(T) properly
+                            var desiredTyped = where.Type;
+                            var valueZero = AddNewLocalVariableToMethod("$initialize", desiredTyped);
+                            AddBoogie(boogieGenerator.VariableAssignment(valueZero, boogieGenerator.NullOrZero(desiredTyped)));
                             AddBoogie(boogieGenerator.VariableAssignment(where as IVariable, valueZero.Name));
                         }
                         else

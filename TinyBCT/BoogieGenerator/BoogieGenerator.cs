@@ -510,22 +510,25 @@ namespace TinyBCT
             // default string representation of floating point types is not suitable for boogie
             // boogie wants dot instead of ,
             // "F" forces to add decimal part
+            // The format specifiers F9 and F17 make the translation lossless for
+            // single and double, respectively.
             string str = "";
             if (cons.Value is Single)
             {
                 Single v = (Single)cons.Value;
-                str = v.ToString("F").Replace(",", ".");
+                str = v.ToString("F9").Replace(",", ".");
             }
             else if (cons.Value is Double)
             {
                 Double v = (Double)cons.Value;
-                str = v.ToString("F").Replace(",", ".");
+                str = v.ToString("F17").Replace(",", ".");
             }
             else if (cons.Value is Decimal)
             {
                 Decimal v = (Decimal)cons.Value;
                 str = v.ToString("F").Replace(",", ".");
-            } else
+            }
+            else
             {
                 Contract.Assert(false);
             }
@@ -722,6 +725,21 @@ namespace TinyBCT
 
         public abstract string VariableAssignment(IVariable variableA, IValue value);
         public abstract string VariableAssignment(IVariable variableA, string expr);
+        public string NullOrZero(ITypeReference type)
+        {
+            if (TypeHelper.IsPrimitiveInteger(type))
+            {
+                return "0";
+            }
+            else if (type.TypeCode.Equals(TypeCode.Single) || type.TypeCode.Equals(TypeCode.Double))
+            {
+                return "0.0";
+            }
+            else
+            {
+                return "null";
+            }
+        }
 
         public string VariableAssignment(string variableA, string expr)
         {

@@ -154,7 +154,7 @@ namespace Test
         }
         public static bool CreateAssemblyDefinition(string code, string name, string[] references = null, string prefixDir = "", bool useCSC = false)
         {
-            var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL");
+            var parseOptions = new CSharpParseOptions().WithPreprocessorSymbols("DEBUG", "CONTRACTS_FULL").WithLanguageVersion(LanguageVersion.CSharp7_3);
             var syntaxTree = CSharpSyntaxTree.ParseText(code, options: parseOptions);
 
             var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
