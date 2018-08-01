@@ -351,7 +351,7 @@ namespace TinyBCT.Translators
 
                 // accessing the element's typecode
                 IVariable array = instruction.Arguments[0];
-                Matrix arrayType = array.Type as Matrix;
+                ArrayType arrayType = array.Type as ArrayType;
                 PrimitiveTypeCode elementTypeCode = arrayType.ElementType.TypeCode;
 
                 // i think that the array cannot contain values that do not have a fixed size
