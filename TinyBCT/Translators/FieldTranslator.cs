@@ -39,7 +39,6 @@ namespace TinyBCT.Translators
                             else
                             {
                                 var boogieType = Helpers.GetBoogieType(item.Key.Type);
-                                Contract.Assert(!string.IsNullOrEmpty(boogieType));
                                 values.Add(String.Format("var {0} : [Ref]{1};", item.Value, boogieType));
                             }
                         }

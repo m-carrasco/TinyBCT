@@ -95,15 +95,15 @@ namespace TinyBCT
         {
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
-            if (boogieType.Equals("int"))
+            if (boogieType.Equals(Helpers.BoogieType.Int))
                 return String.Format("ReadInt({0}, {1})", "$memoryInt", addr.Expr);
-            else if (boogieType.Equals("bool"))
+            else if (boogieType.Equals(Helpers.BoogieType.Bool))
                 return String.Format("ReadBool({0}, {1})", "$memoryBool", addr.Expr);
-            else if (boogieType.Equals("Object"))
+            else if (boogieType.Equals(Helpers.BoogieType.Object))
                 return String.Format("ReadObject({0}, {1})", "$memoryObject", addr.Expr);
-            else if (boogieType.Equals("real"))
+            else if (boogieType.Equals(Helpers.BoogieType.Real))
                 return String.Format("ReadReal({0}, {1})", "$memoryReal", addr.Expr);
-            else if (boogieType.Equals("Addr"))
+            else if (boogieType.Equals(Helpers.BoogieType.Addr))
                 return String.Format("ReadAddr({0}, {1})", "$memoryAddr", addr.Expr);
 
             Contract.Assert(false);
@@ -114,15 +114,15 @@ namespace TinyBCT
         {
             var boogieType = Helpers.GetBoogieType(addr.Type);
 
-            if (boogieType.Equals("int"))
+            if (boogieType.Equals(Helpers.BoogieType.Int))
                 return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addr.Expr, value));
-            else if (boogieType.Equals("bool"))
+            else if (boogieType.Equals(Helpers.BoogieType.Bool))
                 return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addr.Expr, value));
-            else if (boogieType.Equals("Object"))
+            else if (boogieType.Equals(Helpers.BoogieType.Object))
                 return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addr.Expr, value));
-            else if (boogieType.Equals("real"))
+            else if (boogieType.Equals(Helpers.BoogieType.Real))
                 return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", addr.Expr, value));
-            else if (boogieType.Equals("Addr"))
+            else if (boogieType.Equals(Helpers.BoogieType.Addr))
                 return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", addr.Expr, value));
 
             Contract.Assert(false);
@@ -202,10 +202,10 @@ namespace TinyBCT
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
                 sb.AppendLine(VariableAssignment(paramVariable, constantValue));
 
-                if (Helpers.GetBoogieType(paramVariable.Type).Equals("Object"))
+                if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
                 {
                     sb.AppendLine(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
-                } else if (Helpers.GetBoogieType(paramVariable.Type).Equals("Addr"))
+                } else if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr))
                 {
                     sb.AppendLine(String.Format("assume $AllocAddr[{0}] == true || {0} != null_addr;", paramVariable));
                 }
@@ -253,7 +253,7 @@ namespace TinyBCT
             if (Helpers.IsGenericField(instanceFieldAccess.Field))
             {
                 var boogieType = Helpers.GetBoogieType(result.Type);
-                if (!boogieType.Equals("Object"))
+                if (!boogieType.Equals(Helpers.BoogieType.Object))
                 {
                     return VariableAssignment(result, Union2PrimitiveType(boogieType, readValue));
                 } else
@@ -272,7 +272,7 @@ namespace TinyBCT
             StringBuilder sb = new StringBuilder();
 
             var boogieType = Helpers.GetBoogieType(value.Type);
-            if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Object"))
+            if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
                 sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
                 sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(boogieType, ReadAddr(value))));
@@ -380,11 +380,10 @@ namespace TinyBCT
             else
             {
                 var boogieType = Helpers.GetBoogieType(value.Type);
-                Contract.Assert(!string.IsNullOrEmpty(boogieType));
                // var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
                 //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
 
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
                     sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
                     //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
@@ -404,7 +403,6 @@ namespace TinyBCT
             String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
             var boogieType = Helpers.GetBoogieType(result.Type);
-            Contract.Assert(!string.IsNullOrEmpty(boogieType));
 
             if (!Settings.SplitFields)
             {
@@ -426,7 +424,7 @@ namespace TinyBCT
                 var heapAccess = string.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name);
 
                 //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
                     sb.AppendLine(VariableAssignment(result, Union2PrimitiveType(boogieType, heapAccess)));
                 }
@@ -589,17 +587,16 @@ namespace TinyBCT
 
         protected abstract string ValueOfVariable(IVariable var);
 
-        public string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
+        public string AssumeInverseRelationUnionAndPrimitiveType(string variable, Helpers.BoogieType boogieType)
         {
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            var e1 = string.Format("{0}2Union({1})", boogieType, variable);
-            return string.Format("assume Union2{0}({1}) == {2};", boogieType, e1, variable);
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            var e1 = string.Format("{0}2Union({1})", boogieTypeStr, variable);
+            return string.Format("assume Union2{0}({1}) == {2};", boogieTypeStr, e1, variable);
         }
 
         public string AssumeInverseRelationUnionAndPrimitiveType(IVariable variable)
         {
             var boogieType = Helpers.GetBoogieType(variable.Type);
-            Contract.Assert(!String.IsNullOrEmpty(boogieType));
 
             return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
         }
@@ -611,11 +608,10 @@ namespace TinyBCT
             return PrimitiveType2Union(boogieType, value.ToString());
         }
 
-        public string PrimitiveType2Union(string boogieType, string value)
+        public string PrimitiveType2Union(Helpers.BoogieType boogieType, string value)
         {
-            // int -> Int, bool -> Bool
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            return string.Format("{0}2Union({1})", boogieType, value);
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            return string.Format("{0}2Union({1})", boogieTypeStr, value);
         }
 
         public string Union2PrimitiveType(IVariable value)
@@ -625,11 +621,10 @@ namespace TinyBCT
 
             return Union2PrimitiveType(boogieType, value.ToString());
         }
-        public string Union2PrimitiveType(string boogieType, string value)
+        public string Union2PrimitiveType(Helpers.BoogieType boogieType, string value)
         {
-            // int -> Int, bool -> Bool
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            return string.Format("Union2{0}({1})", boogieType, value);
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            return string.Format("Union2{0}({1})", boogieTypeStr, value);
         }
 
         public string WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
@@ -752,7 +747,7 @@ namespace TinyBCT
             {
                 case BinaryOperation.And:
                 case BinaryOperation.Or:
-                    return Helpers.GetBoogieType(op1.Type) == "bool" && Helpers.GetBoogieType(op2.Type) == "bool";
+                    return Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool) && Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool);
                 case BinaryOperation.Add:
                 case BinaryOperation.Sub:
                 case BinaryOperation.Mul:
@@ -821,7 +816,7 @@ namespace TinyBCT
                 case BinaryOperation.Div:
                     {
                         if (Helpers.GetBoogieType(op1.Type).Equals(Helpers.GetBoogieType(op2.Type)) &&
-                            Helpers.GetBoogieType(op1.Type).Equals("int"))
+                            Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Int))
                             operation = "div";
                         else
                             operation = "/";
@@ -852,15 +847,15 @@ namespace TinyBCT
                 case BinaryOperation.Rem: operation = "mod";break;
                 case BinaryOperation.And:
                     {
-                        Contract.Assert(Helpers.GetBoogieType(op1.Type) == "bool");
-                        Contract.Assert(Helpers.GetBoogieType(op2.Type) == "bool");
+                        Contract.Assert(Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool));
+                        Contract.Assert(Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool));
                         operation = "&&";
                         break;
                     }
                 case BinaryOperation.Or:
                     {
-                        Contract.Assert(Helpers.GetBoogieType(op1.Type) == "bool");
-                        Contract.Assert(Helpers.GetBoogieType(op2.Type) == "bool");
+                        Contract.Assert(Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool));
+                        Contract.Assert(Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool));
                         operation = "||";
                         break;
                     }
@@ -1067,11 +1062,11 @@ namespace TinyBCT
         public string BoxFrom(IVariable op1, IVariable result)
         {
             var boogieType = Helpers.GetBoogieType(op1.Type);
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            if (boogieType.Equals("Ref"))
-                boogieType = "Union";
+            if (boogieType.Equals(Helpers.BoogieType.Ref))
+                boogieType = Helpers.BoogieType.Union;
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
 
-            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieType);
+            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieTypeStr);
             var args = new List<string>();
             args.Add(op1.Name);
 

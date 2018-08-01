@@ -534,7 +534,7 @@ namespace TinyBCT.Translators
                     {
                         // mod keyword in boogie returns integer
                         if (BinaryOperation.Rem == instruction.Operation && 
-                            Helpers.GetBoogieType(instruction.Result.Type) != "int")
+                            Helpers.GetBoogieType(instruction.Result.Type) != Helpers.BoogieType.Int)
                             Contract.Assert(false);
 
                         var exp = boogieGenerator.BinaryOperationExpression(left, right, instruction.Operation);
@@ -764,7 +764,6 @@ namespace TinyBCT.Translators
                         // TODO(rcastano): reuse variable
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
                         sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator.ShouldCreateValueVariable, localVar));
-                        resType = resType.First().ToString().ToUpper() + resType.Substring(1).ToLower();
                         sb.AppendLine(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(resType, localVar.Name)));
                     }
                 }
@@ -842,7 +841,7 @@ namespace TinyBCT.Translators
                     int arg_i =
                         unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ?
                         i : i + 1;
-                    var paramType = unspecializedMethod.Parameters.ElementAt(i).IsByReference && Settings.NewAddrModelling ? "Addr" : Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
+                    var paramType = unspecializedMethod.Parameters.ElementAt(i).IsByReference && Settings.NewAddrModelling ? Helpers.BoogieType.Addr : Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
                     var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i).Type);
                     if (!paramType.Equals(argType))
                     {
@@ -1151,7 +1150,6 @@ namespace TinyBCT.Translators
                     Contract.Assert(elementAccess.Indices.Count == 1);
 
                     var argType = Helpers.GetBoogieType(elementAccess.Type);
-                    Contract.Assert(!String.IsNullOrEmpty(argType));
                     ReadArrayContent(instruction.Result, elementAccess.Array, elementAccess.Indices, argType);
                     if (Helpers.IsBoogieRefType(instruction.Result.Type))
                         AddBoogie(boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type)));
@@ -1160,20 +1158,19 @@ namespace TinyBCT.Translators
             }
 
             // result is the original result variable of the instruction
-            private void ReadArrayContent(IVariable insResult, IVariable array, IList<IVariable> indexes, string boogieType)
+            private void ReadArrayContent(IVariable insResult, IVariable array, IList<IVariable> indexes, Helpers.BoogieType boogieType)
             {
                 if (indexes.Count == 1)
                 {
                     // we access the last array of the chain - this one returns the element we want
                     // that element could be a Union (Ref alias) or a non Union type. In the last case we must perform a cast.
-                    if (boogieType.Equals("Ref"))
+                    if (boogieType.Equals(Helpers.BoogieType.Ref))
                     {
                         AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
                     }
                     else
                     {
                         // Store Union element and then cast it to the correct type
-                        boogieType = boogieType.First().ToString().ToUpper() + boogieType.Substring(1).ToLower();
 
                         var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
                         AddBoogie(boogieGenerator.CallReadArrayElement(tempVar, array, indexes.First()));
@@ -1801,13 +1798,12 @@ namespace TinyBCT.Translators
                 foreach (var v in method.Parameters)
                 {
                     var argType = Helpers.GetBoogieType(v.Type);
-                    Contract.Assert(!String.IsNullOrEmpty(argType));
                     //if (argType.Equals("Ref")) // Ref and Union are alias
                     //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
                     if (!Helpers.IsBoogieRefType(v.Type))
                     {
-                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
-                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType));
+                        var argTypeStr = argType.ToString()[0].ToString().ToUpper() + argType.ToString().Substring(1);
+                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argTypeStr));
                         args.Add(String.Format("local{0}", v.Index));
                     }
                     else
@@ -1818,21 +1814,18 @@ namespace TinyBCT.Translators
 
                 if (hasReturnVariable)
                 {
-                    Contract.Assert(!String.IsNullOrEmpty(Helpers.GetBoogieType(method.Type)));
-
                     if (Helpers.IsBoogieRefType(method.Type))
                     {
                         sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
                     } else
                     {
                         var argType = Helpers.GetBoogieType(method.Type);
-                        Contract.Assert(!String.IsNullOrEmpty(argType));
-                        argType = argType.First().ToString().ToUpper() + argType.Substring(1).ToLower();
                         if (!Helpers.IsBoogieRefType(method.Type))
                         {
+                            var argTypeStr = argType.ToString()[0].ToString().ToUpper() + argType.ToString().Substring(1);
                             sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
-                            sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType));
-                            sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType));
+                            sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argTypeStr));
+                            sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argTypeStr));
                         } else
                         {
                             sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));

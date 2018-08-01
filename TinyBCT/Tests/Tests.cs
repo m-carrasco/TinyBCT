@@ -160,6 +160,10 @@ public class TestsBase
 
     protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalTinyBCTOptions = "", bool useCSC = false) {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
+        if (!System.IO.Directory.Exists(pathTempDir))
+        {
+            System.IO.Directory.CreateDirectory(pathTempDir);
+        }
         var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, additionalTinyBCTOptions: additionalTinyBCTOptions);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
@@ -2054,17 +2058,17 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
-    [TestCategory("Manu")]
-    // Remove (or change test) once bug related to ref keyword is fixed
+    [TestCategory("Ref")]
+    [TestCategory("Addresses")]
     public void RefKeyword1()
     {
-        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [TestMethod]
-    [TestCategory("Manu")]
-    //[Ignore] // Remove (or change test) once bug related to ref keyword is fixed
+    [TestCategory("Ref")]
+    [TestCategory("Addresses")]
     public void RefKeyword2()
     {
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");

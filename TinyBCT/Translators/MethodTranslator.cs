@@ -36,13 +36,13 @@ namespace TinyBCT
             var typeAnalysis = new TypeInferenceAnalysis(Traverser.CFG, methodBody.MethodDefinition.Type);
             typeAnalysis.Analyze();
 
-            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(Traverser.CFG);
-            forwardCopyAnalysis.Analyze();
-            forwardCopyAnalysis.Transform(methodBody);
+            //var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(Traverser.CFG);
+            //forwardCopyAnalysis.Analyze();
+            //forwardCopyAnalysis.Transform(methodBody);
 
-            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(Traverser.CFG);
-            backwardCopyAnalysis.Analyze();
-            backwardCopyAnalysis.Transform(methodBody);
+            //var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(Traverser.CFG);
+            //backwardCopyAnalysis.Analyze();
+            //backwardCopyAnalysis.Transform(methodBody);
 
             // TinyBCT transformations
 
@@ -165,7 +165,7 @@ namespace TinyBCT
 
         String TranslateReturnTypeIfAny()
         {
-            if (Helpers.GetMethodBoogieReturnType(methodDefinition).Equals("Void") &&  (!methodDefinition.Parameters.Any(p => p.IsByReference || p.IsOut) && !Settings.NewAddrModelling))
+            if (Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void) &&  (!methodDefinition.Parameters.Any(p => p.IsByReference || p.IsOut) && !Settings.NewAddrModelling))
             {
                 return String.Empty;
             }
@@ -173,7 +173,7 @@ namespace TinyBCT
             {
                 var returnVariables = new List<String>();
                 returnVariables = methodDefinition.Parameters.Where(p => p.IsByReference && !Settings.NewAddrModelling).Select(p => String.Format("{0}$out : {1}", p.Name.Value, Helpers.GetBoogieType(p.Type))).ToList();
-                if (!Helpers.GetMethodBoogieReturnType(methodDefinition).Equals("Void"))
+                if (!Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void))
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodDefinition)));
 
                 return String.Format("returns ({0})", String.Join(",", returnVariables));
