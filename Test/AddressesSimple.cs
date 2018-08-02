@@ -112,6 +112,33 @@ namespace Test
             Contract.Assert(a.i > 5);
         }
 
+        public static void Test7(AddressesSimple a)
+        {
+            var c = new AddressesSimple();
+            c.i = 5;
+
+            var b = new AddressesSimple();
+            b.i = 5;
+            PassByRef(ref b.i);
+
+            int h = 5;
+
+            PassByRef(ref h);
+
+            PassByRef(ref a.i);
+
+            Contract.Assume(a != null);
+            Contract.Assume(a.i == 5);
+            Contract.Assume(a.i > 5);
+            Contract.Assert(b.i > 5);
+            Contract.Assert(c.i == 5);
+        }
+
+        public static void PassByRef(ref int a)
+        {
+            a = 10;
+        }
+
         static int z;
 
         public int i;
