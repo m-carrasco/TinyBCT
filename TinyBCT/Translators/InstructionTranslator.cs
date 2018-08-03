@@ -170,7 +170,10 @@ namespace TinyBCT.Translators
                 }
                 else 
                 {
-                    AddBoogie(boogieGenerator.Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", "Empty", 0)));
+                    if (Settings.DebugLines)
+                    {
+                        AddBoogie(boogieGenerator.Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", "Empty", 0)));
+                    }
                 }
             }
 
