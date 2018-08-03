@@ -2025,6 +2025,14 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test7()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test7$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
     [TestCategory("Manu")]
     public void ModOperator1()
     {
@@ -2058,17 +2066,17 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
-    [TestCategory("Ref")]
     [TestCategory("Addresses")]
+    [TestCategory("RefKeyword")]
     public void RefKeyword1()
     {
-        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10, useStubs:false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [TestMethod]
-    [TestCategory("Ref")]
     [TestCategory("Addresses")]
+    [TestCategory("RefKeyword")]
     public void RefKeyword2()
     {
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
