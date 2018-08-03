@@ -105,7 +105,7 @@ namespace TinyBCT
                 .SetDefault(false)
                 .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
 
-            p.Setup<bool>('m', "DebugLines")
+            p.Setup<bool>( "DebugLines")
                 .Callback(b => DebugLines = b)
                 .SetDefault(false)
                 .WithDescription("This settings forces the line numbers to be printed even when no input file exists (TinyBCT can be called without a file).");
