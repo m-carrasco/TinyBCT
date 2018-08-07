@@ -281,10 +281,9 @@ namespace TinyBCT.Translators
             {
                 var methodRef = instruction.Method;
                 // IsDelegateInvokation requires containing type != null - not sure if that always holds
-                if (methodRef.ResolvedMethod == null || Helpers.IsExternal(methodRef.ResolvedMethod) || DelegateInvokeTranslation.IsDelegateInvokation(instruction))
-                    if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
-                        return boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
-
+                if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
+                        return boogieGenerator.Assume($"({instruction.Result} != null) ==> (" + boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type) + ")");
+ 
                 return String.Empty;
             }
         }
