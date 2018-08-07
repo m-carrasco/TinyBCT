@@ -251,11 +251,19 @@ namespace TinyBCT
         }
         public string VariableAssignment(IVariable variableA, string expr)
         {
-            return VariableAssignment(variableA.ToString(), expr);
+            var variableName = variableA.ToString();
+            // hack for handling type as variable
+            if (variableName == "type")
+                variableName = "$type";
+            return VariableAssignment(variableName, expr);
         }
 
         public string VariableAssignment(string variableA, string expr)
         {
+            // hack for handling type as variable
+            if (expr == "type")
+                expr = "$type";
+
             return string.Format("{0} := {1};", variableA, expr);
         }
 

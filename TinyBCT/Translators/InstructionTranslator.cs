@@ -695,8 +695,16 @@ namespace TinyBCT.Translators
                         } else
                         {
                             string operand = instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ?
-                Helpers.Strings.fixStringLiteral(instructionOperand) :
-                instructionOperand.ToString();
+Helpers.Strings.fixStringLiteral(instructionOperand) :
+instructionOperand.ToString();
+                            // hack t overcome type inference problem
+                            if (cons!=null && cons.Value!=null && cons.Value.ToString()=="0" && Helpers.GetBoogieType(instruction.Result.Type)=="Ref")
+                            {
+                                operand = "null";
+                            }
+                            // hack for handling type as variable
+                            if (operand == "type")
+                                operand = "$type";
                             AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, operand));
                         }
                     }
@@ -823,6 +831,16 @@ namespace TinyBCT.Translators
                         i : i + 1;
                     var paramType = Helpers.GetBoogieType(unspecializedMethod.Parameters.ElementAt(i).Type);
                     var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i).Type);
+                    var arg = instruction.Arguments.ElementAt(arg_i);
+                    // hack for handling type as variable
+                    if (arg.Name == "type")
+                    {
+                        var arg2 = new LocalVariable("$type", arg.Method);
+                        arg2.Type = arg.Type;
+                        arg2.IsParameter = arg.IsParameter;
+                        arg = arg2;
+                    }
+
                     if (!paramType.Equals(argType))
                     {
                         // TODO(rcastano): try to reuse variables.
@@ -830,13 +848,14 @@ namespace TinyBCT.Translators
 
                         var bg = boogieGenerator;
                         // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
-                        toAppend.Add(bg.VariableAssignment(localVar, bg.PrimitiveType2Union(instruction.Arguments.ElementAt(arg_i))));
+            
+                        toAppend.Add(bg.VariableAssignment(localVar, bg.PrimitiveType2Union(arg)));
 
                         copyArgs.Add(localVar);
                     }
                     else
                     {
-                        copyArgs.Add(instruction.Arguments.ElementAt(arg_i));
+                        copyArgs.Add(arg);
                     }
                 }
                 return copyArgs;
