@@ -9,12 +9,13 @@ type HeapType = [Ref][Field]Union;
 const {:allocated} unique null: Ref;
 
 var $Alloc: [Ref]bool;
-
-procedure {:allocator} {:inline 1} Alloc() returns (x: Ref);
+procedure {:allocator} AuxAlloc() returns (x: Ref);
+procedure  {:inline 1} Alloc() returns (x: Ref);
   modifies $Alloc;
 
-implementation {:allocator} {:inline 1} Alloc() returns (x: Ref)
+implementation  {:inline 1} Alloc() returns (x: Ref)
 {
+    call x := AuxAlloc();
     assume $Alloc[x] == false && x != null;
     $Alloc[x] := true;
 }
