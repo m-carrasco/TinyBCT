@@ -21,11 +21,14 @@ type HeapObject = [Addr]Object;
 // for fields
 type InstanceFieldAddr = [Object]Addr;
 
+procedure {:allocator} {:inline 1} AuxAllocAddr() returns (x: Addr);
+
 procedure {:inline 1} AllocAddr() returns (x: Addr);
   modifies $AllocAddr;
 
 implementation {:inline 1} AllocAddr() returns (x: Addr)
 {
+    call x := AuxAllocAddr();
     assume $AllocAddr[x] == false; //&& x != null_addr;
 	assume (forall aA : InstanceFieldAddr, oA : Object :: { LoadInstanceFieldAddr(aA, oA) } LoadInstanceFieldAddr(aA, oA) != x);
     $AllocAddr[x] := true;
@@ -33,11 +36,13 @@ implementation {:inline 1} AllocAddr() returns (x: Addr)
 
 axiom (forall aA, aB : InstanceFieldAddr, oA, oB : Object :: {LoadInstanceFieldAddr(aA, oA), LoadInstanceFieldAddr(aB, oB)} oA != oB ==> LoadInstanceFieldAddr(aA, oA) != LoadInstanceFieldAddr(aB, oB));
 
+procedure {:allocator} {:inline 1} AllocObject() returns (x: Object);
 procedure {:inline 1} AllocObject() returns (x: Object);
   modifies $AllocObject;
 
 implementation {:inline 1} AllocObject() returns (x: Object)
 {
+    call x := AllocObject();
     assume $AllocObject[x] == false && x != null_object;
     $AllocObject[x] := true;
 }
@@ -123,11 +128,13 @@ const {:allocated} unique null: Ref;
 
 var $Alloc: [Ref]bool;
 
-procedure {:allocator} {:inline 1} Alloc() returns (x: Ref);
+procedure {:allocator} AuxAlloc() returns (x: Ref);
+procedure {:inline 1} Alloc() returns (x: Ref);
   modifies $Alloc;
 
-implementation {:allocator} {:inline 1} Alloc() returns (x: Ref)
+implementation {:inline 1} Alloc() returns (x: Ref)
 {
+    call x := AuxAlloc();
     assume $Alloc[x] == false && x != null;
     $Alloc[x] := true;
 }
