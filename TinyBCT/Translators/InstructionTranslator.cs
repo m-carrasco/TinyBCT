@@ -42,8 +42,7 @@ namespace TinyBCT.Translators
         // for example for delegates there are instructions that are no longer used
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
-
-        private IPrimarySourceLocation prevSourceLocation;
+        public IPrimarySourceLocation CurrentInstructionLocation { get; private set; }
 
         protected IMethodDefinition method;
 
@@ -106,9 +105,9 @@ namespace TinyBCT.Translators
                 SetState(instructions, idx);
                 var currentInstruction = instructions[idx];
                 translation.AddLabel(currentInstruction);
-                translation.AddLineNumbers(currentInstruction, prevSourceLocation);
                 if (currentInstruction.Location != null)
-                    prevSourceLocation = currentInstruction.Location;
+                    CurrentInstructionLocation = currentInstruction.Location;
+                translation.AddLineNumbers(CurrentInstructionLocation);
                 instructions[idx].Accept(translation);
                 lastInstruction = instructions[idx];
             }
@@ -151,29 +150,36 @@ namespace TinyBCT.Translators
                    AddBoogie(String.Format("\t{0}:", label));                    
             }
 
-            internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
+            internal string GetLineNumbersAttribute(IPrimarySourceLocation location)
             {
-                if (!Settings.EmitLineNumbers)
-                    return;
-                IPrimarySourceLocation location = instr.Location;
+                Contract.Requires(Settings.EmitLineNumbers);
+                Contract.Ensures(Contract.Result<string>() != null);
 
-                if (location == null && prevSourceLocation != null)
+                string attr = "";
+                if (location != null)
                 {
-                    location = prevSourceLocation;
-                }
-                if(location!=null)
-                { 
                     var fileName = location.SourceDocument.Name;
                     var sourceLine = location.StartLine;
-                    AddBoogie(boogieGenerator.Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", fileName, sourceLine)));
+                    attr = $"{{:sourceFile \"{fileName}\"}} {{:sourceLine {sourceLine} }}";
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
                 }
-                else 
+                else
                 {
                     if (Settings.DebugLines)
                     {
-                        AddBoogie(boogieGenerator.Assert(String.Format("{{:sourceFile \"{0}\"}} {{:sourceLine {1} }} true", "Empty", 0)));
+                        attr = $"{{:sourceFile \"Empty\"}} {{:sourceLine 0 }}";
                     }
+                }
+                return attr;
+            }
+            internal void AddLineNumbers(IPrimarySourceLocation location)
+            {
+                if (!Settings.EmitLineNumbers)
+                    return;
+                var attr = GetLineNumbersAttribute(location);
+                if (!attr.Equals(String.Empty))
+                {
+                    AddBoogie(boogieGenerator.Assert($"{attr} true"));
                 }
             }
 
@@ -735,6 +741,18 @@ instructionOperand.ToString();
                 var signature = Helpers.GetMethodName(callee);
                 var sb = new StringBuilder();
 
+                var location = instTranslator.CurrentInstructionLocation;
+                if (location != null && Settings.EmitLineNumbers)
+                {
+                    var attr1 = GetLineNumbersAttribute(location);
+                    // If the "sourceFile" and "sourceLine" attributes are missing the "print" attribute is ignored.
+                    if (!attr1.Equals(String.Empty))
+                    {
+                        var attr2 = $"{{:print \"Call \\\"{instTranslator.method.Name}\\\" \\\"{callee.Name}\\\"\"}}";
+                        sb.AppendLine(boogieGenerator.Assert($"{attr1} {attr2} true"));
+                    }
+                }
+
                 if (instruction.HasResult)
                 {
                     //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
@@ -760,7 +778,12 @@ instructionOperand.ToString();
                 }
 
                 sb.AppendLine(AddSubtypeInformationToExternCall(instruction));
-
+                if (location != null && Settings.EmitLineNumbers)
+                {
+                    var attr1 = GetLineNumbersAttribute(location);
+                    var attr2 = $"{{:print \"Return\"}}";
+                    sb.AppendLine(boogieGenerator.Assert($"{attr1} {attr2} true"));
+                }
                 return sb.ToString();
             }
 
@@ -1811,6 +1834,7 @@ instructionOperand.ToString();
 
                     if (Helpers.IsBoogieRefType(method.Type))
                     {
+                        // TODO(rcastano): Add AV call instrumentation
                         sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
                     } else
                     {
