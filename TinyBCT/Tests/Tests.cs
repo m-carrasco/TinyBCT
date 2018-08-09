@@ -572,7 +572,27 @@ class A {
         var corralResult = CorralTestHelperCode("Ref", "A.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+[TestMethod, Timeout(10000)]
+public void TestBitConverter()
+{
+    string source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class A {
+  public static void Main() {
+    var res =  System.BitConverter.ToInt32(new System.Byte[] {1,2,3,4}, 0);
+    Contract.Assert(res != 0);
+  }
 }
+        ";
+    var corralResult = CorralTestHelperCode("BitConverter", "A.Main", 10, source);
+    Assert.IsTrue(corralResult.NoBugs());
+}
+}
+ 
+
 
 [TestClass]
 public partial class AvRegressionTests : TestsBase

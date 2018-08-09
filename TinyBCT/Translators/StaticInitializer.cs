@@ -73,7 +73,7 @@ namespace TinyBCT.Translators
         {
             StringBuilder sb
             = new StringBuilder();
-            sb.AppendLine("procedure $initialize_globals()");
+            sb.AppendLine("procedure {:ProgramInitialization} $initialize_globals()");
             sb.AppendLine("{");
             sb.AppendLine("\t//this procedure initializes global exception variables and calls static constructors");
             sb.AppendLine("\t$Exception := null;");

@@ -34,7 +34,7 @@
   <ItemGroup>
     <Reference Include="Backend, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>Dependencies\Backend.dll</HintPath>
+      <HintPath>..\..\rudder\analysis-net\Backend\bin\Debug\Backend.dll</HintPath>
     </Reference>
     <Reference Include="FluentCommandLineParser, Version=1.4.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentCommandLineParser.1.4.3\lib\net35\FluentCommandLineParser.dll</HintPath>

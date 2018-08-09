@@ -35,13 +35,13 @@ namespace TinyBCT
             var typeAnalysis = new TypeInferenceAnalysis(Traverser.CFG, methodBody.MethodDefinition.Type);
             typeAnalysis.Analyze();
 
-            var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(Traverser.CFG);
-            forwardCopyAnalysis.Analyze();
-            forwardCopyAnalysis.Transform(methodBody);
+            //var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(Traverser.CFG);
+            //forwardCopyAnalysis.Analyze();
+            //forwardCopyAnalysis.Transform(methodBody);
 
-            var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(Traverser.CFG);
-            backwardCopyAnalysis.Analyze();
-            backwardCopyAnalysis.Transform(methodBody);
+            //var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(Traverser.CFG);
+            //backwardCopyAnalysis.Analyze();
+            //backwardCopyAnalysis.Transform(methodBody);
 
             // TinyBCT transformations
 

@@ -158,7 +158,7 @@ namespace TinyBCT.Translators
                 string attr = "";
                 if (location != null)
                 {
-                    var fileName = location.SourceDocument.Name;
+                    var fileName = location.SourceDocument.Location;
                     var sourceLine = location.StartLine;
                     attr = $"{{:sourceFile \"{fileName}\"}} {{:sourceLine {sourceLine} }}";
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
