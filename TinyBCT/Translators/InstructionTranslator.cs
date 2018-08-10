@@ -977,6 +977,17 @@ instructionOperand.ToString();
                     AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction.Result));
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
+                    // Diego: to check
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", instruction.Operand);
+                    if (Settings.CheckNullDereferences)
+                    {
+                        AddBoogie(boogieGenerator.Assert(refNotNullStr));
+                    }
+                    else
+                    {
+                        AddBoogie(boogieGenerator.Assume(refNotNullStr));
+                    }
+
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), instruction.Operand.Name)));
                     else
