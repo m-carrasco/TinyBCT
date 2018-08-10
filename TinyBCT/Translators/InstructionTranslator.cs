@@ -853,7 +853,7 @@ namespace TinyBCT.Translators
 
                         var bg = boogieGenerator;
                         // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
-                        toAppend.Add(bg.VariableAssignment(localVar, bg.PrimitiveType2Union(instruction.Arguments.ElementAt(arg_i))));
+                        toAppend.Add(bg.VariableAssignment(localVar, Expression.PrimitiveType2Union(instruction.Arguments.ElementAt(arg_i))));
 
                         copyArgs.Add(localVar);
                     }
@@ -1212,7 +1212,7 @@ namespace TinyBCT.Translators
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
                     AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(instruction.Operand));
-                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array.Name, res.Indices[0].Name, boogieGenerator.PrimitiveType2Union(Helpers.GetBoogieType(res.Type),instruction.Operand.Name)));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array.Name, res.Indices[0].Name, Expression.PrimitiveType2Union(Helpers.GetBoogieType(res.Type),instruction.Operand.Name).Expr));
                 }
                 else
                     AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array, res.Indices[0], instruction.Operand));
@@ -1619,7 +1619,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         invokeDelegateArguments.Add(argument.ToString());
                     else
-                        invokeDelegateArguments.Add(boogieGenerator.PrimitiveType2Union(argument));
+                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(argument).Expr);
                 }
 
                 //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;

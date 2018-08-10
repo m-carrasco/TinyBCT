@@ -2927,7 +2927,7 @@ class Test {
     }
 
     [TestMethod]
-    [TestCategory("Manu"), Timeout(10000)]
+    [TestCategory("Manu"), Timeout(30000)]
     public void ExceptionTest6NoBugs()
     {
         var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest6NoBugs.Main", 10);

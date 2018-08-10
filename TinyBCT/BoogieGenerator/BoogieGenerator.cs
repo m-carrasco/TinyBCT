@@ -11,6 +11,130 @@ using TinyBCT.Translators;
 
 namespace TinyBCT
 {
+    public class Expression
+    {
+        protected Expression(Helpers.BoogieType type, string expr)
+        {
+            Type = type;
+            Expr = expr;
+        }
+        public Helpers.BoogieType Type { get; }
+        public string Expr { get; }
+
+        public static Expression PrimitiveType2Union(IVariable value)
+        {
+            Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
+            var boogieType = Helpers.GetBoogieType(value.Type);
+            return PrimitiveType2Union(boogieType, value.ToString());
+        }
+        public static Expression PrimitiveType2Union(Helpers.BoogieType boogieType, string value)
+        {
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            return new Expression(Helpers.BoogieType.Union, $"{boogieTypeStr}2Union({value})");
+        }
+    }
+
+    public class BoogieLiteral : Expression {
+        private BoogieLiteral(Helpers.BoogieType type, string expr) : base(type, expr)
+        {
+            Contract.Requires(!type.Equals(Helpers.BoogieType.Void));
+        }
+        public static bool IsFloat(Constant constant)
+        {
+            return constant.Value is Single || constant.Value is Double || constant.Value is Decimal;
+        }
+        public static bool IsNumeric(Constant constant)
+        {
+            return IsFloat(constant) || TypeHelper.IsPrimitiveInteger(constant.Type);
+        }
+        public static BoogieLiteral Numeric(Constant constant)
+        {
+            Contract.Requires(IsNumeric(constant));
+            var consStr = IsFloat(constant) ? FormatFloatValue(constant) : constant.Value.ToString();
+            return new BoogieLiteral(Helpers.GetBoogieType(constant.Type), consStr);
+        }
+        public static BoogieLiteral String(Constant constant)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static readonly BoogieLiteral NullObject = new BoogieLiteral(Helpers.BoogieType.Object, "null_object");
+
+        public static readonly BoogieLiteral NullRef = new BoogieLiteral(Helpers.BoogieType.Ref, "null");
+
+        private static string FormatFloatValue(Constant cons)
+        {
+            Contract.Requires(cons.Value is Single || cons.Value is Double || cons.Value is Decimal);
+            // default string representation of floating point types is not suitable for boogie
+            // boogie wants dot instead of ,
+            // "F" forces to add decimal part
+            // The format specifiers F9 and F17 make the translation lossless for
+            // single and double, respectively.
+            string str = "";
+            if (cons.Value is Single)
+            {
+                Single v = (Single)cons.Value;
+                str = v.ToString("F9").Replace(",", ".");
+            }
+            else if (cons.Value is Double)
+            {
+                Double v = (Double)cons.Value;
+                str = v.ToString("F17").Replace(",", ".");
+            }
+            else if (cons.Value is Decimal)
+            {
+                Decimal v = (Decimal)cons.Value;
+                str = v.ToString("F").Replace(",", ".");
+            }
+            else
+            {
+                Contract.Assert(false);
+            }
+
+            return str;
+        }
+        private new string ToString()
+        {
+            throw new Exception("Should not be called.");
+        }
+    }
+    public class BoogieVariable : Expression
+    {
+        protected BoogieVariable(Helpers.BoogieType type, string name) : base(type, name)
+        {
+            Contract.Requires(IsValidVariableName(name));
+        }
+        static public BoogieVariable FromDotNetVariable(IVariable variable)
+        {
+            Contract.Requires(!variable.IsParameter);
+            return new BoogieVariable(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
+        }
+
+        static protected string AdaptNameToBoogie(string name)
+        {
+            if (name != "type")
+            {
+                return name;
+            }
+            return $"$${name}$$";
+        }
+
+        static protected bool IsValidVariableName(string name) {
+            return !name.Contains(" ");
+        }
+    }
+    public class BoogieParameter : BoogieVariable
+    {
+        private BoogieParameter(Helpers.BoogieType type, string name) : base(type, name)
+        {
+            Contract.Requires(IsValidVariableName(name));
+        }
+        static new public BoogieVariable FromDotNetVariable(IVariable variable)
+        {
+            Contract.Requires(variable.IsParameter);
+            return new BoogieParameter(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
+        }
+    }
     public abstract class Addressable
     {
 
@@ -82,7 +206,7 @@ namespace TinyBCT
     {
         public override string NullObject()
         {
-            return "null_object";
+            return BoogieLiteral.NullObject.Expr;
         }
 
         // hides implementation in super class
@@ -152,6 +276,10 @@ namespace TinyBCT
             }
         }
 
+        public override string WriteAddr(Addressable addr, Expression expr)
+        {
+            return WriteAddr(addr, expr.Expr);
+        }
         public override string WriteAddr(Addressable addr, String value)
         {
             if (addr is AddressExpression)
@@ -178,20 +306,31 @@ namespace TinyBCT
             }
         }
 
+        public override string VariableAssignment(IVariable variableA, Expression expr)
+        {
+            return WriteAddr(AddressOf(variableA), expr);
+        }
         public override string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
-            string formatedFloatValue = null;
-            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+            BoogieLiteral boogieConstant = null;
+            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type)))
             {
-                formatedFloatValue = base.FormatFloatValue(cons);
+                boogieConstant = BoogieLiteral.Numeric(cons);
             }
 
             var boogieType = Helpers.GetBoogieType(variableA.Type);
 
             if (value is Constant)
             {
-                return WriteAddr(variableA, formatedFloatValue ?? value.ToString());
+                if (boogieConstant != null)
+                {
+                    return VariableAssignment(variableA, boogieConstant);
+                } else
+                {
+                    return WriteAddr(variableA, value.ToString());
+                }
+                
             } else if (value is IVariable)
             {
                 return WriteAddr(variableA, ValueOfVariable(value as IVariable));
@@ -243,13 +382,12 @@ namespace TinyBCT
 
                     data(_x) := x; // we are doing this conceptually
                  }
-                 */
-
-                Constant constantValue = new Constant(paramVariable);
-                constantValue.Type = paramVariable.Type;
+                */
+                var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
+                Addressable paramAddress = AddressOf(paramVariable);
 
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
-                sb.AppendLine(VariableAssignment(paramVariable, constantValue));
+                sb.AppendLine(WriteAddr(paramAddress, boogieParamVariable));
 
                 if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
                 {
@@ -324,7 +462,7 @@ namespace TinyBCT
             if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
                 sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(boogieType, ReadAddr(value))));
+                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(boogieType, ReadAddr(value))));
             }
             else
                 sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), ReadAddr(value)));
@@ -337,20 +475,15 @@ namespace TinyBCT
     {
         public override string NullObject()
         {
-            return "null";
+            return BoogieLiteral.NullRef.Expr;
         }
 
         public override string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
             if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
-            {
-                // default string representation of floating point types is not suitable for boogie
-                // boogie wants dot instead of ,
-                // "F" forces to add decimal part
-                string str = FormatFloatValue(cons);
-
-                return VariableAssignment(variableA.ToString(), str);
+            {   
+                return VariableAssignment(variableA.ToString(), BoogieLiteral.Numeric(cons).Expr);
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
@@ -360,6 +493,10 @@ namespace TinyBCT
             return VariableAssignment(variableA.ToString(), value.ToString());
         }
 
+        public override string VariableAssignment(IVariable variableA, Expression expr)
+        {
+            return VariableAssignment(BoogieVariable.FromDotNetVariable(variableA), expr);
+        }
         public override string VariableAssignment(IVariable variableA, string expr)
         {
             return VariableAssignment(variableA.ToString(), expr);
@@ -417,7 +554,7 @@ namespace TinyBCT
                 if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
                 {
                     sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
                     //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
                 }
                 else
@@ -436,7 +573,7 @@ namespace TinyBCT
                 {
                     sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
                     //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
-                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(boogieType, value.Name)));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(boogieType, value.Name)));
                 }
                 else
                     sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), value.Name));
@@ -525,6 +662,10 @@ namespace TinyBCT
             return new DotNetVariable(var.Name, var.Type);
         }
 
+        public override string WriteAddr(Addressable addr, Expression expr)
+        {
+            return WriteAddr(addr, expr.Expr);
+        }
         public override string WriteAddr(Addressable addr, string value)
         {
             if (addr is InstanceField instanceField)
@@ -576,37 +717,6 @@ namespace TinyBCT
             return singleton;
         }
 
-        protected string FormatFloatValue(Constant cons)
-        {
-            // default string representation of floating point types is not suitable for boogie
-            // boogie wants dot instead of ,
-            // "F" forces to add decimal part
-            // The format specifiers F9 and F17 make the translation lossless for
-            // single and double, respectively.
-            string str = "";
-            if (cons.Value is Single)
-            {
-                Single v = (Single)cons.Value;
-                str = v.ToString("F9").Replace(",", ".");
-            }
-            else if (cons.Value is Double)
-            {
-                Double v = (Double)cons.Value;
-                str = v.ToString("F17").Replace(",", ".");
-            }
-            else if (cons.Value is Decimal)
-            {
-                Decimal v = (Decimal)cons.Value;
-                str = v.ToString("F").Replace(",", ".");
-            }
-            else
-            {
-                Contract.Assert(false);
-            }
-
-            return str;
-        }
-
         public abstract string ReadAddr(IVariable var);
 
         public abstract string ReadAddr(Addressable addr);
@@ -654,6 +764,7 @@ namespace TinyBCT
         }
 
         public abstract string WriteAddr(Addressable addr, string value);
+        public abstract string WriteAddr(Addressable addr, Expression value);
 
         public abstract string AllocAddr(IVariable var);
         public abstract string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable);
@@ -672,19 +783,6 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(variable.Type);
 
             return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
-        }
-
-        public string PrimitiveType2Union(IVariable value)
-        {
-            Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
-            var boogieType = Helpers.GetBoogieType(value.Type);
-            return PrimitiveType2Union(boogieType, value.ToString());
-        }
-
-        public string PrimitiveType2Union(Helpers.BoogieType boogieType, string value)
-        {
-            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
-            return string.Format("{0}2Union({1})", boogieTypeStr, value);
         }
 
         public string Union2PrimitiveType(IVariable value)
@@ -791,6 +889,7 @@ namespace TinyBCT
                 return string.Format("call {0}({1});", boogieProcedureName, arguments);
         }
 
+        public abstract string VariableAssignment(IVariable variableA, Expression expr);
         public abstract string VariableAssignment(IVariable variableA, IValue value);
         public abstract string VariableAssignment(IVariable variableA, string expr);
         public string NullOrZero(ITypeReference type)
@@ -807,6 +906,11 @@ namespace TinyBCT
             {
                 return "null";
             }
+        }
+
+        public string VariableAssignment(BoogieVariable variableA, Expression expr)
+        {
+            return $"{variableA.Expr} := {expr.Expr};";
         }
 
         public string VariableAssignment(string variableA, string expr)
