@@ -89,6 +89,10 @@ namespace TinyBCT
             public static readonly BoogieType Void = new BoogieType(ConstValue.Void);
             private ConstValue Const { get; }
             private enum ConstValue { Int, Bool, Real, Object, Ref, Addr, Union, Void };
+            public string FirstUppercase()
+            {
+                return Const.ToString();
+            }
             public override string ToString()
             {
                 if (Const == ConstValue.Int)

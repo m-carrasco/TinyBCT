@@ -767,7 +767,7 @@ namespace TinyBCT.Translators
                         // TODO(rcastano): reuse variable
                         var localVar = AddNewLocalVariableToMethod("$temp_var_", Types.Instance.PlatformType.SystemObject, false);
                         sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator.ShouldCreateValueVariable, localVar));
-                        sb.AppendLine(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(resType, localVar.Name)));
+                        sb.AppendLine(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(resType, localVar.Name)));
                     }
                 }
                 else
@@ -961,7 +961,7 @@ namespace TinyBCT.Translators
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), instruction.Operand.Name)));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), instruction.Operand.Name)));
                     else
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instruction.Operand));
@@ -1177,7 +1177,7 @@ namespace TinyBCT.Translators
 
                         var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
                         AddBoogie(boogieGenerator.CallReadArrayElement(tempVar, array, indexes.First()));
-                        AddBoogie(boogieGenerator.VariableAssignment(insResult, boogieGenerator.Union2PrimitiveType(boogieType, tempVar.Name)));
+                        AddBoogie(boogieGenerator.VariableAssignment(insResult, Expression.Union2PrimitiveType(boogieType, tempVar.Name)));
                     }
                 } else
                 {
@@ -1643,7 +1643,7 @@ namespace TinyBCT.Translators
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, localVar.Name));
                     }
                     else
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, boogieGenerator.Union2PrimitiveType(argType, localVar.Name)));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(argType, localVar.Name)));
                 }
             }
 
@@ -1805,8 +1805,7 @@ namespace TinyBCT.Translators
                     //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
                     if (!Helpers.IsBoogieRefType(v.Type))
                     {
-                        var argTypeStr = argType.ToString()[0].ToString().ToUpper() + argType.ToString().Substring(1);
-                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argTypeStr));
+                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType.FirstUppercase()));
                         args.Add(String.Format("local{0}", v.Index));
                     }
                     else
@@ -1825,10 +1824,9 @@ namespace TinyBCT.Translators
                         var argType = Helpers.GetBoogieType(method.Type);
                         if (!Helpers.IsBoogieRefType(method.Type))
                         {
-                            var argTypeStr = argType.ToString()[0].ToString().ToUpper() + argType.ToString().Substring(1);
                             sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
-                            sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argTypeStr));
-                            sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argTypeStr));
+                            sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType.FirstUppercase()));
+                            sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType.FirstUppercase()));
                         } else
                         {
                             sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));

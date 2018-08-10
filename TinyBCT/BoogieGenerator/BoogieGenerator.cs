@@ -29,8 +29,16 @@ namespace TinyBCT
         }
         public static Expression PrimitiveType2Union(Helpers.BoogieType boogieType, string value)
         {
-            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
-            return new Expression(Helpers.BoogieType.Union, $"{boogieTypeStr}2Union({value})");
+            return new Expression(Helpers.BoogieType.Union, $"{boogieType.FirstUppercase()}2Union({value})");
+        }
+        public static Expression Union2PrimitiveType(Helpers.BoogieType boogieType, string value)
+        {
+            return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({value})");
+        }
+
+        private new string ToString()
+        {
+            throw new Exception("This method should not be called, use property Expr.");
         }
     }
 
@@ -135,10 +143,45 @@ namespace TinyBCT
             return new BoogieParameter(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
         }
     }
+
+    public class Value : Expression
+    {
+        private Value(Helpers.BoogieType type, string expr) : base(type, expr) { }
+    }
+
+    public class ReadTypedMemory : Expression
+    {
+        class TemporaryClassToBuildExpression
+        {
+            public TemporaryClassToBuildExpression(AddressExpression key)
+            {
+                Key = key;
+            }
+            public string Expr { get { return $"{ReadFunction}({MemoryMap}, {Key.Expr})"; } }
+            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Type); } }
+            private AddressExpression Key { get; }
+            private string MemoryMap { get { return $"$memory{Type.FirstUppercase()}"; } }
+            private string ReadFunction { get { return $"Read{Type.FirstUppercase()}"; } }
+        }
+
+        private ReadTypedMemory(TemporaryClassToBuildExpression temp) : base(temp.Type, temp.Expr) { }
+        public static ReadTypedMemory From(AddressExpression key)
+        {
+            Contract.Assume(
+                Helpers.GetBoogieType(key.Type).Equals(Helpers.BoogieType.Int)     ||
+                Helpers.GetBoogieType(key.Type).Equals(Helpers.BoogieType.Bool)    ||
+                Helpers.GetBoogieType(key.Type).Equals(Helpers.BoogieType.Object)  ||
+                Helpers.GetBoogieType(key.Type).Equals(Helpers.BoogieType.Real)    ||
+                Helpers.GetBoogieType(key.Type).Equals(Helpers.BoogieType.Addr));
+            return new ReadTypedMemory(new TemporaryClassToBuildExpression(key));
+        }
+    }
+
     public abstract class Addressable
     {
 
     }
+    // TODO(rcastano): Change name. An instance of AddressExpression will not actually be an expression.
     // expr field is an expression that in boogie will be typed as Addr
     public class AddressExpression : Addressable
     {
@@ -251,25 +294,10 @@ namespace TinyBCT
 
         public override string ReadAddr(Addressable addr)
         {
-            if (addr is AddressExpression)
+            if (addr is AddressExpression addrExpr)
             {
-                var addrExpr = addr as AddressExpression;
-                var boogieType = Helpers.GetBoogieType(addrExpr.Type);
-
-                if (boogieType.Equals(Helpers.BoogieType.Int))
-                    return String.Format("ReadInt({0}, {1})", "$memoryInt", addrExpr.Expr);
-                else if (boogieType.Equals(Helpers.BoogieType.Bool))
-                    return String.Format("ReadBool({0}, {1})", "$memoryBool", addrExpr.Expr);
-                else if (boogieType.Equals(Helpers.BoogieType.Object))
-                    return String.Format("ReadObject({0}, {1})", "$memoryObject", addrExpr.Expr);
-                else if (boogieType.Equals(Helpers.BoogieType.Real))
-                    return String.Format("ReadReal({0}, {1})", "$memoryReal", addrExpr.Expr);
-                else if (boogieType.Equals(Helpers.BoogieType.Addr))
-                    return String.Format("ReadAddr({0}, {1})", "$memoryAddr", addrExpr.Expr);
-
-                // This point of the program should not be reachable.
-                Contract.Assert(false);
-                return "";
+                var readExpr = ReadTypedMemory.From(addrExpr);
+                return readExpr.Expr;
             } else
             {
                 throw new NotImplementedException();
@@ -442,7 +470,7 @@ namespace TinyBCT
                 var boogieType = Helpers.GetBoogieType(result.Type);
                 if (!boogieType.Equals(Helpers.BoogieType.Object))
                 {
-                    return VariableAssignment(result, Union2PrimitiveType(boogieType, readValue));
+                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue));
                 } else
                 {
                     return VariableAssignment(result, readValue);
@@ -596,7 +624,7 @@ namespace TinyBCT
                 if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
                 {
                     // example: Union2Int(Read(...))
-                    var expr = Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
+                    var expr = Expression.Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
                     sb.AppendLine(VariableAssignment(result, expr));
                 }
                 else
@@ -612,7 +640,7 @@ namespace TinyBCT
                 //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
                 if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
-                    sb.AppendLine(VariableAssignment(result, Union2PrimitiveType(boogieType, heapAccess)));
+                    sb.AppendLine(VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, heapAccess)));
                 }
                 else
                     sb.AppendLine(VariableAssignment(result, heapAccess));
@@ -773,9 +801,8 @@ namespace TinyBCT
 
         public string AssumeInverseRelationUnionAndPrimitiveType(string variable, Helpers.BoogieType boogieType)
         {
-            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
-            var e1 = string.Format("{0}2Union({1})", boogieTypeStr, variable);
-            return string.Format("assume Union2{0}({1}) == {2};", boogieTypeStr, e1, variable);
+            var e1 = string.Format("{0}2Union({1})", boogieType.FirstUppercase(), variable);
+            return string.Format("assume Union2{0}({1}) == {2};", boogieType.FirstUppercase(), e1, variable);
         }
 
         public string AssumeInverseRelationUnionAndPrimitiveType(IVariable variable)
@@ -783,19 +810,6 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(variable.Type);
 
             return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
-        }
-
-        public string Union2PrimitiveType(IVariable value)
-        {
-            Contract.Assert(Helpers.IsBoogieRefType(value.Type));
-            var boogieType = Helpers.GetBoogieType(value.Type);
-
-            return Union2PrimitiveType(boogieType, value.ToString());
-        }
-        public string Union2PrimitiveType(Helpers.BoogieType boogieType, string value)
-        {
-            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
-            return string.Format("Union2{0}({1})", boogieTypeStr, value);
         }
 
         public string WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
@@ -1241,9 +1255,8 @@ namespace TinyBCT
             var boogieType = Helpers.GetBoogieType(op1.Type);
             if (boogieType.Equals(Helpers.BoogieType.Ref))
                 boogieType = Helpers.BoogieType.Union;
-            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
-
-            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieTypeStr);
+            
+            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieType.FirstUppercase());
             var args = new List<string>();
             args.Add(op1.Name);
 
