@@ -531,8 +531,8 @@ namespace TinyBCT.Translators
                     
                     var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result.Type));
                     var arguments = new List<string>();
-                    arguments.Add(Helpers.Strings.fixStringLiteral(left));
-                    arguments.Add(Helpers.Strings.fixStringLiteral(right));
+                    arguments.Add(Helpers.Strings.fixStringLiteral(left).Expr);
+                    arguments.Add(Helpers.Strings.fixStringLiteral(right).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar));
                     AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar));
                 } else
@@ -719,9 +719,9 @@ namespace TinyBCT.Translators
                         // strings values that appear in the three address code are declared globally in the .bpl
                         // stringVariableName is the name of the declared global variable
 
-                        string stringVariableName = Helpers.Strings.fixStringLiteral(instructionOperand);
+                        Expression expr = Helpers.Strings.fixStringLiteral(instructionOperand);
 
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, stringVariableName));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, expr));
                     } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
@@ -886,8 +886,8 @@ namespace TinyBCT.Translators
 
                     var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", Types.Instance.PlatformType.SystemBoolean);
                     var arguments = new List<string>();
-                    arguments.Add(Helpers.Strings.fixStringLiteral(leftOperand));
-                    arguments.Add(Helpers.Strings.fixStringLiteral(rightOperand));
+                    arguments.Add(Helpers.Strings.fixStringLiteral(leftOperand).Expr);
+                    arguments.Add(Helpers.Strings.fixStringLiteral(rightOperand).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
                     AddBoogie(bg.If(bg.ReadAddr(tempVar).Expr, bg.Goto(instruction.Target)));
                 }

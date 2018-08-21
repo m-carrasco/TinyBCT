@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TinyBCT.Translators;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT
 {
     public class Expression
@@ -67,7 +68,50 @@ namespace TinyBCT
         }
         public static BoogieLiteral String(Constant constant)
         {
-            throw new NotImplementedException();
+            return new BoogieLiteral(Helpers.BoogieType.Ref, Strings.fixStringLiteral(constant));
+        }
+
+        public static class Strings
+        {
+            internal static ISet<string> stringLiterals = new HashSet<string>();
+            private const string constNameForNullString = "$string_literal_NullValue";
+            private static string ConstNameForStringLiteral(string literal)
+            {
+                // String literal will start and end with '"'.
+                System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
+                stringLiterals.Add(literal);
+                var fixedString = Helpers.Strings.ReplaceSpaces(Helpers.Strings.NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)));
+                if (Helpers.Strings.ContainsIllegalCharacters(fixedString))
+                {
+                    fixedString = Helpers.Strings.ReplaceIllegalChars(fixedString);
+                }
+                return $"$string_literal_{fixedString}";
+            }
+            internal static string fixStringLiteral(Constant cons)
+            {
+                string vStr = null;
+                if (cons.Value != null)
+                {
+                    vStr = ConstNameForStringLiteral(cons.ToString());
+                    stringLiterals.Add(cons.ToString());
+                }
+                else
+                {
+                    vStr = constNameForNullString;
+                }
+                return vStr;
+            }
+
+            public static void WriteStringConsts(System.IO.StreamWriter sw)
+            {
+                var addedConsts = new HashSet<string>();
+                sw.WriteLine($"\tconst unique {constNameForNullString} : Ref;");
+                foreach (var lit in stringLiterals)
+                {
+                    var boogieConst = ConstNameForStringLiteral(lit);
+                    sw.WriteLine($"\tconst unique {boogieConst} : Ref;");
+                }
+            }
         }
 
         public static readonly BoogieLiteral NullObject = new BoogieLiteral(Helpers.BoogieType.Object, "null_object");

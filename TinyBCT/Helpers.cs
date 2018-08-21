@@ -714,9 +714,12 @@ namespace TinyBCT
 
         public static class Strings
         {
-            internal static ISet<string> stringLiterals = new HashSet<string>();
             internal static IDictionary<Char, int> specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
             internal static readonly Regex illegalBoogieCharactersRegex = new Regex(@"[^a-zA-Z_.$#'`~^\?]");
+            public static bool ContainsIllegalCharacters(string s)
+            {
+                return illegalBoogieCharactersRegex.Match(s).Success;
+            }
             public static string ReplaceIllegalChars(string s)
             {
                 StringBuilder sb = new StringBuilder();
@@ -755,48 +758,19 @@ namespace TinyBCT
 
                 //return s; // .Replace('<', '_').Replace('>', '_');
             }
-
-            public const string constNameForNullString = "$string_literal_NullValue";
-            public static string ConstNameForStringLiteral(string literal)
-            {
-                // String literal will start and end with '"'.
-                System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
-                stringLiterals.Add(literal);
-                var fixedString = ReplaceSpaces(NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)));
-                if (illegalBoogieCharactersRegex.Match(fixedString).Success)
-                {
-                    fixedString = ReplaceIllegalChars(fixedString);
-                }
-                return String.Format("$string_literal_{0}", fixedString);
-            }
-            public static string fixStringLiteral(IValue v)
+            
+            public static Expression fixStringLiteral(IValue v)
             {
                 string vStr = v.ToString();
-                if (v is Constant)
+                if (v is Constant cons)
                 {
-                    if ((v as Constant).Value != null)
-                    {
-                        vStr = ConstNameForStringLiteral(vStr);
-                        stringLiterals.Add(v.ToString());
-                    }
-                    else
-                    {
-                        vStr = constNameForNullString;
-                    }
-                }
-                return vStr;
-            }
-
-            public static void writeStringConsts(System.IO.StreamWriter sw)
-            {
-                var addedConsts = new HashSet<string>();
-                sw.WriteLine(String.Format("\tconst unique {0} : Ref;", Helpers.Strings.constNameForNullString));
-                foreach (var lit in stringLiterals)
+                    return BoogieLiteral.String(cons);
+                } else if (v is IVariable variable)
                 {
-                    var boogieConst = Helpers.Strings.ConstNameForStringLiteral(lit);
-                    sw.WriteLine(
-                        String.Format("\tconst unique {0} : Ref;", boogieConst)
-                        );
+                    return BoogieVariable.FromDotNetVariable(variable);
+                } else
+                {
+                    throw new NotImplementedException();
                 }
             }
 

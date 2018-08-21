@@ -134,7 +134,7 @@ namespace TinyBCT
                 // information stored from previous steps is used
                 TypeDefinitionTranslator.DefineUndeclaredSuperClasses();
 
-            Helpers.Strings.writeStringConsts(streamWriter);
+            BoogieLiteral.Strings.WriteStringConsts(streamWriter);
 
             streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());

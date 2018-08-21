@@ -135,7 +135,7 @@ public class TestsBase
         TinyBCT.BoogieGenerator.singleton = null;
 
         TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
-        TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+        TinyBCT.BoogieLiteral.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
 
         TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
