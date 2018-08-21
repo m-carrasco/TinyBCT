@@ -454,7 +454,7 @@ namespace TinyBCT
                 
             } else if (value is IVariable)
             {
-                return WriteAddr(variableA, ValueOfVariable(value as IVariable));
+                return WriteAddr(variableA, ValueOfVariable(value as IVariable).Expr);
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
@@ -522,9 +522,9 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        protected override string ValueOfVariable(IVariable var)
+        protected override Expression ValueOfVariable(IVariable var)
         {
-            return ReadAddr(var).Expr;
+            return ReadAddr(var);
         }
 
         // the variable that represents var's address is $_var.name
@@ -656,9 +656,9 @@ namespace TinyBCT
         }
 
         // in this memory addressing the value of a variable is the variable itself 
-        protected override string ValueOfVariable(IVariable var)
+        protected override Expression ValueOfVariable(IVariable var)
         {
-            return var.Name;
+            return BoogieVariable.FromDotNetVariable(var);
         }
 
         public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
@@ -890,7 +890,7 @@ namespace TinyBCT
         public abstract string AllocAddr(IVariable var);
         public abstract string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable);
 
-        protected abstract string ValueOfVariable(IVariable var);
+        protected abstract Expression ValueOfVariable(IVariable var);
 
         public string AssumeInverseRelationUnionAndPrimitiveType(string variable, Helpers.BoogieType boogieType)
         {
@@ -949,7 +949,7 @@ namespace TinyBCT
                 var referencedIndexes = procedure.Parameters.Where(p => p.IsByReference).Select(p => p.Index + s);
 
                 foreach (var i in referencedIndexes)
-                    resultArguments.Add(ValueOfVariable(argumentList[i]));
+                    resultArguments.Add(ValueOfVariable(argumentList[i]).Expr);
             }
 
             if (resultVariable != null)
