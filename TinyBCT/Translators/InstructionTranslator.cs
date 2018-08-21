@@ -17,7 +17,7 @@ using TinyBCT;
 namespace TinyBCT.Translators
 {
     // one instance is created for each translated method
-    class InstructionTranslator
+    public class InstructionTranslator
     {
         private ClassHierarchyAnalysis CHA;
         private MethodBody methodBody; // currently used to get ExceptionsInformation
@@ -53,12 +53,20 @@ namespace TinyBCT.Translators
         private IPrimarySourceLocation prevSourceLocation;
 
         protected IMethodDefinition method;
+        public Dictionary<string, Helpers.BoogieType> temporalVariables;
 
         public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody)
         {
             this.CHA = CHA;
             this.method = methodBody.MethodDefinition;
             this.methodBody = methodBody;
+            temporalVariables = new Dictionary<string, Helpers.BoogieType>();
+        }
+
+        public BoogieVariable GetFreshVariable(Helpers.BoogieType type)
+        {
+            return BoogieVariable.GetTempVar(type, temporalVariables);
+
         }
 
         private StringBuilder sb = new StringBuilder();
@@ -895,7 +903,7 @@ namespace TinyBCT.Translators
                 //assume $TypeConstructor($DynamicType($tmp0)) == T$TestType;
 
                 var bg = boogieGenerator;
-                AddBoogie(bg.AllocObject(instruction.Result, instTranslator.ShouldCreateValueVariable));
+                AddBoogie(bg.AllocObject(instruction.Result, instTranslator));
                 var typeString = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
                 AddBoogie(bg.AssumeDynamicType(instruction.Result, instruction.AllocationType));

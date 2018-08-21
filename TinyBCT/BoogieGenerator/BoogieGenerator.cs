@@ -118,6 +118,19 @@ namespace TinyBCT
             return new BoogieVariable(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
         }
 
+        // Call InstructionTranslator.GetFreshVariable instead of this.
+        public static BoogieVariable GetTempVar(Helpers.BoogieType type, Dictionary<string, Helpers.BoogieType> usedVarNames)
+        {
+            int i = usedVarNames.Count-1;
+            var name = String.Empty;
+            do {
+                ++i;
+                name = $"$temp_{type.FirstUppercase()}_{i}";
+            } while (usedVarNames.ContainsKey(name));
+            usedVarNames.Add(name, type);
+            return new BoogieVariable(type, name);
+        }
+
         static protected string AdaptNameToBoogie(string name)
         {
             if (name != "type")
@@ -351,12 +364,12 @@ namespace TinyBCT
             return this.ProcedureCall("AllocAddr", new List<string>(), AddressOf(var).ToString());
         }
 
-        public override string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable)
+        public override string AllocObject(IVariable var, InstructionTranslator instTranslator)
         {
-            shouldCreateValueVariable.Add(var);
+            var freshVariable = instTranslator.GetFreshVariable(Helpers.GetBoogieType(var.Type));
             var sb = new StringBuilder();
-            sb.AppendLine(this.ProcedureCall("AllocObject", new List<string>(), var.Name));
-            sb.AppendLine(this.VariableAssignment(var, var.Name));
+            sb.AppendLine(this.ProcedureCall("AllocObject", new List<string>(), freshVariable));
+            sb.AppendLine(this.VariableAssignment(var, freshVariable));
             return sb.ToString();
         }
 
@@ -366,7 +379,7 @@ namespace TinyBCT
         //    return string.Format("{0} := {1};", variableA, expr);
         //}
 
-        public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls)
+        public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables)
         {
             StringBuilder sb = new StringBuilder();
             variables.Select(v =>
@@ -376,6 +389,11 @@ namespace TinyBCT
             assignedInMethodCalls.Select(v =>
                     String.Format("\tvar {0} : {1};", v, Helpers.GetBoogieType(v.Type))
             ).ToList().ForEach(str => sb.AppendLine(str));
+
+            temporalVariables.Select(kv =>
+                    String.Format("\tvar {0} : {1};", kv.Key, kv.Value)
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
 
             return sb.ToString();
         }
@@ -536,7 +554,7 @@ namespace TinyBCT
         public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
             String map = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-            return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance)));
+            return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance).Expr));
         }
 
         public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
@@ -628,13 +646,17 @@ namespace TinyBCT
             return String.Empty;
         }
 
-        public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls)
+        public override string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables)
         {
             StringBuilder sb = new StringBuilder();
 
             variables.Where(v => !v.IsParameter)
             .Select(v =>
                     String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
+            ).ToList().ForEach(str => sb.AppendLine(str));
+
+            temporalVariables.Select(kv =>
+                    String.Format("\tvar {0} : {1};", kv.Key, kv.Value)
             ).ToList().ForEach(str => sb.AppendLine(str));
 
             return sb.ToString();
@@ -650,7 +672,7 @@ namespace TinyBCT
             return String.Empty;
         }
 
-        public override string AllocObject(IVariable var, ISet<IVariable> _shouldCreateValueVariable)
+        public override string AllocObject(IVariable var, InstructionTranslator instTranslator)
         {
             return this.ProcedureCall("Alloc", new List<string>(), AddressOf(var).ToString());
         }
@@ -841,8 +863,8 @@ namespace TinyBCT
         public abstract Expression ReadAddr(IVariable var);
 
         public abstract Expression ReadAddr(Addressable addr);
-
-        public abstract string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls);
+        
+        public abstract string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables);
 
         public abstract string AllocLocalVariables(IList<IVariable> variables);
 
@@ -888,7 +910,7 @@ namespace TinyBCT
         public abstract string WriteAddr(Addressable addr, Expression value);
 
         public abstract string AllocAddr(IVariable var);
-        public abstract string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable);
+        public abstract string AllocObject(IVariable var, InstructionTranslator instTranslator);
 
         protected abstract Expression ValueOfVariable(IVariable var);
 
@@ -976,6 +998,14 @@ namespace TinyBCT
             //return ProcedureCall(boogieProcedureName, argumentList.Select(v => ValueOfVariable(v)).ToList(), resultArguments);
         }
 
+        public string ProcedureCall(string boogieProcedureName, List<string> argumentList, BoogieVariable resultVariable)
+        {
+            var resultArguments = new List<string>();
+            if (resultVariable != null)
+                resultArguments.Add(resultVariable.Expr);
+
+            return ProcedureCall(boogieProcedureName, argumentList, resultArguments);
+        }
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, string resultVariable = null)
         {
             var resultArguments = new List<string>();
