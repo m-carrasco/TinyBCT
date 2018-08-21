@@ -764,7 +764,7 @@ namespace TinyBCT
                 string vStr = v.ToString();
                 if (v is Constant cons)
                 {
-                    return BoogieLiteral.String(cons);
+                    return BoogieLiteral.FromString(cons);
                 } else if (v is IVariable variable)
                 {
                     return BoogieVariable.FromDotNetVariable(variable);

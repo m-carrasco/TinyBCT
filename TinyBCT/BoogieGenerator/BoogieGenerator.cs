@@ -40,6 +40,184 @@ namespace TinyBCT
         {
             return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({expr.Expr})");
         }
+        public static Expression As(Expression expr, ITypeReference arg2)
+        {
+            var type = Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses);
+            // TODO(rcastano): Fix for generics
+            return new Expression(Helpers.BoogieType.Ref, $"As({expr}, {type})");
+        }
+        public static Expression NullOrZero(ITypeReference type)
+        {
+            if (TypeHelper.IsPrimitiveInteger(type))
+            {
+                return new Expression(Helpers.BoogieType.Int, "0");
+            }
+            else if (type.TypeCode.Equals(TypeCode.Single) || type.TypeCode.Equals(TypeCode.Double))
+            {
+                return new Expression(Helpers.BoogieType.Real, "0.0");
+            }
+            else
+            {
+                return new Expression(Helpers.GetBoogieType(type), "null");
+            }
+        }
+
+        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, Helpers.BoogieType type1, Helpers.BoogieType type2)
+        {
+            switch (binaryOperation)
+            {
+                case BinaryOperation.And:
+                case BinaryOperation.Or:
+                    return type1.Equals(Helpers.BoogieType.Bool) && type2.Equals(Helpers.BoogieType.Bool);
+                case BinaryOperation.Add:
+                case BinaryOperation.Sub:
+                case BinaryOperation.Mul:
+                case BinaryOperation.Div:
+                case BinaryOperation.Eq:
+                case BinaryOperation.Neq:
+                case BinaryOperation.Gt:
+                case BinaryOperation.Ge:
+                case BinaryOperation.Lt:
+                case BinaryOperation.Le:
+                case BinaryOperation.Rem:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        public static Expression BinaryOperationExpression(Expression op1, Expression op2, BinaryOperation binaryOperation)
+        {
+            Contract.Assume(IsSupportedBinaryOperation(binaryOperation, op1.Type, op2.Type));
+            Contract.Assume(op1.Type.Equals(op2.Type));
+            string operation = String.Empty;
+            Helpers.BoogieType boogieType = null;
+            switch (binaryOperation)
+            {
+                case BinaryOperation.Add: operation = "+"; break;
+                case BinaryOperation.Sub: operation = "-"; break;
+                case BinaryOperation.Mul: operation = "*"; break;
+                case BinaryOperation.Div:
+                    {
+
+                        if (op1.Type.Equals(op2.Type) && op1.Type.Equals(Helpers.BoogieType.Int))
+                        {
+                            operation = "div";
+                        }
+                        else
+                        {
+                            operation = "/";
+                        }
+
+                        break;
+                    }
+                // not implemented yet
+                /*case BinaryOperation.Rem: operation = "%"; break;
+                case BinaryOperation.And: operation = "&"; break;
+                case BinaryOperation.Or: operation = "|"; break;
+                case BinaryOperation.Xor: operation = "^"; break;
+                case BinaryOperation.Shl: operation = "<<"; break;
+                case BinaryOperation.Shr: operation = ">>"; break;*/
+                case BinaryOperation.Eq: operation = "=="; break;
+                case BinaryOperation.Neq: operation = "!="; break;
+                case BinaryOperation.Gt: operation = ">"; break;
+                case BinaryOperation.Ge: operation = ">="; break;
+                case BinaryOperation.Lt: operation = "<"; break;
+                case BinaryOperation.Le: operation = "<="; break;
+                case BinaryOperation.Rem: operation = "mod"; break;
+                case BinaryOperation.And:
+                    {
+                        Contract.Assert(op1.Type.Equals(Helpers.BoogieType.Bool));
+                        Contract.Assert(op2.Type.Equals(Helpers.BoogieType.Bool));
+                        operation = "&&";
+                        break;
+                    }
+                case BinaryOperation.Or:
+                    {
+                        Contract.Assert(op1.Type.Equals(Helpers.BoogieType.Bool));
+                        Contract.Assert(op2.Type.Equals(Helpers.BoogieType.Bool));
+                        operation = "||";
+                        break;
+                    }
+                default:
+                    Contract.Assert(false);
+                    break;
+            }
+            switch (binaryOperation)
+            {
+                case BinaryOperation.Add: operation = "+"; break;
+                case BinaryOperation.Sub: operation = "-"; break;
+                case BinaryOperation.Mul: operation = "*"; break;
+                case BinaryOperation.Div:
+                    {
+
+                        if (op1.Type.Equals(op2.Type) && op1.Type.Equals(Helpers.BoogieType.Int))
+                        {
+                            boogieType = Helpers.BoogieType.Int;
+                        }
+                        else
+                        {
+                            boogieType = Helpers.BoogieType.Real;
+                        }
+                        break;
+                    }
+                // not implemented yet
+                /*case BinaryOperation.Rem: operation = "%"; break;
+                case BinaryOperation.And: operation = "&"; break;
+                case BinaryOperation.Or: operation = "|"; break;
+                case BinaryOperation.Xor: operation = "^"; break;
+                case BinaryOperation.Shl: operation = "<<"; break;
+                case BinaryOperation.Shr: operation = ">>"; break;*/
+                case BinaryOperation.Eq:
+                case BinaryOperation.Neq:
+                case BinaryOperation.Gt:
+                case BinaryOperation.Ge:
+                case BinaryOperation.Lt:
+                case BinaryOperation.Le:
+                    boogieType = Helpers.BoogieType.Bool;
+                    break;
+                case BinaryOperation.Rem:
+                    boogieType = Helpers.BoogieType.Int;
+                    break;
+                case BinaryOperation.And:
+                case BinaryOperation.Or:
+                        boogieType = Helpers.BoogieType.Bool;
+                        break;
+                default:
+                    Contract.Assert(false);
+                    break;
+            }
+            Contract.Assume(boogieType != null);
+            return BinaryOperationExpression(boogieType, op1, op2, operation);
+        }
+        public static Expression BinaryOperationExpression(Helpers.BoogieType type, Expression op1, Expression op2, string operation)
+        {
+            return new Expression(type, $"({op1.Expr} {operation} {op2.Expr})");
+        }
+        public static Expression ExprEquals(Expression op1, Expression op2)
+        {
+            Contract.Assume(op1.Type.Equals(op2.Type));
+            return new Expression(Helpers.BoogieType.Bool, $"({op1.Expr} == {op2.Expr})");
+        }
+        public static Expression ExprEquals(Expression op1, int index)
+        {
+            Contract.Assume(op1.Type.Equals(Helpers.BoogieType.Int));
+            return new Expression(Helpers.BoogieType.Bool, $"({op1.Expr} == {index})");
+        }
+        public static Expression NotEquals(Expression op1, Expression op2)
+        {
+            Contract.Assume(op1.Type.Equals(op2.Type));
+            return new Expression(Helpers.BoogieType.Bool, $"({op1.Expr} != {op2.Expr})");
+        }
+        public static Expression LessThan(Expression op1, int index)
+        {
+            Contract.Assume(op1.Type.Equals(Helpers.BoogieType.Int));
+            return new Expression(Helpers.BoogieType.Bool, $"({op1.Expr} < {index})");
+        }
+        static public Expression FromDotNetVariable(IVariable variable)
+        {
+            Contract.Requires(!variable.IsParameter);
+            return new Expression(Helpers.GetBoogieType(variable.Type), BoogieVariable.AdaptNameToBoogie(variable.Name));
+        }
 
         public override string ToString()
         {
@@ -66,7 +244,7 @@ namespace TinyBCT
             var consStr = IsFloat(constant) ? FormatFloatValue(constant) : constant.Value.ToString();
             return new BoogieLiteral(Helpers.GetBoogieType(constant.Type), consStr);
         }
-        public static BoogieLiteral String(Constant constant)
+        public static BoogieLiteral FromString(Constant constant)
         {
             return new BoogieLiteral(Helpers.BoogieType.Ref, Strings.fixStringLiteral(constant));
         }
@@ -149,6 +327,7 @@ namespace TinyBCT
 
             return str;
         }
+
         public override string ToString()
         {
             throw new Exception("Should not be called.");
@@ -159,11 +338,6 @@ namespace TinyBCT
         protected BoogieVariable(Helpers.BoogieType type, string name) : base(type, name)
         {
             Contract.Requires(IsValidVariableName(name));
-        }
-        static public BoogieVariable FromDotNetVariable(IVariable variable)
-        {
-            Contract.Requires(!variable.IsParameter);
-            return new BoogieVariable(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
         }
 
         // Call InstructionTranslator.GetFreshVariable instead of this.
@@ -179,7 +353,7 @@ namespace TinyBCT
             return new BoogieVariable(type, name);
         }
 
-        static protected string AdaptNameToBoogie(string name)
+        static internal string AdaptNameToBoogie(string name)
         {
             if (name != "type")
             {
@@ -191,6 +365,10 @@ namespace TinyBCT
         static protected bool IsValidVariableName(string name) {
             return !name.Contains(" ");
         }
+
+
+        public static readonly BoogieVariable ExceptionVar = new BoogieVariable(Helpers.BoogieType.Ref, "$Exception");
+        public static readonly BoogieVariable ExceptionTypeVar = new BoogieVariable(Helpers.BoogieType.Ref, "$ExceptionType");
     }
     public class BoogieParameter : BoogieVariable
     {
@@ -375,10 +553,10 @@ namespace TinyBCT
         public IFieldReference Field { get; }
         public ITypeReference Type { get; }
 
-        public StaticField(IFieldReference field, ITypeReference type)
+        public StaticField(StaticFieldAccess fieldAccess)
         {
-            Field = field;
-            Type = type;
+            Field = fieldAccess.Field;
+            Type = fieldAccess.Field.Type;
         }
     }
     public class DotNetVariable : Addressable
@@ -400,9 +578,9 @@ namespace TinyBCT
     // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
     {
-        public override string NullObject()
+        public override Expression NullObject()
         {
-            return BoogieLiteral.NullObject.Expr;
+            return BoogieLiteral.NullObject;
         }
 
         // hides implementation in super class
@@ -659,9 +837,9 @@ namespace TinyBCT
 
     public class BoogieGeneratorALaBCT : BoogieGenerator
     {
-        public override string NullObject()
+        public override Expression NullObject()
         {
-            return BoogieLiteral.NullRef.Expr;
+            return BoogieLiteral.NullRef;
         }
 
         public override string VariableAssignment(IVariable variableA, IValue value)
@@ -681,11 +859,12 @@ namespace TinyBCT
 
         public override string VariableAssignment(IVariable variableA, Expression expr)
         {
-            return VariableAssignment(BoogieVariable.FromDotNetVariable(variableA), expr);
+            return $"{variableA} := {expr.Expr};";
         }
         public override string VariableAssignment(IVariable variableA, string expr)
         {
-            return VariableAssignment(variableA.ToString(), expr);
+            return $"{variableA} := {expr};";
+            return VariableAssignment(BoogieVariable.FromDotNetVariable(variableA).Expr, expr);
         }
 
         public override string AllocLocalVariables(IList<IVariable> variables)
@@ -844,7 +1023,7 @@ namespace TinyBCT
 
         public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
         {
-            return new StaticField(staticFieldAccess.Field, staticFieldAccess.Field.Type);
+            return new StaticField(staticFieldAccess);
         }
 
         public override Addressable AddressOf(IVariable var)
@@ -1076,21 +1255,6 @@ namespace TinyBCT
         public abstract string VariableAssignment(IVariable variableA, Expression expr);
         public abstract string VariableAssignment(IVariable variableA, IValue value);
         public abstract string VariableAssignment(IVariable variableA, string expr);
-        public string NullOrZero(ITypeReference type)
-        {
-            if (TypeHelper.IsPrimitiveInteger(type))
-            {
-                return "0";
-            }
-            else if (type.TypeCode.Equals(TypeCode.Single) || type.TypeCode.Equals(TypeCode.Double))
-            {
-                return "0.0";
-            }
-            else
-            {
-                return "null";
-            }
-        }
 
         public string VariableAssignment(BoogieVariable variableA, Expression expr)
         {
@@ -1100,30 +1264,6 @@ namespace TinyBCT
         public string VariableAssignment(string variableA, string expr)
         {
             return string.Format("{0} := {1};", variableA, expr);
-        }
-
-        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, IVariable op1, IVariable op2)
-        {
-            switch (binaryOperation)
-            {
-                case BinaryOperation.And:
-                case BinaryOperation.Or:
-                    return Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool) && Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool);
-                case BinaryOperation.Add:
-                case BinaryOperation.Sub:
-                case BinaryOperation.Mul:
-                case BinaryOperation.Div:
-                case BinaryOperation.Eq:
-                case BinaryOperation.Neq:
-                case BinaryOperation.Gt:
-                case BinaryOperation.Ge:
-                case BinaryOperation.Lt:
-                case BinaryOperation.Le:
-                case BinaryOperation.Rem:
-                    return true;
-                default:
-                    return false;
-            }
         }
 
         public string HavocResult(DefinitionInstruction instruction)
@@ -1159,81 +1299,12 @@ namespace TinyBCT
             // currently just neg is supported, equivalent to * -1
             return String.Format("-{0}", var.Name);
         }
-
         public bool IsSupportedUnaryOperation(UnaryOperation op)
         {
             return UnaryOperation.Neg.Equals(op);
         }
 
-        public string BinaryOperationExpression(IVariable op1, IVariable op2, BinaryOperation binaryOperation)
-        {
-            Contract.Assume(IsSupportedBinaryOperation(binaryOperation, op1, op2));
-            string operation = String.Empty;
-            switch (binaryOperation)
-            {
-                case BinaryOperation.Add: operation = "+"; break;
-                case BinaryOperation.Sub: operation = "-"; break;
-                case BinaryOperation.Mul: operation = "*"; break;
-                case BinaryOperation.Div:
-                    {
-                        if (Helpers.GetBoogieType(op1.Type).Equals(Helpers.GetBoogieType(op2.Type)) &&
-                            Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Int))
-                            operation = "div";
-                        else
-                            operation = "/";
-                        break;
-                    }
-                // not implemented yet
-                /*case BinaryOperation.Rem: operation = "%"; break;
-                case BinaryOperation.And: operation = "&"; break;
-                case BinaryOperation.Or: operation = "|"; break;
-                case BinaryOperation.Xor: operation = "^"; break;
-                case BinaryOperation.Shl: operation = "<<"; break;
-                case BinaryOperation.Shr: operation = ">>"; break;*/
-                case BinaryOperation.Eq: operation = "=="; break;
-                case BinaryOperation.Neq: operation = "!="; break;
-                case BinaryOperation.Gt:
-                    operation = ">";
-                    var leftAsConstant = op1 as Constant;
-                    var rightAsConstant = op2 as Constant;
-                    if (leftAsConstant != null && rightAsConstant != null)
-                    {
-                        // There was a bug when comparing references, checking that this doesn't show up again.
-                        Contract.Assume(leftAsConstant.Value != null && rightAsConstant.Value != null);
-                    }
-                    break;
-                case BinaryOperation.Ge: operation = ">="; break;
-                case BinaryOperation.Lt: operation = "<"; break;
-                case BinaryOperation.Le: operation = "<="; break;
-                case BinaryOperation.Rem: operation = "mod";break;
-                case BinaryOperation.And:
-                    {
-                        Contract.Assert(Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool));
-                        Contract.Assert(Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool));
-                        operation = "&&";
-                        break;
-                    }
-                case BinaryOperation.Or:
-                    {
-                        Contract.Assert(Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool));
-                        Contract.Assert(Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool));
-                        operation = "||";
-                        break;
-                    }
-                default:
-                    Contract.Assert(false);
-                    break;
-            }
-
-            return BinaryOperationExpression(ReadAddr(op1).Expr, ReadAddr(op2).Expr, operation);
-        }
-
-        public string BinaryOperationExpression(string op1, string op2, string operation)
-        {
-            return string.Format("{0} {1} {2}", op1, operation, op2);
-        }
-
-        public string Goto(string label)
+    public string Goto(string label)
         {
             return String.Format("\t\tgoto {0};", label);
         }
@@ -1293,7 +1364,7 @@ namespace TinyBCT
             return String.Format("assume {0};", cond);
         }
 
-        public abstract string NullObject();
+        public abstract Expression NullObject();
 
         public string If(string condition, string body)
         {
