@@ -144,14 +144,13 @@ namespace TinyBCT
         }
     }
 
-    public class Value : Expression
+    public abstract class SoundAddressModelingExpression : Expression
     {
-        private Value(Helpers.BoogieType type, string expr) : base(type, expr) { }
+        protected SoundAddressModelingExpression(Helpers.BoogieType type, string expr) : base(type, expr) { }
     }
-
-    public class ReadTypedMemory : Expression
+    public class ReadTypedMemory : SoundAddressModelingExpression
     {
-        class TemporaryClassToBuildExpression
+        private class TemporaryClassToBuildExpression
         {
             public TemporaryClassToBuildExpression(AddressExpression key)
             {
@@ -176,6 +175,102 @@ namespace TinyBCT
             return new ReadTypedMemory(new TemporaryClassToBuildExpression(key));
         }
     }
+
+    public abstract class OnlyObjectModelingExpression : Expression
+    {
+        protected OnlyObjectModelingExpression(Helpers.BoogieType type, string expr) : base(type, expr) { }
+    }
+    public abstract class SplitFieldsModelingExpression : OnlyObjectModelingExpression
+    {
+        protected SplitFieldsModelingExpression(Helpers.BoogieType type, string expr) : base(type, expr)
+        {
+            Contract.Assume(Settings.SplitFields);
+        }
+    }
+
+    public class ReadFieldExpression : SplitFieldsModelingExpression
+    {
+        private abstract class TemporaryClassToBuildExpression
+        {
+            public TemporaryClassToBuildExpression()
+            {
+            }
+            public abstract string Expr();
+
+            public abstract Helpers.BoogieType Type();
+        }
+        private class TemporaryFromInstanceField : TemporaryClassToBuildExpression
+        {
+
+            public TemporaryFromInstanceField(InstanceField instanceField)
+            {
+                Key = instanceField;
+            }
+            public override string Expr()
+            {
+                return $"{MemoryMap}[{Key.Instance.Name}]";
+            }
+            public override Helpers.BoogieType Type() {
+                return Helpers.GetBoogieType(Key.Field.Type);
+            }
+            private InstanceField Key { get; }
+            private string MemoryMap { get { return $"{FieldTranslator.GetFieldName(Key.Field)}"; } }
+        }
+        private class TemporaryFromStaticField : TemporaryClassToBuildExpression
+        {
+
+            public TemporaryFromStaticField(StaticField staticField)
+            {
+                Field = staticField;
+            }
+            public override string Expr()
+            {
+                return FieldTranslator.GetFieldName(Field.Field);
+            }
+            private StaticField Field;
+            public override Helpers.BoogieType Type()
+            {
+                return Helpers.GetBoogieType(Field.Type);
+            }
+        }
+
+        private ReadFieldExpression(TemporaryClassToBuildExpression temp) : base(temp.Type(), temp.Expr()) { }
+        public static ReadFieldExpression From(InstanceField key)
+        {
+            return new ReadFieldExpression(new TemporaryFromInstanceField(key));
+        }
+        public static ReadFieldExpression From(StaticField key)
+        {
+            return new ReadFieldExpression(new TemporaryFromStaticField(key));
+        }
+    }
+
+    public abstract class HeapModelingExpression : OnlyObjectModelingExpression
+    {
+        protected HeapModelingExpression(Helpers.BoogieType type, string expr) : base(type, expr)
+        {
+            Contract.Assume(!Settings.SplitFields);
+        }
+    }
+    public class ReadHeapExpression : HeapModelingExpression
+    {
+        private ReadHeapExpression(TemporaryClassToBuildExpression expr) : base(expr.Type, expr.Expr) { }
+        private class TemporaryClassToBuildExpression
+        {
+            public TemporaryClassToBuildExpression(InstanceField instanceField)
+            {
+                Key = instanceField;
+            }
+            public string Expr { get { return $"Read($Heap, {Key.Instance.Name}, {Key.Field.Name})"; } }
+            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Field.Type); } }
+            private InstanceField Key { get; }
+        }
+        public static ReadHeapExpression From(InstanceField expr)
+        {
+            return new ReadHeapExpression(new TemporaryClassToBuildExpression(expr));
+        }
+    }
+
 
     public abstract class Addressable
     {
@@ -228,18 +323,16 @@ namespace TinyBCT
     }
     public class DotNetVariable : Addressable
     {
-        public string Name { get; }
-        public ITypeReference Type { get; }
+        public IVariable Var { get; }
 
-        public DotNetVariable(string name, ITypeReference type)
+        public DotNetVariable(IVariable var)
         {
-            Name = name;
-            Type = type;
+            Var = var;
         }
 
         public override string ToString()
         {
-            return Name;
+            return Var.Name;
         }
     }
 
@@ -549,7 +642,7 @@ namespace TinyBCT
 
         public override string ReadAddr(IVariable var)
         {
-            return var.Name;
+            return BoogieVariable.FromDotNetVariable(var).Expr;
         }
 
         public override string AllocAddr(IVariable var)
@@ -657,17 +750,17 @@ namespace TinyBCT
                 var instanceName = instanceField.Instance.Name;
                 if (Settings.SplitFields)
                 {
-                    return $"{fieldName}[{instanceName}]";
+                    return ReadFieldExpression.From(instanceField).Expr;
                 } else
                 {
-                    return $"Read($Heap,{instanceName},{fieldName})";
+                    return ReadHeapExpression.From(instanceField).Expr;
                 }
             } else if (addr is StaticField staticField)
             {
-                return FieldTranslator.GetFieldName(staticField.Field);
+                return ReadFieldExpression.From(staticField).Expr;
             } else if (addr is DotNetVariable v)
             {
-                return v.Name;
+                return BoogieVariable.FromDotNetVariable(v.Var).Expr;
             }
             else
             {
@@ -687,7 +780,7 @@ namespace TinyBCT
 
         public override Addressable AddressOf(IVariable var)
         {
-            return new DotNetVariable(var.Name, var.Type);
+            return new DotNetVariable(var);
         }
 
         public override string WriteAddr(Addressable addr, Expression expr)
@@ -718,7 +811,7 @@ namespace TinyBCT
             }
             else if (addr is DotNetVariable v)
             {
-                var varName = v.Name;
+                var varName = v.Var.Name;
                 return VariableAssignment(varName, value);
             }
             else

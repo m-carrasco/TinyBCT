@@ -703,11 +703,13 @@ namespace TinyBCT
             return method.Name.Value == ".ctor";
         }
 
+        public static Boolean IsBoogieRefType(Helpers.BoogieType type)
+        {
+            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object);
+        }
         public static Boolean IsBoogieRefType(ITypeReference r)
         {
-            var type = Helpers.GetBoogieType(r);
-
-            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object);
+            return IsBoogieRefType(Helpers.GetBoogieType(r));
         }
 
         public static class Strings

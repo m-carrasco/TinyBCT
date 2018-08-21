@@ -2618,7 +2618,7 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(20000)]
     [TestCategory("Manu")]
     public void DelegatesDynamicDispatch4_Bugged()
     {
