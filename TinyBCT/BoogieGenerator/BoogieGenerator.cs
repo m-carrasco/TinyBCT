@@ -36,7 +36,7 @@ namespace TinyBCT
             return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({value})");
         }
 
-        private new string ToString()
+        public override string ToString()
         {
             throw new Exception("This method should not be called, use property Expr.");
         }
@@ -101,7 +101,7 @@ namespace TinyBCT
 
             return str;
         }
-        private new string ToString()
+        public override string ToString()
         {
             throw new Exception("Should not be called.");
         }
@@ -380,17 +380,17 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public override string ReadAddr(IVariable addr)
+        public override Expression ReadAddr(IVariable addr)
         {
             return ReadAddr(AddressOf(addr));
         }
 
-        public override string ReadAddr(Addressable addr)
+        public override Expression ReadAddr(Addressable addr)
         {
             if (addr is AddressExpression addrExpr)
             {
                 var readExpr = ReadTypedMemory.From(addrExpr);
-                return readExpr.Expr;
+                return readExpr;
             } else
             {
                 throw new NotImplementedException();
@@ -460,8 +460,8 @@ namespace TinyBCT
                 var dereference = value as Dereference;
                 // read addr of the reference
                 // index that addr into the corresponding 'heap'
-                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference));
-                return WriteAddr(variableA, ReadAddr(addr));
+                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference).Expr);
+                return WriteAddr(variableA, ReadAddr(addr).Expr);
             } else if (value is Reference)
             {
                 var reference = value as Reference;
@@ -524,7 +524,7 @@ namespace TinyBCT
 
         protected override string ValueOfVariable(IVariable var)
         {
-            return ReadAddr(var);
+            return ReadAddr(var).Expr;
         }
 
         // the variable that represents var's address is $_var.name
@@ -563,7 +563,7 @@ namespace TinyBCT
                 var boogieType = Helpers.GetBoogieType(result.Type);
                 if (!boogieType.Equals(Helpers.BoogieType.Object))
                 {
-                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue));
+                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue.Expr));
                 } else
                 {
                     return VariableAssignment(result, readValue);
@@ -583,7 +583,7 @@ namespace TinyBCT
             if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
                 sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(boogieType, ReadAddr(value))));
+                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(boogieType, ReadAddr(value).Expr)));
             }
             else
                 sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), ReadAddr(value)));
@@ -640,9 +640,9 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public override string ReadAddr(IVariable var)
+        public override Expression ReadAddr(IVariable var)
         {
-            return BoogieVariable.FromDotNetVariable(var).Expr;
+            return BoogieVariable.FromDotNetVariable(var);
         }
 
         public override string AllocAddr(IVariable var)
@@ -742,7 +742,7 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public override string ReadAddr(Addressable addr)
+        public override Expression ReadAddr(Addressable addr)
         {
             if (addr is InstanceField instanceField)
             {
@@ -750,17 +750,17 @@ namespace TinyBCT
                 var instanceName = instanceField.Instance.Name;
                 if (Settings.SplitFields)
                 {
-                    return ReadFieldExpression.From(instanceField).Expr;
+                    return ReadFieldExpression.From(instanceField);
                 } else
                 {
-                    return ReadHeapExpression.From(instanceField).Expr;
+                    return ReadHeapExpression.From(instanceField);
                 }
             } else if (addr is StaticField staticField)
             {
-                return ReadFieldExpression.From(staticField).Expr;
+                return ReadFieldExpression.From(staticField);
             } else if (addr is DotNetVariable v)
             {
-                return BoogieVariable.FromDotNetVariable(v.Var).Expr;
+                return BoogieVariable.FromDotNetVariable(v.Var);
             }
             else
             {
@@ -838,9 +838,9 @@ namespace TinyBCT
             return singleton;
         }
 
-        public abstract string ReadAddr(IVariable var);
+        public abstract Expression ReadAddr(IVariable var);
 
-        public abstract string ReadAddr(Addressable addr);
+        public abstract Expression ReadAddr(Addressable addr);
 
         public abstract string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls);
 
@@ -958,7 +958,7 @@ namespace TinyBCT
                 shouldCreateValueVariable.Add(resultVariable);
             }
 
-            var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v)));
+            var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v).Expr));
             if (resultArguments.Count > 0)
             {
                 sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
@@ -1068,7 +1068,7 @@ namespace TinyBCT
                 case BranchOperation.Le: operation = "<="; break;
             }
 
-            return BranchOperationExpression(ReadAddr(op1).ToString(), op2 is Constant ? op2.ToString() : ReadAddr(AddressOf(op2)).ToString(), operation);
+            return BranchOperationExpression(ReadAddr(op1).Expr, op2 is Constant ? op2.ToString() : ReadAddr(AddressOf(op2)).Expr, operation);
         }
 
         public string BranchOperationExpression(string op1, string op2, string operation)
@@ -1148,7 +1148,7 @@ namespace TinyBCT
                     break;
             }
 
-            return BinaryOperationExpression(ReadAddr(op1), ReadAddr(op2), operation);
+            return BinaryOperationExpression(ReadAddr(op1).Expr, ReadAddr(op2).Expr, operation);
         }
 
         public string BinaryOperationExpression(string op1, string op2, string operation)
@@ -1173,7 +1173,7 @@ namespace TinyBCT
 
         public string AssumeDynamicType(IVariable reference, ITypeReference type)
         {
-            return AssumeDynamicType(ReadAddr(reference), type);
+            return AssumeDynamicType(ReadAddr(reference).Expr, type);
         }
 
         public string AssumeDynamicType(string name, ITypeReference type)
@@ -1188,7 +1188,7 @@ namespace TinyBCT
 
         public string AssumeTypeConstructor(IVariable arg, ITypeReference type)
         {
-            return AssumeTypeConstructor(ReadAddr(arg), type.ToString());
+            return AssumeTypeConstructor(ReadAddr(arg).Expr, type.ToString());
         }
 
         public string AssumeTypeConstructor(string arg, string type)
@@ -1198,7 +1198,7 @@ namespace TinyBCT
 
         public string Assert(IVariable cond)
         {
-            return Assert(ReadAddr(cond));
+            return Assert(ReadAddr(cond).Expr);
         }
 
         public string Assert(string cond)
@@ -1208,7 +1208,7 @@ namespace TinyBCT
 
         public string Assume(IVariable cond)
         {
-            return Assume(ReadAddr(cond));
+            return Assume(ReadAddr(cond).Expr);
         }
 
         public string Assume(string cond)
@@ -1258,7 +1258,7 @@ namespace TinyBCT
         public string As(IVariable arg1, ITypeReference arg2)
         {
             // TODO(rcastano): Fix for generics
-            return String.Format("$As({0},{1})", ReadAddr(arg1), Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses));
+            return String.Format("$As({0},{1})", ReadAddr(arg1).Expr, Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses));
         }
 
         public string Subtype(IVariable var, ITypeReference type)

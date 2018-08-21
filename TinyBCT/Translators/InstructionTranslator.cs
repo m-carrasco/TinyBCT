@@ -201,7 +201,7 @@ namespace TinyBCT.Translators
                 var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
 
                 var args = new List<string>();
-                args.Add(boogieGenerator.ReadAddr(receiver));
+                args.Add(boogieGenerator.ReadAddr(receiver).Expr);
                 AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
 
                 if (operation == MethodCallOperation.Virtual)
@@ -242,12 +242,12 @@ namespace TinyBCT.Translators
                             else
                             {
                                 AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
+                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver).Expr, boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver).Expr, boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
                         }
                     }
                     else
@@ -261,12 +261,12 @@ namespace TinyBCT.Translators
                             else
                             {
                                 AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
+                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver).Expr, boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.If(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
+                            AddBoogie(boogieGenerator.If(boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(receiver).Expr, boogieGenerator.NullObject(), "!="), boogieGenerator.Assert("false")));
                         }
 
                     }
@@ -490,13 +490,13 @@ namespace TinyBCT.Translators
                 var idx = 0;
                 foreach (var target in instruction.Targets)
                 {
-                    var indexCondition = boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(instruction.Operand), idx.ToString(), "==");
+                    var indexCondition = boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(instruction.Operand).Expr, idx.ToString(), "==");
                     var body = boogieGenerator.Goto(target);
                     sb.AppendLine(boogieGenerator.If(indexCondition, body));
                     idx++;
                 }
 
-                var cond = boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(instruction.Operand), instruction.Targets.Count.ToString(), "<");
+                var cond = boogieGenerator.BinaryOperationExpression(boogieGenerator.ReadAddr(instruction.Operand).Expr, instruction.Targets.Count.ToString(), "<");
                 AddBoogie(boogieGenerator.If(cond, sb.ToString()));
             }
 
@@ -642,7 +642,7 @@ namespace TinyBCT.Translators
                 }
 
                 if (instruction.HasOperand)
-                    AddBoogie(boogieGenerator.VariableAssignment("$result", boogieGenerator.ReadAddr(instruction.Operand)));
+                    AddBoogie(boogieGenerator.VariableAssignment("$result", boogieGenerator.ReadAddr(instruction.Operand).Expr));
 
                 AddBoogie("return ;");
             }
@@ -881,7 +881,7 @@ namespace TinyBCT.Translators
                     arguments.Add(Helpers.Strings.fixStringLiteral(leftOperand));
                     arguments.Add(Helpers.Strings.fixStringLiteral(rightOperand));
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
-                    AddBoogie(bg.If(bg.ReadAddr(tempVar), bg.Goto(instruction.Target)));
+                    AddBoogie(bg.If(bg.ReadAddr(tempVar).Expr, bg.Goto(instruction.Target)));
                 }
                 else
                 {
@@ -899,7 +899,7 @@ namespace TinyBCT.Translators
                 var typeString = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
                 AddBoogie(bg.AssumeDynamicType(instruction.Result, instruction.AllocationType));
-                AddBoogie(bg.AssumeTypeConstructor(bg.ReadAddr(instruction.Result), typeString));
+                AddBoogie(bg.AssumeTypeConstructor(bg.ReadAddr(instruction.Result).Expr, typeString));
             }
 
             public override void Visit(StoreInstruction instruction)
@@ -925,7 +925,7 @@ namespace TinyBCT.Translators
                 }
                 else if (dereference != null && Settings.NewAddrModelling)
                 {
-                    var address = new AddressExpression(dereference.Type,boogieGenerator.ReadAddr(dereference.Reference));
+                    var address = new AddressExpression(dereference.Type,boogieGenerator.ReadAddr(dereference.Reference).Expr);
                     AddBoogie(boogieGenerator.WriteAddr(address, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else
@@ -1355,9 +1355,9 @@ namespace TinyBCT.Translators
                 if (instruction.HasOperand)
                 {
                     var args = new List<string>();
-                    args.Add(boogieGenerator.ReadAddr(instruction.Operand));
+                    args.Add(boogieGenerator.ReadAddr(instruction.Operand).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
-                    AddBoogie(boogieGenerator.VariableAssignment("$Exception", boogieGenerator.ReadAddr(instruction.Operand)));
+                    AddBoogie(boogieGenerator.VariableAssignment("$Exception", boogieGenerator.ReadAddr(instruction.Operand).Expr));
                 }
                 else
                 {
@@ -1549,7 +1549,7 @@ namespace TinyBCT.Translators
                     var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
                     var arguments = new List<string>();
                     arguments.Add(methodId);
-                    arguments.Add(boogieGenerator.ReadAddr(receiverObject));
+                    arguments.Add(boogieGenerator.ReadAddr(receiverObject).Expr);
                     arguments.Add("Type0()");
 
                     instTranslator.ShouldCreateValueVariable.Add(createObjIns.Result);
