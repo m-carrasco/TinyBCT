@@ -528,13 +528,13 @@ namespace TinyBCT.Translators
                     right.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
                     string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
-
-                    var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", instruction.Result.Type);
+                    
+                    var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result.Type));
                     var arguments = new List<string>();
                     arguments.Add(Helpers.Strings.fixStringLiteral(left));
                     arguments.Add(Helpers.Strings.fixStringLiteral(right));
-                    AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
-                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar.ToString()));
+                    AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar));
+                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar));
                 } else
                 {
                     // TODO(rcastano): refactor this. Ideally, there might be different BoogieGenerators,

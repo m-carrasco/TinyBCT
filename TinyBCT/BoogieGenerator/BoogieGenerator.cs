@@ -35,6 +35,10 @@ namespace TinyBCT
         {
             return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({value})");
         }
+        public static Expression Union2PrimitiveType(Helpers.BoogieType boogieType, Expression expr)
+        {
+            return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({expr.Expr})");
+        }
 
         public override string ToString()
         {
@@ -315,11 +319,10 @@ namespace TinyBCT
     {
         public IFieldReference Field { get; }
         public IVariable Instance { get; }
-
-        public InstanceField(IFieldReference field, IVariable instance)
+        public InstanceField(InstanceFieldAccess fieldAccess)
         {
-            Field = field;
-            Instance = instance;
+            Field = fieldAccess.Field;
+            Instance = fieldAccess.Instance;
         }
     }
 
@@ -744,21 +747,21 @@ namespace TinyBCT
                 }
                 else
                 {
-                    var expr = String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName);
+                    var expr = ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
                     sb.AppendLine(VariableAssignment(result, expr));
                 }
             }
             else
             {
-                var heapAccess = string.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name);
+                var heapAccess = new InstanceField(instanceFieldAccess);
 
                 //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
                 if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
-                    sb.AppendLine(VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, heapAccess)));
+                    sb.AppendLine(VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, this.ReadAddr(heapAccess))));
                 }
                 else
-                    sb.AppendLine(VariableAssignment(result, heapAccess));
+                    sb.AppendLine(VariableAssignment(result, this.ReadAddr(heapAccess)));
             }
 
             return sb.ToString();
@@ -792,7 +795,7 @@ namespace TinyBCT
 
         public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
-            return new InstanceField(instanceFieldAccess.Field, instanceFieldAccess.Instance);
+            return new InstanceField(instanceFieldAccess);
         }
 
         public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
