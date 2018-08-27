@@ -144,9 +144,9 @@ namespace TinyBCT
             }
             switch (binaryOperation)
             {
-                case BinaryOperation.Add: operation = "+"; break;
-                case BinaryOperation.Sub: operation = "-"; break;
-                case BinaryOperation.Mul: operation = "*"; break;
+                case BinaryOperation.Add:
+                case BinaryOperation.Sub:
+                case BinaryOperation.Mul:
                 case BinaryOperation.Div:
                     {
 
@@ -369,6 +369,8 @@ namespace TinyBCT
 
         public static readonly BoogieVariable ExceptionVar = new BoogieVariable(Helpers.BoogieType.Ref, "$Exception");
         public static readonly BoogieVariable ExceptionTypeVar = new BoogieVariable(Helpers.BoogieType.Ref, "$ExceptionType");
+        public static readonly BoogieVariable ExceptionInCatchHandlerVar = new BoogieVariable(Helpers.BoogieType.Ref, "$ExceptionInCatchHandler");
+        public static readonly BoogieVariable ExceptionInCatchHandlerTypeVar = new BoogieVariable(Helpers.BoogieType.Ref, "$ExceptionInCatchHandlerType");
     }
     public class BoogieParameter : BoogieVariable
     {

@@ -1026,14 +1026,12 @@ namespace TinyBCT.Translators
                             AddBoogie(boogieGenerator.VariableAssignment(valueZero, Expression.NullOrZero(desiredTyped)));
                             AddBoogie(boogieGenerator.WriteStaticField(staticFieldAccess, valueZero));
                         }
-                        else if(where is IVariable)
+                        else if(where is IVariable v)
                         {
                             // Diego BUG BUG
                             // We need to handle default(T) properly
-                            var desiredTyped = where.Type;
-                            var valueZero = AddNewLocalVariableToMethod("$initialize", desiredTyped);
-                            AddBoogie(boogieGenerator.VariableAssignment(valueZero, Expression.NullOrZero(desiredTyped)));
-                            AddBoogie(boogieGenerator.VariableAssignment(where as IVariable, valueZero.Name));
+                            var desiredTyped = v.Type;
+                            AddBoogie(boogieGenerator.VariableAssignment(where as IVariable, Expression.NullOrZero(desiredTyped)));
                         }
                         else
                         {
@@ -1352,9 +1350,9 @@ namespace TinyBCT.Translators
 
                 // Exception is handled we reset global variables
                 if (instruction.HasResult) // catch with no specific exception type
-                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, "$Exception"));
-                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionInCatchHandler", BoogieVariable.ExceptionVar.Expr));
-                AddBoogie(boogieGenerator.VariableAssignment("$ExceptionInCatchHandlerType", "$ExceptionType"));
+                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, BoogieVariable.ExceptionVar));
+                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionInCatchHandlerVar, BoogieVariable.ExceptionVar));
+                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionInCatchHandlerTypeVar, BoogieVariable.ExceptionTypeVar));
                 AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar, boogieGenerator.NullObject()));
                 AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionTypeVar, boogieGenerator.NullObject()));
             }
