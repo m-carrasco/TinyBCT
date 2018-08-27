@@ -21,7 +21,11 @@ namespace TinyBCT
         }
         public Helpers.BoogieType Type { get; }
         public string Expr { get; }
-
+        public static Expression PrimitiveType2Union(Expression expr)
+        {
+            Contract.Assert(!Helpers.IsBoogieRefType(expr.Type));
+            return PrimitiveType2Union(expr.Type, expr.Expr);
+        }
         public static Expression PrimitiveType2Union(IVariable value)
         {
             Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
@@ -819,19 +823,19 @@ namespace TinyBCT
                 return VariableAssignment(result, readValue);
             }
         }
-
-        public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
+        
+        public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr)
         {
             StringBuilder sb = new StringBuilder();
 
-            var boogieType = Helpers.GetBoogieType(value.Type);
+            var boogieType = expr.Type;
             if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
-                sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(boogieType, ReadAddr(value).Expr)));
+                sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(expr));
+                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr)));
             }
             else
-                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), ReadAddr(value)));
+                sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), expr));
 
             return sb.ToString();
         }
@@ -911,7 +915,7 @@ namespace TinyBCT
             return BoogieVariable.FromDotNetVariable(var);
         }
 
-        public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
+        public override string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -922,32 +926,32 @@ namespace TinyBCT
 
             if (!Settings.SplitFields)
             {
-                if (!Helpers.IsBoogieRefType(value.Type)) // int, bool, real
+                if (!Helpers.IsBoogieRefType(expr.Type)) // int, bool, real
                 {
-                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
-                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
+                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(expr));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr)));
                     //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
                 }
                 else
                 {
-                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), value.Name));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), expr));
                     //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, value.Name));
                 }
             }
             else
             {
-                var boogieType = Helpers.GetBoogieType(value.Type);
+                var boogieType = expr.Type;
                // var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
                 //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
 
                 if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
-                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
+                    sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(expr));
                     //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
-                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(boogieType, value.Name)));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr)));
                 }
                 else
-                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), value.Name));
+                    sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), expr));
             }
 
             return sb.ToString();
@@ -1154,18 +1158,18 @@ namespace TinyBCT
 
             return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
         }
+        public string AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
+        {
+            return AssumeInverseRelationUnionAndPrimitiveType(expr.Expr, expr.Type);
+        }
 
+        public string WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
+        {
+            return WriteAddr(AddressOf(staticFieldAccess), expr);
+        }
         public string WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
         {
-            StringBuilder sb = new StringBuilder();
-
-            //string opStr = value.ToString();
-            //if (value.Type.TypeCode.Equals(PrimitiveTypeCode.String))
-            //    opStr = Helpers.Strings.fixStringLiteral(value);
-
-            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            sb.Append(WriteAddr(AddressOf(staticFieldAccess), ReadAddr(value)));
-            return sb.ToString();
+            return WriteStaticField(staticFieldAccess, ReadAddr(value));
         }
 
         public string ReadStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
@@ -1179,8 +1183,11 @@ namespace TinyBCT
 
             return sb.ToString();
         }
-
-        public abstract string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value);
+        public string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
+        {
+            return WriteInstanceField(instanceFieldAccess, ReadAddr(value));
+        }
+        public abstract string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value);
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
 

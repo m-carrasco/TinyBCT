@@ -1011,9 +1011,7 @@ namespace TinyBCT.Translators
 
                         var bg = boogieGenerator;
                         var desiredTyped = instanceFieldAccess.Field.Type;
-                        var valueZero = AddNewLocalVariableToMethod("$initialize", desiredTyped);
-                        AddBoogie(boogieGenerator.VariableAssignment(valueZero, Expression.NullOrZero(desiredTyped)));
-                        AddBoogie(bg.WriteInstanceField(instanceFieldAccess, valueZero));
+                        AddBoogie(bg.WriteInstanceField(instanceFieldAccess, Expression.NullOrZero(desiredTyped)));
                     }
                     else 
                     {
@@ -1022,9 +1020,7 @@ namespace TinyBCT.Translators
                         if (staticFieldAccess != null)
                         {
                             var desiredTyped = staticFieldAccess.Field.Type;
-                            var valueZero = AddNewLocalVariableToMethod("$initialize", desiredTyped);
-                            AddBoogie(boogieGenerator.VariableAssignment(valueZero, Expression.NullOrZero(desiredTyped)));
-                            AddBoogie(boogieGenerator.WriteStaticField(staticFieldAccess, valueZero));
+                            AddBoogie(boogieGenerator.WriteStaticField(staticFieldAccess, Expression.NullOrZero(desiredTyped)));
                         }
                         else if(where is IVariable v)
                         {
