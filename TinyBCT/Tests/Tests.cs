@@ -1947,7 +1947,6 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("NotImplemented")]
-    [Ignore]
     public void Loops()
     {
         var corralResult = CorralTestHelper("Loops", "Test.Loops.Acum$System.Int32", 10);
@@ -2053,6 +2052,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("NotImplemented")]
+    [Ignore]
     public void ModOperator3()
     {
         var corralResult = CorralTestHelper("BinaryOperators", "Test.BinaryOperators.ModTest3", 10);

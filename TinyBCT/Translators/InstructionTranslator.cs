@@ -510,8 +510,8 @@ namespace TinyBCT.Translators
 
             public override void Visit(UnaryInstruction instruction)
             {
-                var exp = boogieGenerator.UnaryOperationExpression(instruction.Operand, instruction.Operation);
-                var assignment = boogieGenerator.VariableAssignment(instruction.Result.Name, exp);
+                var exp = Expression.UnaryOperationExpression(instruction.Operand, instruction.Operation);
+                var assignment = boogieGenerator.VariableAssignment(instruction.Result, exp);
 
                 AddBoogie(assignment);
             }
@@ -1360,13 +1360,13 @@ namespace TinyBCT.Translators
                     var args = new List<string>();
                     args.Add(boogieGenerator.ReadAddr(instruction.Operand).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
-                    AddBoogie(boogieGenerator.VariableAssignment("$Exception", boogieGenerator.ReadAddr(instruction.Operand).Expr));
+                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else
                 {
                     // rethrow
-                    AddBoogie(boogieGenerator.VariableAssignment("$ExceptionType", "$ExceptionInCatchHandlerType"));
-                    AddBoogie(boogieGenerator.VariableAssignment("$Exception", "$ExceptionInCatchHandler"));
+                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionTypeVar, BoogieVariable.ExceptionInCatchHandlerTypeVar));
+                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar, BoogieVariable.ExceptionInCatchHandlerVar));
                 }
 
                 var target = GetThrowTarget(instruction);

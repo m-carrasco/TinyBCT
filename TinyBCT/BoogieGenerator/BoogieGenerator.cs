@@ -197,6 +197,16 @@ namespace TinyBCT
         {
             return new Expression(type, $"({op1.Expr} {operation} {op2.Expr})");
         }
+        public static bool IsSupportedUnaryOperation(UnaryOperation op)
+        {
+            return UnaryOperation.Neg.Equals(op);
+        }
+        public static Expression UnaryOperationExpression(IVariable var, UnaryOperation unaryOperation)
+        {
+            Contract.Assume(IsSupportedUnaryOperation(unaryOperation));
+            // currently just neg is supported, equivalent to * -1
+            return new Expression(Helpers.GetBoogieType(var.Type), $"-{var.Name}");
+        }
         public static Expression ExprEquals(Expression op1, Expression op2)
         {
             Contract.Assume(op1.Type.Equals(op2.Type));
@@ -257,32 +267,49 @@ namespace TinyBCT
             var consStr = IsFloat(constant) ? FormatFloatValue(constant) : constant.Value.ToString();
             return new BoogieLiteral(Helpers.GetBoogieType(constant.Type), consStr);
         }
-        public static BoogieLiteral FromString(Constant constant)
+        internal static BoogieLiteral FromString(Constant constant)
         {
             return new BoogieLiteral(Helpers.BoogieType.Ref, Strings.fixStringLiteral(constant));
         }
-        public static bool IsNullConst(Constant constant)
+        private static bool IsNullConst(Constant constant)
         {
             return
                 constant != null &&
                 constant.Type.Equals(Backend.Types.Instance.PlatformType.SystemObject) &&
                 constant.ToString().Equals("null");
         }
-        public static BoogieLiteral FromBool(Constant constant)
+        private static BoogieLiteral FromBool(Constant constant)
         {
             Contract.Assume(
                 constant != null &&
                 Helpers.GetBoogieType(constant.Type).Equals(Helpers.BoogieType.Bool));
             return new BoogieLiteral(Helpers.BoogieType.Bool, constant.ToString());
         }
-        public static BoogieLiteral FromNull(Constant constant)
+        private static BoogieLiteral FromNull(Constant constant)
         {
             Contract.Assume(IsNullConst(constant));
             // The boogie type varies depending on the address encoding.
             var boogieType = Helpers.GetBoogieType(constant.Type);
             return new BoogieLiteral(boogieType, constant.ToString());
         }
-        
+        public static BoogieLiteral FromDotNetConstant(Constant cons)
+        {
+            if (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type))
+            {
+                return BoogieLiteral.Numeric(cons);
+            }
+            else if (Helpers.GetBoogieType(cons.Type).Equals(Helpers.BoogieType.Bool))
+            {
+                return BoogieLiteral.FromBool(cons);
+            }
+            else if (BoogieLiteral.IsNullConst(cons))
+            {
+                return BoogieLiteral.FromNull(cons);
+            }
+            throw new NotImplementedException();
+        }
+
+
 
         public static class Strings
         {
@@ -739,16 +766,7 @@ namespace TinyBCT
             BoogieLiteral boogieConstant = null;
             if (cons != null)
             {
-                if (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type))
-                {
-                    boogieConstant = BoogieLiteral.Numeric(cons);
-                } else if (Helpers.GetBoogieType(cons.Type).Equals(Helpers.BoogieType.Bool))
-                {
-                    boogieConstant = BoogieLiteral.FromBool(cons);
-                } else if (BoogieLiteral.IsNullConst(cons))
-                {
-                    boogieConstant = BoogieLiteral.FromNull(cons);
-                }
+                boogieConstant = BoogieLiteral.FromDotNetConstant(cons);
             }
 
 
@@ -911,16 +929,16 @@ namespace TinyBCT
         public override string VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
-            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
+            if (cons != null)
             {   
-                return VariableAssignment(variableA, BoogieLiteral.Numeric(cons));
+                return VariableAssignment(variableA, BoogieLiteral.FromDotNetConstant(cons));
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
                 return VariableAssignment(variableA, dereference.Reference);
             }
 
-            return VariableAssignment(variableA.ToString(), value.ToString());
+            return VariableAssignment(variableA, ReadAddr(AddressOf(value)));
         }
 
         public override string VariableAssignment(IVariable variableA, Expression expr)
@@ -1116,8 +1134,7 @@ namespace TinyBCT
             }
             else if (addr is DotNetVariable v)
             {
-                var varName = v.Var.Name;
-                return VariableAssignment(varName, expr.Expr);
+                return VariableAssignment(v.Var, expr);
             }
             else
             {
@@ -1366,17 +1383,6 @@ namespace TinyBCT
             return string.Format("{0} {1} {2}", op1, operation, op2);
         }
 
-        public string UnaryOperationExpression(IVariable var, UnaryOperation unaryOperation)
-        {
-            Contract.Assume(IsSupportedUnaryOperation(unaryOperation));
-            // currently just neg is supported, equivalent to * -1
-            return String.Format("-{0}", var.Name);
-        }
-        public bool IsSupportedUnaryOperation(UnaryOperation op)
-        {
-            return UnaryOperation.Neg.Equals(op);
-        }
-
     public string Goto(string label)
         {
             return String.Format("\t\tgoto {0};", label);
@@ -1496,21 +1502,6 @@ namespace TinyBCT
             return String.Format("$ArrayLength({0})", arr.Name);
         }
 
-        public string ArrayLength(string arr)
-        {
-            return String.Format("$ArrayLength({0})", arr);
-        }
-
-        public string ReadArrayElement(string array, string index)
-        {
-            return string.Format("$ReadArrayElement({0}, {1})", array, index);
-        }
-
-        public string ReadArrayElement(IVariable array, IVariable index)
-        {
-            return ReadArrayElement(array.Name, index.Name);
-        }
-
         public string CallReadArrayElement(string result, string array, string index)
         {
             var l = new List<string>();
@@ -1522,16 +1513,6 @@ namespace TinyBCT
         public string CallReadArrayElement(IVariable result, IVariable array, IVariable index)
         {
             return CallReadArrayElement(result.Name, array.Name, index.Name);
-        }
-
-        public string WriteArrayElement(string array, string index, string value)
-        {
-            return string.Format("$WriteArrayElement({0}, {1}, {2})", array, index, value);
-        }
-
-        public string WriteArrayElement(IVariable array, IVariable index, IVariable value)
-        {
-            return WriteArrayElement(array.Name, index.Name, value.Name);
         }
 
         public string CallWriteArrayElement(string array, string index, string value)
