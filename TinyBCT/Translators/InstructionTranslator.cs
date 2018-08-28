@@ -934,7 +934,7 @@ namespace TinyBCT.Translators
                 }
                 else if (dereference != null && Settings.NewAddrModelling)
                 {
-                    var address = new AddressExpression(dereference.Type,boogieGenerator.ReadAddr(dereference.Reference).Expr);
+                    var address = new AddressExpression(dereference.Type, boogieGenerator.ReadAddr(dereference.Reference).Expr);
                     AddBoogie(boogieGenerator.WriteAddr(address, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else

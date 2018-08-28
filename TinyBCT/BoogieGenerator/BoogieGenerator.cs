@@ -227,6 +227,15 @@ namespace TinyBCT
         {
             throw new Exception("This method should not be called, use property Expr.");
         }
+
+        internal static Expression TEMPORARY_HACK_FromAddress(Addressable addr)
+        {
+            if (addr is AddressExpression addrExpr)
+            {
+                return new Expression(Helpers.GetBoogieType(addrExpr.Type), addrExpr.Expr);
+            }
+            throw new NotImplementedException();
+        }
     }
 
     public class BoogieLiteral : Expression {
@@ -252,6 +261,28 @@ namespace TinyBCT
         {
             return new BoogieLiteral(Helpers.BoogieType.Ref, Strings.fixStringLiteral(constant));
         }
+        public static bool IsNullConst(Constant constant)
+        {
+            return
+                constant != null &&
+                constant.Type.Equals(Backend.Types.Instance.PlatformType.SystemObject) &&
+                constant.ToString().Equals("null");
+        }
+        public static BoogieLiteral FromBool(Constant constant)
+        {
+            Contract.Assume(
+                constant != null &&
+                Helpers.GetBoogieType(constant.Type).Equals(Helpers.BoogieType.Bool));
+            return new BoogieLiteral(Helpers.BoogieType.Bool, constant.ToString());
+        }
+        public static BoogieLiteral FromNull(Constant constant)
+        {
+            Contract.Assume(IsNullConst(constant));
+            // The boogie type varies depending on the address encoding.
+            var boogieType = Helpers.GetBoogieType(constant.Type);
+            return new BoogieLiteral(boogieType, constant.ToString());
+        }
+        
 
         public static class Strings
         {
@@ -541,6 +572,10 @@ namespace TinyBCT
             private string MemoryMap { get { return $"$memory{Type.FirstUppercase()}"; } }
             private string WriteFunction { get { return $"Write{Type.FirstUppercase()}"; } }
         }
+        public static MemoryMapUpdate ForKeyValue(AddressExpression key, Expression value)
+        {
+            return ForKeyValue(key, value.Expr);
+        }
         public static MemoryMapUpdate ForKeyValue(AddressExpression key, string value)
         {
             var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Object, Helpers.BoogieType.Real, Helpers.BoogieType.Addr };
@@ -682,16 +717,13 @@ namespace TinyBCT
 
         public override string WriteAddr(Addressable addr, Expression expr)
         {
-            return WriteAddr(addr, expr.Expr);
-        }
-        public override string WriteAddr(Addressable addr, String value)
-        {
             if (addr is AddressExpression)
             {
                 var addrExpr = addr as AddressExpression;
                 var boogieType = Helpers.GetBoogieType(addrExpr.Type);
-                return MemoryMapUpdate.ForKeyValue(addrExpr, value).Stmt;
-            } else
+                return MemoryMapUpdate.ForKeyValue(addrExpr, expr).Stmt;
+            }
+            else
             {
                 throw new NotImplementedException();
             }
@@ -705,10 +737,20 @@ namespace TinyBCT
         {
             Constant cons = value as Constant;
             BoogieLiteral boogieConstant = null;
-            if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type)))
+            if (cons != null)
             {
-                boogieConstant = BoogieLiteral.Numeric(cons);
+                if (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type))
+                {
+                    boogieConstant = BoogieLiteral.Numeric(cons);
+                } else if (Helpers.GetBoogieType(cons.Type).Equals(Helpers.BoogieType.Bool))
+                {
+                    boogieConstant = BoogieLiteral.FromBool(cons);
+                } else if (BoogieLiteral.IsNullConst(cons))
+                {
+                    boogieConstant = BoogieLiteral.FromNull(cons);
+                }
             }
+
 
             var boogieType = Helpers.GetBoogieType(variableA.Type);
 
@@ -719,24 +761,26 @@ namespace TinyBCT
                     return VariableAssignment(variableA, boogieConstant);
                 } else
                 {
-                    return WriteAddr(variableA, value.ToString());
+                    throw new NotImplementedException();
+                    // return WriteAddr(variableA, value.ToString());
                 }
                 
             } else if (value is IVariable)
             {
-                return WriteAddr(variableA, ValueOfVariable(value as IVariable).Expr);
+                return WriteAddr(AddressOf(variableA), ValueOfVariable(value as IVariable));
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
                 // read addr of the reference
                 // index that addr into the corresponding 'heap'
                 var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference).Expr);
-                return WriteAddr(variableA, ReadAddr(addr).Expr);
+                return WriteAddr(AddressOf(variableA), ReadAddr(addr));
             } else if (value is Reference)
             {
                 var reference = value as Reference;
                 var addr = AddressOf(reference.Value);
-                return WriteAddr(variableA, addr.ToString());
+                Expression expr = Expression.TEMPORARY_HACK_FromAddress(addr);
+                return WriteAddr(AddressOf(variableA), expr);
             }
 
             Contract.Assert(false);
@@ -1050,34 +1094,30 @@ namespace TinyBCT
 
         public override string WriteAddr(Addressable addr, Expression expr)
         {
-            return WriteAddr(addr, expr.Expr);
-        }
-        public override string WriteAddr(Addressable addr, string value)
-        {
             if (addr is InstanceField instanceField)
             {
                 var instanceName = instanceField.Instance;
                 var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
                 if (Settings.SplitFields)
                 {
-                    return $"{fieldName}[{instanceName}] := {value};";
+                    return $"{fieldName}[{instanceName}] := {expr.Expr};";
                 }
                 else
                 {
                     // return $"Read($Heap,{instanceName},{fieldName})";
-                    return $"$Heap := Write($Heap, {instanceName}, {fieldName}, {value});";
+                    return $"$Heap := Write($Heap, {instanceName}, {fieldName}, {expr.Expr});";
                 }
-                
+
             }
             else if (addr is StaticField staticField)
             {
                 var fieldName = FieldTranslator.GetFieldName(staticField.Field);
-                return VariableAssignment(fieldName, value);
+                return VariableAssignment(fieldName, expr.Expr);
             }
             else if (addr is DotNetVariable v)
             {
                 var varName = v.Var.Name;
-                return VariableAssignment(varName, value);
+                return VariableAssignment(varName, expr.Expr);
             }
             else
             {
@@ -1133,23 +1173,7 @@ namespace TinyBCT
         public abstract Addressable AddressOf(InstanceFieldAccess instanceFieldAccess);
         public abstract Addressable AddressOf(StaticFieldAccess staticFieldAccess);
         public abstract Addressable AddressOf(IVariable var);
-
-        public string WriteAddr(IVariable addr, IValue value)
-        {
-            return WriteAddr(AddressOf(addr), value.ToString());
-        }
-
-        public string WriteAddr(IVariable addr, String value)
-        {
-            return WriteAddr(AddressOf(addr), value.ToString());
-        }
-
-        public string WriteAddr(Addressable addr, IValue value)
-        {
-            return WriteAddr(addr, value.ToString());
-        }
-
-        public abstract string WriteAddr(Addressable addr, string value);
+        
         public abstract string WriteAddr(Addressable addr, Expression value);
 
         public abstract string AllocAddr(IVariable var);
