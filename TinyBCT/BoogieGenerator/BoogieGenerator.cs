@@ -48,7 +48,7 @@ namespace TinyBCT
         {
             var type = Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses);
             // TODO(rcastano): Fix for generics
-            return new Expression(Helpers.BoogieType.Ref, $"As({expr}, {type})");
+            return new Expression(Helpers.BoogieType.Ref, $"$As({expr.Expr}, {type})");
         }
         public static Expression NullOrZero(ITypeReference type)
         {
@@ -723,11 +723,6 @@ namespace TinyBCT
             return "";
         }
 
-        public override string VariableAssignment(IVariable variableA, string expr)
-        {
-            return WriteAddr(variableA, expr);
-        }
-
         public override string AllocLocalVariables(IList<IVariable> variables)
         {
             StringBuilder sb = new StringBuilder();
@@ -866,11 +861,6 @@ namespace TinyBCT
         public override string VariableAssignment(IVariable variableA, Expression expr)
         {
             return $"{variableA} := {expr.Expr};";
-        }
-        public override string VariableAssignment(IVariable variableA, string expr)
-        {
-            return $"{variableA} := {expr};";
-            return VariableAssignment(BoogieVariable.FromDotNetVariable(variableA).Expr, expr);
         }
 
         public override string AllocLocalVariables(IList<IVariable> variables)
@@ -1191,6 +1181,45 @@ namespace TinyBCT
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
 
+        // TODO(rcastano): Unify these two versions of ProcedureCall (BoogieVariable resultVariable and IVariable resultVariable)
+        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, BoogieVariable resultVariable = null)
+        {
+            StringBuilder sb = new StringBuilder();
+            var boogieProcedureName = Helpers.GetMethodName(procedure);
+
+            int s = procedure.IsStatic ? 0 : 1;
+            var resultArguments = new List<String>();
+
+            // using inheritance this should be moved to the boogie generator a la bct
+            if (!Settings.NewAddrModelling)
+            {
+                // check behavior with out arguments
+                var referencedIndexes = procedure.Parameters.Where(p => p.IsByReference).Select(p => p.Index + s);
+
+                foreach (var i in referencedIndexes)
+                    resultArguments.Add(ValueOfVariable(argumentList[i]).Expr);
+            }
+
+            if (resultVariable != null)
+            {
+                resultArguments.Add(resultVariable.Expr);
+            }
+
+            var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v).Expr));
+            if (resultArguments.Count > 0)
+            {
+                sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
+                if (Settings.NewAddrModelling)
+                {
+                    Contract.Assert(resultArguments.Count == 1);
+                    Contract.Assert(resultArguments.Contains(resultVariable.Expr));
+                }
+                return sb.ToString();
+            }
+            else
+                return string.Format("call {0}({1});", boogieProcedureName, arguments);
+        }
+
         public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, ISet<IVariable> shouldCreateValueVariable, IVariable resultVariable = null)
         {
             StringBuilder sb = new StringBuilder();
@@ -1263,7 +1292,6 @@ namespace TinyBCT
 
         public abstract string VariableAssignment(IVariable variableA, Expression expr);
         public abstract string VariableAssignment(IVariable variableA, IValue value);
-        public abstract string VariableAssignment(IVariable variableA, string expr);
 
         public string VariableAssignment(BoogieVariable variableA, Expression expr)
         {
@@ -1410,12 +1438,6 @@ namespace TinyBCT
             sb.AppendLine("}");
 
             return sb.ToString();
-        }
-
-        public string As(IVariable arg1, ITypeReference arg2)
-        {
-            // TODO(rcastano): Fix for generics
-            return String.Format("$As({0},{1})", ReadAddr(arg1).Expr, Helpers.GetNormalizedTypeFunction(arg2, InstructionTranslator.MentionedClasses));
         }
 
         public string Subtype(IVariable var, ITypeReference type)

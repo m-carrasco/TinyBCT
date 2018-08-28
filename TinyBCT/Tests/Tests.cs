@@ -2984,6 +2984,7 @@ class Test {
 
     [TestMethod]
     [TestCategory("Repro")]
+    [Ignore] // Remove when the type error is resolved: https://github.com/edgardozoppi/analysis-net/issues/10#issuecomment-416497029
     public void TestExceptionsWhen()
     {
         var corralResult = CorralTestHelper("TestExceptionsWhen", "TestExceptionsWhen.Main", 10);
