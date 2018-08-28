@@ -1938,6 +1938,7 @@ public class TestsManu : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("NotImplemented")]
+    [Ignore]
     public void Subtype()
     {
         var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test7$DynamicDispatch.Animal", 10);
@@ -1946,6 +1947,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("NotImplemented")]
+    [Ignore]
     public void Loops()
     {
         var corralResult = CorralTestHelper("Loops", "Test.Loops.Acum$System.Int32", 10);
