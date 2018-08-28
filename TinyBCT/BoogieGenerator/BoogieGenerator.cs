@@ -1180,9 +1180,8 @@ namespace TinyBCT
         public abstract string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value);
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
-
-        // TODO(rcastano): Unify these two versions of ProcedureCall (BoogieVariable resultVariable and IVariable resultVariable)
-        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, BoogieVariable resultVariable = null)
+        
+        private string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, string resultVariableStr = null)
         {
             StringBuilder sb = new StringBuilder();
             var boogieProcedureName = Helpers.GetMethodName(procedure);
@@ -1200,9 +1199,9 @@ namespace TinyBCT
                     resultArguments.Add(ValueOfVariable(argumentList[i]).Expr);
             }
 
-            if (resultVariable != null)
+            if (resultVariableStr != null)
             {
-                resultArguments.Add(resultVariable.Expr);
+                resultArguments.Add(resultVariableStr);
             }
 
             var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v).Expr));
@@ -1212,54 +1211,48 @@ namespace TinyBCT
                 if (Settings.NewAddrModelling)
                 {
                     Contract.Assert(resultArguments.Count == 1);
-                    Contract.Assert(resultArguments.Contains(resultVariable.Expr));
+                    Contract.Assert(resultArguments.Contains(resultVariableStr));
                 }
                 return sb.ToString();
             }
             else
                 return string.Format("call {0}({1});", boogieProcedureName, arguments);
         }
-
-        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, ISet<IVariable> shouldCreateValueVariable, IVariable resultVariable = null)
+        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, BoogieVariable resultVariable = null)
         {
-            StringBuilder sb = new StringBuilder();
-            var boogieProcedureName = Helpers.GetMethodName(procedure);
-
-            int s = procedure.IsStatic ? 0 : 1;
-            var resultArguments = new List<String>();
-
-            // using inheritance this should be moved to the boogie generator a la bct
-            if (!Settings.NewAddrModelling)
-            {
-                // check behavior with out arguments
-                var referencedIndexes = procedure.Parameters.Where(p => p.IsByReference).Select(p => p.Index + s);
-
-                foreach (var i in referencedIndexes)
-                    resultArguments.Add(ValueOfVariable(argumentList[i]).Expr);
-            }
-
+            string resultVariableStr = null;
             if (resultVariable != null)
             {
-                resultArguments.Add(resultVariable.Name);
-                shouldCreateValueVariable.Add(resultVariable);
+                resultVariableStr = resultVariable.Expr;
             }
+            return ProcedureCall(procedure, argumentList, resultVariableStr);
+        }
 
-            var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v).Expr));
-            if (resultArguments.Count > 0)
-            {
-                sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
-                if (Settings.NewAddrModelling)
+        public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, InstructionTranslator instructionTranslator, IVariable resultVariable = null)
+        {
+            StringBuilder sb = new StringBuilder();
+            
+            if (Settings.NewAddrModelling) {
+                BoogieVariable boogieResVar = null;
+                if (resultVariable != null)
                 {
-                    Contract.Assert(resultArguments.Count == 1);
-                    Contract.Assert(resultArguments.Contains(resultVariable.Name));
-                    sb.Append(WriteAddr(resultVariable, resultVariable.Name));
+                    boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
+                }
+                sb.AppendLine(ProcedureCall(procedure, argumentList, boogieResVar));
+                if (resultVariable != null)
+                {
+                    sb.AppendLine(WriteAddr(AddressOf(resultVariable), boogieResVar));
                 }
                 return sb.ToString();
+            } else
+            {
+                string resultVariableStr = null;
+                if (resultVariable != null)
+                {
+                    resultVariableStr = resultVariable.Name;
+                }
+                return ProcedureCall(procedure, argumentList, resultVariableStr);
             }
-            else
-                return string.Format("call {0}({1});", boogieProcedureName, arguments);
-
-            //return ProcedureCall(boogieProcedureName, argumentList.Select(v => ValueOfVariable(v)).ToList(), resultArguments);
         }
 
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, BoogieVariable resultVariable)
@@ -1281,8 +1274,6 @@ namespace TinyBCT
 
         public string ProcedureCall(string boogieProcedureName, List<string> argumentList, IList<string> resultVariables )
         {
-            StringBuilder sb = new StringBuilder();
-
             var arguments = String.Join(",", argumentList);
             if (resultVariables.Count > 0)
                 return string.Format("call {0} := {1}({2});", String.Join(",",resultVariables), boogieProcedureName, arguments);

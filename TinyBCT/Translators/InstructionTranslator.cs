@@ -769,7 +769,7 @@ namespace TinyBCT.Translators
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
                     if (methodType.Equals(resType) || Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
                     {
-                        sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator.ShouldCreateValueVariable, instruction.Result));
+                        sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator, instruction.Result));
                     }
                     else
                     {
@@ -781,7 +781,7 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator.ShouldCreateValueVariable));
+                    sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator));
                 }
 
                 sb.AppendLine(AddSubtypeInformationToExternCall(instruction));
