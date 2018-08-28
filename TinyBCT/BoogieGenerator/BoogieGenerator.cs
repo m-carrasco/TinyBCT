@@ -516,6 +516,40 @@ namespace TinyBCT
         }
     }
 
+    public class BoogieStatement {
+        protected BoogieStatement(string stmt)
+        {
+            Stmt = stmt;
+        }
+        public readonly string Stmt;
+    }
+    public class MemoryMapUpdate : BoogieStatement
+    {
+        private MemoryMapUpdate(TemporaryClassToBuildExpression temp) : base(temp.Stmt) { }
+        private class TemporaryClassToBuildExpression
+        {
+            public TemporaryClassToBuildExpression(AddressExpression key, string value)
+            {
+                Key = key;
+                Value = value;
+            }
+            public string Stmt { get { return $"{MemoryMap} := {WriteFunction}({MemoryMap}, {Key.Expr}, {Value});"; } }
+            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Type); } }
+            private AddressExpression Key { get; }
+            // TODO(rcastano): This should be "Expression Value"
+            private string Value { get; }
+            private string MemoryMap { get { return $"$memory{Type.FirstUppercase()}"; } }
+            private string WriteFunction { get { return $"Write{Type.FirstUppercase()}"; } }
+        }
+        public static MemoryMapUpdate ForKeyValue(AddressExpression key, string value)
+        {
+            var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Object, Helpers.BoogieType.Real, Helpers.BoogieType.Addr };
+            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Type)));
+            // TODO(rcastano): re-add later when value is of the right type (Expression)
+            // Contract.Assume(Helpers.GetBoogieType(key.Type).Equals(value.Type));
+            return new MemoryMapUpdate(new TemporaryClassToBuildExpression(key, value));
+        }
+    }
 
     public abstract class Addressable
     {
@@ -656,20 +690,7 @@ namespace TinyBCT
             {
                 var addrExpr = addr as AddressExpression;
                 var boogieType = Helpers.GetBoogieType(addrExpr.Type);
-
-                if (boogieType.Equals(Helpers.BoogieType.Int))
-                    return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addrExpr.Expr, value));
-                else if (boogieType.Equals(Helpers.BoogieType.Bool))
-                    return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addrExpr.Expr, value));
-                else if (boogieType.Equals(Helpers.BoogieType.Object))
-                    return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addrExpr.Expr, value));
-                else if (boogieType.Equals(Helpers.BoogieType.Real))
-                    return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", addrExpr.Expr, value));
-                else if (boogieType.Equals(Helpers.BoogieType.Addr))
-                    return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", addrExpr.Expr, value));
-
-                Contract.Assert(false);
-                return "";
+                return MemoryMapUpdate.ForKeyValue(addrExpr, value).Stmt;
             } else
             {
                 throw new NotImplementedException();
@@ -848,7 +869,7 @@ namespace TinyBCT
             Constant cons = value as Constant;
             if (cons != null && (cons.Value is Single || cons.Value is Double || cons.Value is Decimal))
             {   
-                return VariableAssignment(variableA.ToString(), BoogieLiteral.Numeric(cons).Expr);
+                return VariableAssignment(variableA, BoogieLiteral.Numeric(cons));
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
