@@ -2326,7 +2326,7 @@ class Test {
     [TestCategory("Manu")]
     public void DynamicDispatch1_NoBugs()
     {
-        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test1_NoBugs", 10, useStubs: false,  additionalTinyBCTOptions: "/NewAddrModelling=true");
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test1_NoBugs", 10, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
