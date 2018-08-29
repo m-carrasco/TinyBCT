@@ -1501,6 +1501,7 @@ class Test {
     }
     [TestCategory("Repro")]
     [TestMethod]
+    [Ignore] // Remove when issue #63 is fixed.
     public void TestBidimensionalArrays1()
     {
         var source = @"
