@@ -1478,6 +1478,47 @@ class Test {
         var corralResult = CorralTestHelperCode("TestAxiomsGenerics2", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+    [TestCategory("Arrays")]
+    [TestMethod]
+    public void TestArrays1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int [] arr = new int[3];
+    var copy_arr = arr;
+    copy_arr[2] = 4;
+    Contract.Assert(arr[2] == 4);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestArrays1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Repro")]
+    [TestMethod]
+    public void TestBidimensionalArrays1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int [,] arr = new int[2,4];
+    arr[0,2] = 4;
+    arr[1,2] = 5;
+    Contract.Assert(arr[0,2] == 4);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestBidimensionalArrays1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
     [TestCategory("Fernan")]
     [TestMethod]
     public void TestConstructors1()
