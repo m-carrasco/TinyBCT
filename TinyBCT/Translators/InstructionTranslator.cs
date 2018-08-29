@@ -651,7 +651,10 @@ namespace TinyBCT.Translators
                 }
 
                 if (instruction.HasOperand)
-                    AddBoogie(boogieGenerator.VariableAssignment("$result", boogieGenerator.ReadAddr(instruction.Operand).Expr));
+                {
+                    var boogieResVar = BoogieVariable.ResultVar(Helpers.GetBoogieType(instruction.Operand.Type));
+                    AddBoogie(boogieGenerator.VariableAssignment(boogieResVar, boogieGenerator.ReadAddr(instruction.Operand)));
+                }
 
                 AddBoogie("return ;");
             }

@@ -428,6 +428,10 @@ namespace TinyBCT
             return !name.Contains(" ");
         }
 
+        public static BoogieVariable ResultVar(Helpers.BoogieType type)
+        {
+            return new BoogieVariable(type, "$result");
+        }
 
         public static readonly BoogieVariable ExceptionVar = new BoogieVariable(Helpers.BoogieType.Ref, "$Exception");
         public static readonly BoogieVariable ExceptionTypeVar = new BoogieVariable(Helpers.BoogieType.Ref, "$ExceptionType");
