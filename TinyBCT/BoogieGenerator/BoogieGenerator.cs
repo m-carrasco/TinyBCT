@@ -445,6 +445,11 @@ namespace TinyBCT
             Contract.Requires(variable.IsParameter);
             return new BoogieParameter(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
         }
+        static public BoogieVariable OutVariable(IParameterDefinition param)
+        {
+            Contract.Requires(param.IsOut && param.IsByReference);
+            return new BoogieParameter(Helpers.GetBoogieType(param.Type), $"{AdaptNameToBoogie(param.Name.Value)}$out");
+        }
     }
 
     public abstract class SoundAddressModelingExpression : Expression

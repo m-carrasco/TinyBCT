@@ -635,15 +635,16 @@ namespace TinyBCT.Translators
                     foreach (var p in instTranslator.method.Parameters.Where(p => p.IsOut || p.IsByReference))
                     {
                         IVariable pInMethodBody = instTranslator.methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
-
+                        
+                        var outVar = BoogieParameter.OutVariable(p);
                         if (argToNewVariable != null && argToNewVariable.ContainsKey(pInMethodBody))
                         {
-                            AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), argToNewVariable[pInMethodBody].Name));
-
+                            AddBoogie(boogieGenerator.VariableAssignment(outVar, boogieGenerator.ReadAddr(argToNewVariable[pInMethodBody])));
                             // $outNombreDeLaVariableORIGINAL := variableMapeada;
                         } else
                         {
-                            AddBoogie(boogieGenerator.VariableAssignment(String.Format("{0}$out", p.Name.Value), p.Name.Value));
+                            var iVariable = instTranslator.methodBody.Variables.Single(v => v.Name.Equals(p.Name.Value));
+                            AddBoogie(boogieGenerator.VariableAssignment(outVar, boogieGenerator.ReadAddr(iVariable)));
                             // $outNombreDeLaVariableORIGINAL := nombreDeLaVariableOriginal;
                         }
                     }

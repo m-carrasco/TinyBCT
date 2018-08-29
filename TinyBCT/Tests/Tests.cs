@@ -2332,7 +2332,7 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Manu")]
     public void DynamicDispatch1_Bugged()
     {
