@@ -96,12 +96,12 @@ namespace TinyBCT.Translators
                     this_var_type = (this_var_type as IManagedPointerType).TargetType;
                 }
                 
-                var subtype = bg.Subtype(bg.DynamicType(this_var.Name), this_var_type);
+                var subtype = bg.Subtype(bg.DynamicType(this_var), this_var_type);
                 AddBoogie(bg.Assume(subtype));
 
                 // hack for contractor
                 if (methodBody.MethodDefinition.Name.Value.Contains("STATE$"))
-                    AddBoogie(bg.AssumeDynamicType(this_var.Name, this_var.Type));
+                    AddBoogie(bg.AssumeDynamicType(this_var, this_var.Type));
             }
 
             foreach (var p in methodBody.MethodDefinition.Parameters)
@@ -110,7 +110,8 @@ namespace TinyBCT.Translators
                 {
                     // BUG BUG BUG BUG - by ref 
                     var refNotNull = String.Format("{0} == null", p.Name.Value);
-                    var subtype = bg.Subtype(bg.DynamicType(p.Name.Value), p.Type);
+                    var paramVariable = methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
+                    var subtype = bg.Subtype(bg.DynamicType(paramVariable), paramVariable.Type);
                     var or = string.Format("{0} || {1}", refNotNull, subtype);
                     AddBoogie(bg.Assume(or));
                 }
@@ -385,11 +386,11 @@ namespace TinyBCT.Translators
                 Contract.Assert(elementSize > 0);
                 uint arrayLength = byteSize / elementSize;
 
-
-                AddBoogie(boogieGenerator.Assume(String.Format("{0} != {1}", array.Name, boogieGenerator.NullObject().Expr)));
-                AddBoogie(boogieGenerator.AssumeArrayLength(array, arrayLength.ToString()));
+                var arrayNotNull = Expression.NotEquals(boogieGenerator.ReadAddr(array), boogieGenerator.NullObject());
+                AddBoogie(boogieGenerator.Assume(arrayNotNull.Expr));
+                AddBoogie(boogieGenerator.AssumeArrayLength(boogieGenerator.ReadAddr(array), arrayLength.ToString()));
                 List<string> args = new List<string>();
-                args.Add(array.Name);
+                args.Add(boogieGenerator.ReadAddr(array).Expr);
                 // sets all array elements different than null
                 AddBoogie(boogieGenerator.ProcedureCall("$HavocArrayElementsNoNull", args));
 
@@ -531,8 +532,8 @@ namespace TinyBCT.Translators
                     
                     var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result.Type));
                     var arguments = new List<string>();
-                    arguments.Add(Helpers.Strings.fixStringLiteral(left).Expr);
-                    arguments.Add(Helpers.Strings.fixStringLiteral(right).Expr);
+                    arguments.Add(Helpers.Strings.FixStringLiteral(left, boogieGenerator).Expr);
+                    arguments.Add(Helpers.Strings.FixStringLiteral(right, boogieGenerator).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar));
                     AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar));
                 } else
@@ -643,7 +644,7 @@ namespace TinyBCT.Translators
                             // $outNombreDeLaVariableORIGINAL := variableMapeada;
                         } else
                         {
-                            var iVariable = instTranslator.methodBody.Variables.Single(v => v.Name.Equals(p.Name.Value));
+                            var iVariable = instTranslator.methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
                             AddBoogie(boogieGenerator.VariableAssignment(outVar, boogieGenerator.ReadAddr(iVariable)));
                             // $outNombreDeLaVariableORIGINAL := nombreDeLaVariableOriginal;
                         }
@@ -724,7 +725,7 @@ namespace TinyBCT.Translators
                         // strings values that appear in the three address code are declared globally in the .bpl
                         // stringVariableName is the name of the declared global variable
 
-                        Expression expr = Helpers.Strings.fixStringLiteral(instructionOperand);
+                        Expression expr = Helpers.Strings.FixStringLiteral(instructionOperand, boogieGenerator);
 
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, expr));
                     } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
@@ -866,7 +867,7 @@ namespace TinyBCT.Translators
 
                         var bg = boogieGenerator;
                         // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
-                        toAppend.Add(bg.VariableAssignment(localVar, Expression.PrimitiveType2Union(instruction.Arguments.ElementAt(arg_i))));
+                        toAppend.Add(bg.VariableAssignment(localVar, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Arguments.ElementAt(arg_i)))));
 
                         copyArgs.Add(localVar);
                     }
@@ -891,8 +892,8 @@ namespace TinyBCT.Translators
 
                     var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", Types.Instance.PlatformType.SystemBoolean);
                     var arguments = new List<string>();
-                    arguments.Add(Helpers.Strings.fixStringLiteral(leftOperand).Expr);
-                    arguments.Add(Helpers.Strings.fixStringLiteral(rightOperand).Expr);
+                    arguments.Add(Helpers.Strings.FixStringLiteral(leftOperand, boogieGenerator).Expr);
+                    arguments.Add(Helpers.Strings.FixStringLiteral(rightOperand, boogieGenerator).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
                     AddBoogie(bg.If(bg.ReadAddr(tempVar).Expr, bg.Goto(instruction.Target)));
                 }
@@ -974,7 +975,7 @@ namespace TinyBCT.Translators
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), instruction.Operand.Name)));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), boogieGenerator.ReadAddr(instruction.Operand))));
                     else
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instruction.Operand));
@@ -1099,10 +1100,9 @@ namespace TinyBCT.Translators
                     assume $ArrayLength($tmp0) == 1 * 510;
                     assume (forall $tmp1: int :: $ArrayContents[$tmp0][$tmp1] == null);
                 */
-
-                AddBoogie(boogieGenerator.ProcedureCall("Alloc", new List<string>(), instruction.Result.Name));
-                AddBoogie(boogieGenerator.AssumeArrayLength(instruction.Result, string.Join<IVariable>(" * ", instruction.UsedVariables.ToArray())));
-                AddBoogie(boogieGenerator.Assume(String.Format("(forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null)", instruction.Result)));
+                AddBoogie(boogieGenerator.AllocObject(instruction.Result, instTranslator));
+                AddBoogie(boogieGenerator.AssumeArrayLength(boogieGenerator.ReadAddr(instruction.Result), string.Join<String>(" * ", instruction.UsedVariables.ToArray().Select(v => boogieGenerator.ReadAddr(v).Expr))));
+                AddBoogie(boogieGenerator.Assume(String.Format("(forall $tmp1: int :: $ArrayContents[{0}][$tmp1] == null)", boogieGenerator.ReadAddr(instruction.Result).Expr)));
             }
 
             private static LoadInstruction arrayLengthAccess = null;
@@ -1112,7 +1112,7 @@ namespace TinyBCT.Translators
                 Contract.Assert(arrayLengthAccess != null);
 
                 var op = arrayLengthAccess.Operand as ArrayLengthAccess;
-                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result.Name, boogieGenerator.ArrayLength(op.Instance)));
+                AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.ArrayLength(boogieGenerator.ReadAddr(op.Instance))));
                 arrayLengthAccess = null;
             }
 
@@ -1124,7 +1124,7 @@ namespace TinyBCT.Translators
                 if (elementAccess != null || lengthAccess != null)
                 {
                     var receiverObject = lengthAccess != null ? lengthAccess.Instance : elementAccess.Array;
-                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", receiverObject);
+                    var refNotNullStr = String.Format("{{:nonnull}} {0} != null", boogieGenerator.ReadAddr(receiverObject).Expr);
                     if (Settings.CheckNullDereferences)
                     {
                         AddBoogie(boogieGenerator.Assert(refNotNullStr));
@@ -1146,7 +1146,7 @@ namespace TinyBCT.Translators
                     }
                     else
                     {
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result.Name, boogieGenerator.ArrayLength(lengthAccess.Instance)));
+                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.ArrayLength(boogieGenerator.ReadAddr(lengthAccess.Instance))));
                         onlyLengthNoConvert = false;
                     }
 
@@ -1170,26 +1170,30 @@ namespace TinyBCT.Translators
             // result is the original result variable of the instruction
             private void ReadArrayContent(IVariable insResult, IVariable array, IList<IVariable> indexes, Helpers.BoogieType boogieType)
             {
+                var arrayExpr = boogieGenerator.ReadAddr(array);
+                var firstIndexExpr = boogieGenerator.ReadAddr(indexes.First());
                 if (indexes.Count == 1)
                 {
                     // we access the last array of the chain - this one returns the element we want
                     // that element could be a Union (Ref alias) or a non Union type. In the last case we must perform a cast.
-                    if (boogieType.Equals(Helpers.BoogieType.Ref))
+                    if (Helpers.IsBoogieRefType(boogieType))
                     {
-                        AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
+                        var resExpr = boogieGenerator.ReadAddr(insResult);
+                        AddBoogie(boogieGenerator.CallReadArrayElement(insResult, arrayExpr, firstIndexExpr, instTranslator));
                     }
                     else
                     {
                         // Store Union element and then cast it to the correct type
 
-                        var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                        AddBoogie(boogieGenerator.CallReadArrayElement(tempVar, array, indexes.First()));
-                        AddBoogie(boogieGenerator.VariableAssignment(insResult, Expression.Union2PrimitiveType(boogieType, tempVar.Name)));
+                        var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
+                        AddBoogie(boogieGenerator.CallReadArrayElement(tempBoogieVar, arrayExpr, firstIndexExpr));
+                        AddBoogie(boogieGenerator.VariableAssignment(insResult, Expression.Union2PrimitiveType(boogieType, tempBoogieVar)));
                     }
                 } else
                 {
+                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
                     var tempVar = AddNewLocalVariableToMethod("$arrayElement", Types.Instance.PlatformType.SystemObject);
-                    AddBoogie(boogieGenerator.CallReadArrayElement(insResult, array, indexes.First()));
+                    AddBoogie(boogieGenerator.CallReadArrayElement(tempBoogieVar, arrayExpr, firstIndexExpr));
                     ReadArrayContent(insResult, tempVar, indexes.Skip(1).ToList(), boogieType);
                 }
             }
@@ -1201,8 +1205,8 @@ namespace TinyBCT.Translators
 
                 Contract.Assert(res != null);
 
-                var receiverObject = res.Array.Name;
-                var refNotNullStr = String.Format("{{:nonnull}} {0} != null", receiverObject);
+                var receiverObject = res.Array;
+                var refNotNullStr = String.Format("{{:nonnull}} {0} != null", boogieGenerator.ReadAddr(receiverObject).Expr);
 
                 if (Settings.CheckNullDereferences)
                 {
@@ -1212,17 +1216,19 @@ namespace TinyBCT.Translators
                 {
                     AddBoogie(boogieGenerator.Assume(refNotNullStr));
                 }
+                var arrayExpr = boogieGenerator.ReadAddr(res.Array);
+                var firstIndexExpr = boogieGenerator.ReadAddr(res.Indices[0]);
                 if (!Helpers.IsBoogieRefType(res.Type)) // Ref and Union are alias
                 {
                     /*
                         assume Union2Int(Int2Union(0)) == 0;
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
-                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(instruction.Operand));
-                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array.Name, res.Indices[0].Name, Expression.PrimitiveType2Union(Helpers.GetBoogieType(res.Type),instruction.Operand.Name).Expr));
+                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(instruction.Operand)));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Operand))));
                 }
                 else
-                    AddBoogie(boogieGenerator.CallWriteArrayElement(res.Array, res.Indices[0], instruction.Operand));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, boogieGenerator.ReadAddr(instruction.Operand)));
             }
         }
 
@@ -1601,7 +1607,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         continue;
 
-                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(argument));
+                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(argument)));
                     //AddBoogie(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
                 }
 
@@ -1626,7 +1632,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         invokeDelegateArguments.Add(argument.ToString());
                     else
-                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(argument).Expr);
+                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument)).Expr);
                 }
 
                 //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;

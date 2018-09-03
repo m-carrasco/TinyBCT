@@ -2787,10 +2787,18 @@ class Test {
     }
 
     [TestMethod, Timeout(10000)]
-    [TestCategory("Manu")]
+    [TestCategory("Arrays")]
     public void ArgsLength()
     {
         var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod]
+    [TestCategory("Arrays")]
+    [TestCategory("Addresses")]
+    public void ArgsLengthAddresses()
+    {
+        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, useStubs: false, additionalTinyBCTOptions: "/atomicInitArray=true /NewAddrModelling=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 

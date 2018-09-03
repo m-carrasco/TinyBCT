@@ -759,7 +759,7 @@ namespace TinyBCT
                 //return s; // .Replace('<', '_').Replace('>', '_');
             }
             
-            public static Expression fixStringLiteral(IValue v)
+            public static Expression FixStringLiteral(IValue v, BoogieGenerator bg)
             {
                 string vStr = v.ToString();
                 if (v is Constant cons)
@@ -767,7 +767,7 @@ namespace TinyBCT
                     return BoogieLiteral.FromString(cons);
                 } else if (v is IVariable variable)
                 {
-                    return BoogieVariable.FromDotNetVariable(variable);
+                    return bg.ReadAddr(variable);
                 } else
                 {
                     throw new NotImplementedException();

@@ -24,24 +24,11 @@ namespace TinyBCT
         public static Expression PrimitiveType2Union(Expression expr)
         {
             Contract.Assert(!Helpers.IsBoogieRefType(expr.Type));
-            return PrimitiveType2Union(expr.Type, expr.Expr);
-        }
-        public static Expression PrimitiveType2Union(IVariable value)
-        {
-            Contract.Assert(!Helpers.IsBoogieRefType(value.Type));
-            var boogieType = Helpers.GetBoogieType(value.Type);
-            return PrimitiveType2Union(boogieType, value.ToString());
-        }
-        public static Expression PrimitiveType2Union(Helpers.BoogieType boogieType, string value)
-        {
-            return new Expression(Helpers.BoogieType.Union, $"{boogieType.FirstUppercase()}2Union({value})");
-        }
-        public static Expression Union2PrimitiveType(Helpers.BoogieType boogieType, string value)
-        {
-            return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({value})");
+            return new Expression(Helpers.BoogieType.Union, $"{expr.Type.FirstUppercase()}2Union({expr.Expr})");
         }
         public static Expression Union2PrimitiveType(Helpers.BoogieType boogieType, Expression expr)
         {
+            Contract.Assume(!Helpers.IsBoogieRefType(boogieType));
             return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({expr.Expr})");
         }
         public static Expression As(Expression expr, ITypeReference arg2)
@@ -65,8 +52,14 @@ namespace TinyBCT
                 return new Expression(Helpers.GetBoogieType(type), "null");
             }
         }
+        public static Expression ArrayLength(Expression arr)
+        {
+            // Arrays are of type Ref
+            Contract.Assume(Helpers.IsBoogieRefType(arr.Type));
+            return new Expression(Helpers.BoogieType.Int, $"$ArrayLength({arr.Expr})");
+        }
 
-        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, Helpers.BoogieType type1, Helpers.BoogieType type2)
+    public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, Helpers.BoogieType type1, Helpers.BoogieType type2)
         {
             switch (binaryOperation)
             {
@@ -229,7 +222,7 @@ namespace TinyBCT
         }
         static public Expression FromDotNetVariable(IVariable variable)
         {
-            Contract.Requires(!variable.IsParameter);
+            Contract.Requires(!variable.IsParameter && !Settings.NewAddrModelling);
             return new Expression(Helpers.GetBoogieType(variable.Type), BoogieVariable.AdaptNameToBoogie(variable.Name));
         }
 
@@ -899,7 +892,7 @@ namespace TinyBCT
                 var boogieType = Helpers.GetBoogieType(result.Type);
                 if (!boogieType.Equals(Helpers.BoogieType.Object))
                 {
-                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue.Expr));
+                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue));
                 } else
                 {
                     return VariableAssignment(result, readValue);
@@ -1053,7 +1046,8 @@ namespace TinyBCT
                 if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
                 {
                     // example: Union2Int(Read(...))
-                    var expr = Expression.Union2PrimitiveType(boogieType, String.Format("Read($Heap,{0},{1})", instanceFieldAccess.Instance, fieldName));
+                    var readFieldExpr = ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
+                    var expr = Expression.Union2PrimitiveType(boogieType, readFieldExpr);
                     sb.AppendLine(VariableAssignment(result, expr));
                 }
                 else
@@ -1211,13 +1205,6 @@ namespace TinyBCT
         {
             var e1 = string.Format("{0}2Union({1})", boogieType.FirstUppercase(), variable);
             return string.Format("assume Union2{0}({1}) == {2};", boogieType.FirstUppercase(), e1, variable);
-        }
-
-        public string AssumeInverseRelationUnionAndPrimitiveType(IVariable variable)
-        {
-            var boogieType = Helpers.GetBoogieType(variable.Type);
-
-            return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
         }
         public string AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
         {
@@ -1399,22 +1386,13 @@ namespace TinyBCT
 
         public string DynamicType(IVariable reference)
         {
-            return DynamicType(reference.Name);
-        }
-
-        public string DynamicType(string reference)
-        {
-            return String.Format("$DynamicType({0})", reference);
+            return $"$DynamicType({ReadAddr(reference).Expr})";
         }
 
         public string AssumeDynamicType(IVariable reference, ITypeReference type)
         {
-            return AssumeDynamicType(ReadAddr(reference).Expr, type);
-        }
-
-        public string AssumeDynamicType(string name, ITypeReference type)
-        {
-            return String.Format("assume $DynamicType({0}) == {1};", name, Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses));
+            var typeStr = Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses);
+            return $"assume {DynamicType(reference)} == {typeStr};";
         }
 
         public string TypeConstructor(string type)
@@ -1501,41 +1479,62 @@ namespace TinyBCT
             return string.Format("$Subtype({0}, {1})", var, Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses));
         }
 
-        public string AssumeArrayLength(IVariable array, string length)
+        public string AssumeArrayLength(Expression array, string length)
         {
-            return Assume(String.Format("{0} == {1}", ArrayLength(array), length));
+            return Assume($"{Expression.ArrayLength(array).Expr} == {length}");
+        }
+        
+        public string CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        {
+            StringBuilder sb = new StringBuilder();
+            if (Settings.NewAddrModelling)
+            {
+                BoogieVariable boogieResVar = null;
+                if (resultVariable != null)
+                {
+                    boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
+                }
+                sb.AppendLine(CallReadArrayElement(boogieResVar, array, index));
+                if (resultVariable != null)
+                {
+                    sb.AppendLine(WriteAddr(AddressOf(resultVariable), boogieResVar));
+                }
+                return sb.ToString();
+            }
+            else
+            {
+                string resultVariableStr = null;
+                if (resultVariable != null)
+                {
+                    resultVariableStr = resultVariable.Name;
+                }
+                return CallReadArrayElement(BoogieVariable.FromDotNetVariable(resultVariable), array, index);
+            }
+        }
+        public string CallReadArrayElement(BoogieVariable result, Expression array, Expression index)
+        {
+            return CallReadArrayElement((Expression) result, array, index);
         }
 
-        public string ArrayLength(IVariable arr)
+        private string CallReadArrayElement(Expression result, Expression array, Expression index)
         {
-            return String.Format("$ArrayLength({0})", arr.Name);
+            if (Settings.NewAddrModelling)
+            {
+                Contract.Assume(result is BoogieVariable);
+            }
+            var l = new List<string>();
+            l.Add(array.Expr);
+            l.Add(index.Expr);
+            return ProcedureCall("$ReadArrayElement", l, result.Expr);
         }
 
-        public string CallReadArrayElement(string result, string array, string index)
+        public string CallWriteArrayElement(Expression array, Expression index, Expression value)
         {
             var l = new List<string>();
-            l.Add(array);
-            l.Add(index);
-            return ProcedureCall("$ReadArrayElement", l, result);
-        }
-
-        public string CallReadArrayElement(IVariable result, IVariable array, IVariable index)
-        {
-            return CallReadArrayElement(result.Name, array.Name, index.Name);
-        }
-
-        public string CallWriteArrayElement(string array, string index, string value)
-        {
-            var l = new List<string>();
-            l.Add(array);
-            l.Add(index);
-            l.Add(value);
+            l.Add(array.Expr);
+            l.Add(index.Expr);
+            l.Add(value.Expr);
             return ProcedureCall("$WriteArrayElement", l);
-        }
-
-        public string CallWriteArrayElement(IVariable array, IVariable index, IVariable value)
-        {
-            return CallWriteArrayElement(array.Name, index.Name, value.Name);
         }
 
         public string Return()
