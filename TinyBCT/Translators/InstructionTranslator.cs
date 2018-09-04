@@ -96,8 +96,8 @@ namespace TinyBCT.Translators
                     this_var_type = (this_var_type as IManagedPointerType).TargetType;
                 }
                 
-                var subtype = bg.Subtype(bg.DynamicType(this_var), this_var_type);
-                AddBoogie(bg.Assume(subtype));
+                var subtype = Expression.Subtype(bg.DynamicType(this_var), this_var_type);
+                AddBoogie(bg.Assume(subtype.Expr));
 
                 // hack for contractor
                 if (methodBody.MethodDefinition.Name.Value.Contains("STATE$"))
@@ -111,8 +111,8 @@ namespace TinyBCT.Translators
                     // BUG BUG BUG BUG - by ref 
                     var refNotNull = String.Format("{0} == null", p.Name.Value);
                     var paramVariable = methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
-                    var subtype = bg.Subtype(bg.DynamicType(paramVariable), paramVariable.Type);
-                    var or = string.Format("{0} || {1}", refNotNull, subtype);
+                    var subtype = Expression.Subtype(bg.DynamicType(paramVariable), paramVariable.Type);
+                    var or = string.Format("{0} || {1}", refNotNull, subtype.Expr);
                     AddBoogie(bg.Assume(or));
                 }
             }
@@ -306,7 +306,7 @@ namespace TinyBCT.Translators
                 // IsDelegateInvokation requires containing type != null - not sure if that always holds
                 if (methodRef.ResolvedMethod == null || Helpers.IsExternal(methodRef.ResolvedMethod) || DelegateInvokeTranslation.IsDelegateInvokation(instruction))
                     if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
-                        return boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
+                        return boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type).Expr);
 
                 return String.Empty;
             }
@@ -680,7 +680,7 @@ namespace TinyBCT.Translators
                     AddBoogie(boogieGenerator.ReadInstanceField(instanceFieldOp, instruction.Result));
 
                     if (Helpers.IsBoogieRefType(instanceFieldOp.Type))
-                        AddBoogie(boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), instanceFieldOp.Type)));
+                        AddBoogie(boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), instanceFieldOp.Type).Expr));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
@@ -1162,7 +1162,7 @@ namespace TinyBCT.Translators
                     var argType = Helpers.GetBoogieType(elementAccess.Type);
                     ReadArrayContent(instruction.Result, elementAccess.Array, elementAccess.Indices, argType);
                     if (Helpers.IsBoogieRefType(instruction.Result.Type))
-                        AddBoogie(boogieGenerator.Assume(boogieGenerator.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type)));
+                        AddBoogie(boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type).Expr));
                     return;
                 }
             }
@@ -1352,7 +1352,7 @@ namespace TinyBCT.Translators
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
                 var body = String.IsNullOrEmpty(nextHandler) ? boogieGenerator.Return() : boogieGenerator.Goto(nextHandler);
-                AddBoogie(boogieGenerator.If(boogieGenerator.Negation(boogieGenerator.Subtype("$ExceptionType", instruction.ExceptionType)), body));
+                AddBoogie(boogieGenerator.If(Expression.Negation(Expression.Subtype(BoogieVariable.ExceptionTypeVar, instruction.ExceptionType)).Expr, body));
 
                 // Exception is handled we reset global variables
                 if (instruction.HasResult) // catch with no specific exception type

@@ -37,6 +37,21 @@ namespace TinyBCT
             // TODO(rcastano): Fix for generics
             return new Expression(Helpers.BoogieType.Ref, $"$As({expr.Expr}, {type})");
         }
+        public static Expression DynamicType(Expression expr)
+        {
+            Contract.Assume(Helpers.IsBoogieRefType(expr.Type));
+            return new Expression(Helpers.BoogieType.Ref, $"$DynamicType({expr.Expr})");
+        }
+        public static Expression Subtype(Expression expr, ITypeReference type)
+        {
+            Contract.Assume(Helpers.IsBoogieRefType(expr.Type));
+            return new Expression(Helpers.BoogieType.Bool, $"$Subtype({expr.Expr}, {Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses)})");
+        }
+        public static Expression Negation(Expression b)
+        {
+            Contract.Assume(b.Type.Equals(Helpers.BoogieType.Bool));
+            return new Expression(Helpers.BoogieType.Bool, $"!({b.Expr})");
+        }
         public static Expression NullOrZero(ITypeReference type)
         {
             if (TypeHelper.IsPrimitiveInteger(type))
@@ -1200,15 +1215,13 @@ namespace TinyBCT
         public abstract string AllocObject(IVariable var, InstructionTranslator instTranslator);
 
         protected abstract Expression ValueOfVariable(IVariable var);
-
-        public string AssumeInverseRelationUnionAndPrimitiveType(string variable, Helpers.BoogieType boogieType)
-        {
-            var e1 = string.Format("{0}2Union({1})", boogieType.FirstUppercase(), variable);
-            return string.Format("assume Union2{0}({1}) == {2};", boogieType.FirstUppercase(), e1, variable);
-        }
+        
         public string AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
         {
-            return AssumeInverseRelationUnionAndPrimitiveType(expr.Expr, expr.Type);
+            var p2u = Expression.PrimitiveType2Union(expr);
+            var p2u2p = Expression.Union2PrimitiveType(expr.Type, p2u);
+            var eq = Expression.ExprEquals(p2u2p, expr);
+            return Assume(eq);
         }
 
         public string WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
@@ -1384,15 +1397,15 @@ namespace TinyBCT
             return String.Format("\t\tgoto {0};", label);
         }
 
-        public string DynamicType(IVariable reference)
+        public Expression DynamicType(IVariable reference)
         {
-            return $"$DynamicType({ReadAddr(reference).Expr})";
+            return Expression.DynamicType(ReadAddr(reference));
         }
 
         public string AssumeDynamicType(IVariable reference, ITypeReference type)
         {
             var typeStr = Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses);
-            return $"assume {DynamicType(reference)} == {typeStr};";
+            return $"assume {Expression.DynamicType(ReadAddr(reference)).Expr} == {typeStr};";
         }
 
         public string TypeConstructor(string type)
@@ -1412,6 +1425,7 @@ namespace TinyBCT
 
         public string Assert(IVariable cond)
         {
+            Contract.Assume(Helpers.GetBoogieType(cond.Type).Equals(Helpers.BoogieType.Bool));
             return Assert(ReadAddr(cond).Expr);
         }
 
@@ -1419,7 +1433,11 @@ namespace TinyBCT
         {
             return String.Format("assert {0};", cond);
         }
-
+        public string Assume(Expression cond)
+        {
+            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
+            return Assume(cond.Expr);
+        }
         public string Assume(IVariable cond)
         {
             return Assume(ReadAddr(cond).Expr);
@@ -1471,12 +1489,7 @@ namespace TinyBCT
 
         public string Subtype(IVariable var, ITypeReference type)
         {
-            return Subtype(var.Name, type);
-        }
-
-        public string Subtype(string var, ITypeReference type)
-        {
-            return string.Format("$Subtype({0}, {1})", var, Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses));
+            return Expression.Subtype(ReadAddr(var), type).Expr;
         }
 
         public string AssumeArrayLength(Expression array, string length)
@@ -1540,11 +1553,6 @@ namespace TinyBCT
         public string Return()
         {
             return "return;";
-        }
-
-        public string Negation(string b)
-        {
-            return String.Format("!{0}", b);
         }
 
         public string BoxFrom(IVariable op1, IVariable result)
