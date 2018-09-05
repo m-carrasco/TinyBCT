@@ -73,8 +73,41 @@ namespace TinyBCT
             Contract.Assume(Helpers.IsBoogieRefType(arr.Type));
             return new Expression(Helpers.BoogieType.Int, $"$ArrayLength({arr.Expr})");
         }
+        public static Expression ArrayContents(Expression arr, Expression index)
+        {
+            // Arrays are of type Ref
+            Contract.Assume(Helpers.IsBoogieRefType(arr.Type));
+            Contract.Assume(index.Type.Equals(Helpers.BoogieType.Int));
+            // TODO(rcastano): add assumption wrt $ArrayLength
+            return new Expression(Helpers.BoogieType.Union, $"$ArrayContents[{arr.Expr}][{index.Expr}]");
+        }
+        public static Expression ForAll(QuantifiedVariable var, Expression expr)
+        {
+            Contract.Assume(expr.Type.Equals(Helpers.BoogieType.Bool));
+            return new Expression(Helpers.BoogieType.Bool, $"(forall {var.Expr} : {var.Type} :: {expr.Expr})");
+        }
+        public static Expression Product(IEnumerable<Expression> int_expressions)
+        {
+            Contract.Assume(int_expressions.All(e => e.Type.Equals(Helpers.BoogieType.Int)));
+            StringBuilder sb = new StringBuilder();
+            sb.Append("(");
+            string joinStr = "";
+            foreach (var e in int_expressions) {
+                sb.Append(joinStr);
+                sb.Append(e.Expr);
+                joinStr = " * ";
+            }
+            sb.Append(")");
+            return new Expression(Helpers.BoogieType.Int, sb.ToString());
+        }
+        public static Expression Or(Expression expr1, Expression expr2)
+        {
+            Contract.Assume(expr1.Type.Equals(Helpers.BoogieType.Bool));
+            Contract.Assume(expr2.Type.Equals(Helpers.BoogieType.Bool));
+            return new Expression(Helpers.BoogieType.Bool, $"({expr1.Expr} || {expr2.Expr})");
+        }
 
-    public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, Helpers.BoogieType type1, Helpers.BoogieType type2)
+        public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, Helpers.BoogieType type1, Helpers.BoogieType type2)
         {
             switch (binaryOperation)
             {
@@ -227,7 +260,7 @@ namespace TinyBCT
         }
         public static Expression NotEquals(Expression op1, Expression op2)
         {
-            Contract.Assume(op1.Type.Equals(op2.Type));
+            Contract.Assume(op1.Type.Equals(op2.Type) || (Helpers.IsBoogieRefType(op1.Type) && Helpers.IsBoogieRefType(op2.Type)));
             return new Expression(Helpers.BoogieType.Bool, $"({op1.Expr} != {op2.Expr})");
         }
         public static Expression LessThan(Expression op1, int index)
@@ -256,6 +289,43 @@ namespace TinyBCT
         }
     }
 
+    public class DelegateExpression : Expression
+    {
+        protected DelegateExpression(Helpers.BoogieType type, string expr) : base(type, expr) { }
+
+        // This method has a clone? GetMethodName
+        public static DelegateExpression GetMethodIdentifier(IMethodReference methodRef, IDictionary<IMethodReference, DelegateExpression> methodIdentifiers)
+        {
+            var methodId = Helpers.CreateUniqueMethodName(methodRef);
+
+            if (methodIdentifiers.ContainsKey(methodRef))
+                return methodIdentifiers[methodRef];
+
+            //var methodName = Helpers.GetMethodName(methodRef);
+            //var methodArity = Helpers.GetArityWithNonBoogieTypes(methodRef);
+
+            //// example:  cMain2.objectParameter$System.Object;
+            //var methodId = methodName + methodArity;
+
+            var methodIdExpr = new DelegateExpression(Helpers.BoogieType.Int, methodId);
+            methodIdentifiers.Add(methodRef, methodIdExpr);
+
+            return methodIdExpr;
+        }
+        public static DelegateExpression RefToDelegateMethod(DelegateExpression methodId)
+        {
+            Contract.Assume(methodId.Type.Equals(Helpers.BoogieType.Int));
+            return new DelegateExpression(Helpers.BoogieType.Bool, $"$RefToDelegateMethod({methodId.Expr}, $this)");
+        }
+
+        public static DelegateExpression RefToDelegateReceiver(DelegateExpression methodId)
+        {
+            Contract.Assume(methodId.Type.Equals(Helpers.BoogieType.Int));
+            return new DelegateExpression(Helpers.BoogieType.Ref, $"$RefToDelegateReceiver({methodId.Expr}, $this)");
+        }
+        
+    }
+
     public class BoogieLiteral : Expression {
         private BoogieLiteral(Helpers.BoogieType type, string expr) : base(type, expr)
         {
@@ -274,6 +344,10 @@ namespace TinyBCT
             Contract.Requires(IsNumeric(constant));
             var consStr = IsFloat(constant) ? FormatFloatValue(constant) : constant.Value.ToString();
             return new BoogieLiteral(Helpers.GetBoogieType(constant.Type), consStr);
+        }
+        public static BoogieLiteral FromUInt(uint constant)
+        {
+            return new BoogieLiteral(Helpers.BoogieType.Int, constant.ToString());
         }
         internal static BoogieLiteral FromString(Constant constant)
         {
@@ -316,7 +390,7 @@ namespace TinyBCT
             }
             throw new NotImplementedException();
         }
-
+        public static readonly BoogieLiteral False = new BoogieLiteral(Helpers.BoogieType.Bool, "false");
 
 
         public static class Strings
@@ -440,6 +514,11 @@ namespace TinyBCT
         {
             return new BoogieVariable(type, "$result");
         }
+        public static BoogieVariable From(StaticField staticField)
+        {
+            var fieldName = FieldTranslator.GetFieldName(staticField.Field);
+            return new BoogieVariable(Helpers.GetBoogieType(staticField.Type), fieldName);
+        }
 
         public static readonly BoogieVariable ExceptionVar = new BoogieVariable(Helpers.BoogieType.Ref, "$Exception");
         public static readonly BoogieVariable ExceptionTypeVar = new BoogieVariable(Helpers.BoogieType.Ref, "$ExceptionType");
@@ -462,6 +541,10 @@ namespace TinyBCT
             Contract.Requires(param.IsOut && param.IsByReference);
             return new BoogieParameter(Helpers.GetBoogieType(param.Type), $"{AdaptNameToBoogie(param.Name.Value)}$out");
         }
+    }
+    public class QuantifiedVariable : BoogieVariable
+    {
+        public QuantifiedVariable(Helpers.BoogieType type, string name) : base(type, name) { }
     }
 
     public abstract class SoundAddressModelingExpression : Expression
@@ -600,7 +683,42 @@ namespace TinyBCT
     }
     public class MemoryMapUpdate : BoogieStatement
     {
-        private MemoryMapUpdate(TemporaryClassToBuildExpression temp) : base(temp.Stmt) { }
+        protected MemoryMapUpdate(string stmt) : base(stmt) { }
+    }
+    public class HeapUpdate : MemoryMapUpdate
+    {
+        private HeapUpdate(string stmt) : base(stmt) { }
+        
+        public static HeapUpdate ForKeyValue(InstanceField key, Expression value)
+        {
+            Contract.Assume(!Settings.SplitFields);
+            var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Ref, Helpers.BoogieType.Real };
+            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field.Type)));
+            Contract.Assume(Helpers.GetBoogieType(key.Field.Type).Equals(value.Type));
+            var Type = Helpers.GetBoogieType(key.Field.Type);
+            var Stmt = $"$Heap := Write($Heap, {key.Instance}, {key.Field}, {value.Expr});";
+            return new HeapUpdate(Stmt);
+        }
+    }
+    public class SplitFieldUpdate : MemoryMapUpdate
+    {
+        private SplitFieldUpdate(string stmt) : base(stmt) { }
+
+        public static SplitFieldUpdate ForKeyValue(InstanceField key, Expression value)
+        {
+            Contract.Assume(Settings.SplitFields);
+            var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Ref, Helpers.BoogieType.Real };
+            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field.Type)));
+            Contract.Assume(Helpers.GetBoogieType(key.Field.Type).Equals(value.Type) || value.Type.Equals(Helpers.BoogieType.Union));
+            var Type = Helpers.GetBoogieType(key.Field.Type);
+            var fieldName = FieldTranslator.GetFieldName(key.Field);
+            var Stmt = $"{fieldName}[{key.Instance}] := {value.Expr};";
+            return new SplitFieldUpdate(Stmt);
+        }
+    }
+    public class TypedMemoryMapUpdate : MemoryMapUpdate
+    {
+        private TypedMemoryMapUpdate(TemporaryClassToBuildExpression temp) : base(temp.Stmt) { }
         private class TemporaryClassToBuildExpression
         {
             public TemporaryClassToBuildExpression(AddressExpression key, string value)
@@ -616,17 +734,17 @@ namespace TinyBCT
             private string MemoryMap { get { return $"$memory{Type.FirstUppercase()}"; } }
             private string WriteFunction { get { return $"Write{Type.FirstUppercase()}"; } }
         }
-        public static MemoryMapUpdate ForKeyValue(AddressExpression key, Expression value)
+        public static TypedMemoryMapUpdate ForKeyValue(AddressExpression key, Expression value)
         {
             return ForKeyValue(key, value.Expr);
         }
-        public static MemoryMapUpdate ForKeyValue(AddressExpression key, string value)
+        public static TypedMemoryMapUpdate ForKeyValue(AddressExpression key, string value)
         {
             var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Object, Helpers.BoogieType.Real, Helpers.BoogieType.Addr };
             Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Type)));
             // TODO(rcastano): re-add later when value is of the right type (Expression)
             // Contract.Assume(Helpers.GetBoogieType(key.Type).Equals(value.Type));
-            return new MemoryMapUpdate(new TemporaryClassToBuildExpression(key, value));
+            return new TypedMemoryMapUpdate(new TemporaryClassToBuildExpression(key, value));
         }
     }
 
@@ -765,7 +883,7 @@ namespace TinyBCT
             {
                 var addrExpr = addr as AddressExpression;
                 var boogieType = Helpers.GetBoogieType(addrExpr.Type);
-                return MemoryMapUpdate.ForKeyValue(addrExpr, expr).Stmt;
+                return TypedMemoryMapUpdate.ForKeyValue(addrExpr, expr).Stmt;
             }
             else
             {
@@ -1136,19 +1254,18 @@ namespace TinyBCT
                 var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
                 if (Settings.SplitFields)
                 {
-                    return $"{fieldName}[{instanceName}] := {expr.Expr};";
+                    return SplitFieldUpdate.ForKeyValue(instanceField, expr).Stmt;
                 }
                 else
                 {
-                    // return $"Read($Heap,{instanceName},{fieldName})";
-                    return $"$Heap := Write($Heap, {instanceName}, {fieldName}, {expr.Expr});";
+                    return HeapUpdate.ForKeyValue(instanceField, expr).Stmt;
                 }
 
             }
             else if (addr is StaticField staticField)
             {
-                var fieldName = FieldTranslator.GetFieldName(staticField.Field);
-                return VariableAssignment(fieldName, expr.Expr);
+                var boogieVar = BoogieVariable.From(staticField);
+                return VariableAssignment(boogieVar, expr);
             }
             else if (addr is DotNetVariable v)
             {
@@ -1360,11 +1477,6 @@ namespace TinyBCT
             return $"{variableA.Expr} := {expr.Expr};";
         }
 
-        public string VariableAssignment(string variableA, string expr)
-        {
-            return string.Format("{0} := {1};", variableA, expr);
-        }
-
         public string HavocResult(DefinitionInstruction instruction)
         {
             return String.Format("havoc {0};", instruction.Result);
@@ -1426,26 +1538,43 @@ namespace TinyBCT
         public string Assert(IVariable cond)
         {
             Contract.Assume(Helpers.GetBoogieType(cond.Type).Equals(Helpers.BoogieType.Bool));
-            return Assert(ReadAddr(cond).Expr);
+            return Assert(ReadAddr(cond));
+        }
+        private static string FixAnnotation(string annotation)
+        {
+            if (annotation != null)
+            {
+                Contract.Assume(!annotation.Contains(" "));
+                Contract.Assume(!annotation.Contains(":"));
+                annotation = $"{{ :{annotation} }}";
+            }
+            else
+            {
+                annotation = String.Empty;
+            }
+            return annotation;
+        }
+        public string Assert(Expression cond, string annotation = null)
+        {
+            annotation = FixAnnotation(annotation);
+            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
+            return $"assert {annotation} {cond.Expr};";
         }
 
-        public string Assert(string cond)
+        public string LocationAttributes(string sourceFile, int sourceLine)
         {
-            return String.Format("assert {0};", cond);
+            return $"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} false;";
+            // return String.Format("assert {0};", cond);
         }
-        public string Assume(Expression cond)
+        public string Assume(Expression cond, string annotation = null)
         {
+            annotation = FixAnnotation(annotation);
             Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
-            return Assume(cond.Expr);
+            return $"assume {annotation} {cond.Expr};";
         }
         public string Assume(IVariable cond)
         {
-            return Assume(ReadAddr(cond).Expr);
-        }
-
-        public string Assume(string cond)
-        {
-            return String.Format("assume {0};", cond);
+            return Assume(ReadAddr(cond));
         }
 
         public abstract Expression NullObject();
@@ -1492,9 +1621,11 @@ namespace TinyBCT
             return Expression.Subtype(ReadAddr(var), type).Expr;
         }
 
-        public string AssumeArrayLength(Expression array, string length)
+        public string AssumeArrayLength(Expression array, Expression length)
         {
-            return Assume($"{Expression.ArrayLength(array).Expr} == {length}");
+            Contract.Assume(length.Type.Equals(Helpers.BoogieType.Int));
+            var eqLength = Expression.ExprEquals(Expression.ArrayLength(array), length);
+            return Assume(eqLength);
         }
         
         public string CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)

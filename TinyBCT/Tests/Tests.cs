@@ -143,7 +143,7 @@ public class TestsBase
         TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
         TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
 
-        TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, string>();
+        TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, TinyBCT.DelegateExpression>();
         TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
 
         TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();
