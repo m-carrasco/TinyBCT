@@ -1612,8 +1612,7 @@ namespace TinyBCT
 
         public string LocationAttributes(string sourceFile, int sourceLine)
         {
-            return $"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} false;";
-            // return String.Format("assert {0};", cond);
+            return $"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} true;";
         }
         public string Assume(Expression cond, string annotation = null)
         {
