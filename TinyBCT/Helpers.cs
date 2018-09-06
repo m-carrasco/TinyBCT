@@ -172,18 +172,6 @@ namespace TinyBCT
             //}
             //return method;
         }
-        public static String GetMethodName(IMethodReference methodDefinition)
-        {
-            return CreateUniqueMethodName(methodDefinition);
-
-            //var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
-            //signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
-            //var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
-            //arity = arity.Replace("[]", "array");
-            //var result = signature + arity;
-            //result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
-            //return result;
-        }
 
         public static Helpers.BoogieType GetMethodBoogieReturnType(IMethodReference methodDefinition)
         {
@@ -192,12 +180,12 @@ namespace TinyBCT
 
         public static String GetExternalMethodDefinition(IMethodReference methodRef)
         {
+            var methodName = BoogieMethod.From(methodRef).Name;
             if (Helpers.IsCurrentlyMissing(methodRef))
             {
                 // TODO(rcastano): Add logger. Print this as INFO or WARNING level.
-                Console.WriteLine("WARNING: Creating non-deterministic definition for missing method: " + Helpers.GetMethodName(methodRef));
+                Console.WriteLine("WARNING: Creating non-deterministic definition for missing method: " + methodName);
             }
-            var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
             var returnType = String.Empty;
 
@@ -526,7 +514,7 @@ namespace TinyBCT
             // The value of this condition can change throughout the execution of the translation.
             // For that reason, it should be called at the end of the translation again to confirm
             // the method is actually missing from the binary.
-            return !methodsTranslated.Contains(Helpers.GetMethodName(methodReference));
+            return !methodsTranslated.Contains(BoogieMethod.From(methodReference).Name);
         }
 
         // workaround
@@ -534,7 +522,7 @@ namespace TinyBCT
         {
             if (methodDefinition.IsConstructor)
             {
-                var methodName = Helpers.GetMethodName(methodDefinition);
+                var methodName = BoogieMethod.From(methodDefinition).Name;
                 if (methodName.Equals("System.Object.#ctor"))
                     return true;
             }
@@ -547,7 +535,7 @@ namespace TinyBCT
 
         public static void addTranslatedMethod(IMethodDefinition methodDefinition)
         {
-            methodsTranslated.Add(Helpers.GetMethodName(methodDefinition));
+            methodsTranslated.Add(BoogieMethod.From(methodDefinition).Name);
         }
         public static string GetNormalizedTypeFunction(
             ITypeReference originalType, ISet<ITypeReference> mentionedClasses,
@@ -705,7 +693,7 @@ namespace TinyBCT
 
         public static Boolean IsBoogieRefType(Helpers.BoogieType type)
         {
-            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object) || type.Equals(Helpers.BoogieType.Union);
+            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object) || type.Equals(Helpers.BoogieType.Union) || type.Equals(Helpers.BoogieType.Addr);
         }
         public static Boolean IsBoogieRefType(ITypeReference r)
         {

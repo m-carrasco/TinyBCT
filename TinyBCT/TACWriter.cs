@@ -33,7 +33,7 @@ namespace TinyBCT
                 }
                 catch (InvalidOperationException ex)
                 {
-                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + Helpers.GetMethodName(mD));
+                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + BoogieMethod.From(mD).Name);
                     if (!Settings.SilentExceptionsForMethods)
                     {
                         throw ex;

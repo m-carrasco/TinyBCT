@@ -2212,19 +2212,37 @@ class Test {
     }
 
     [TestMethod]
-    [TestCategory("Manu")]
+    [TestCategory("Arrays")]
     public void ArrayAtomicInit1_Bugged()
     {
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestMethod]
+    [TestCategory("Arrays")]
+    [TestCategory("Addresses")]
+    public void ArrayAtomicInit1_Bugged_Addresses()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true /NewAddrModelling=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestMethod]
-    [TestCategory("Manu")]
+    [TestCategory("Arrays")]
     public void ArrayAtomicInit2_Bugged()
     {
 
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Arrays")]
+    [TestCategory("Addresses")]
+    public void ArrayAtomicInit2_Bugged_Addresses()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true /NewAddrModelling=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 

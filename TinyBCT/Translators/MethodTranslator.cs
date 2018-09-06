@@ -108,7 +108,7 @@ namespace TinyBCT
                 }
                 catch (InvalidOperationException ex)
                 {
-                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + Helpers.GetMethodName(mD));
+                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + BoogieMethod.From(mD).Name);
                     if (!Settings.SilentExceptionsForMethods)
                     {
                         throw ex;
@@ -190,7 +190,7 @@ namespace TinyBCT
             Dictionary<string, Helpers.BoogieType> temporalVariables = new Dictionary<string, Helpers.BoogieType>();
             var ins = TranslateInstructions(ref assignedInMethodCalls, ref temporalVariables);
             var localVariables = TranslateLocalVariables(assignedInMethodCalls, temporalVariables);
-            var methodName = Helpers.GetMethodName(methodDefinition);
+            var methodName = BoogieMethod.From(methodDefinition).Name;
             var attr = TranslateAttr();
             var parametersWithTypes = Helpers.GetParametersWithBoogieType(methodDefinition);
             var returnTypeIfAny = TranslateReturnTypeIfAny();

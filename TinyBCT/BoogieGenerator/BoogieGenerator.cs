@@ -747,7 +747,35 @@ namespace TinyBCT
             return new TypedMemoryMapUpdate(new TemporaryClassToBuildExpression(key, value));
         }
     }
+    public class BoogieMethod
+    {
+        protected BoogieMethod(string methodName)
+        {
+            Name = methodName;
+        }
+        public string Name;
+        // Keeping the whole method only for the comment.
+        private static String GetMethodName(IMethodReference methodDefinition)
+        {
+            return Helpers.CreateUniqueMethodName(methodDefinition);
 
+            //var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
+            //signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
+            //var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
+            //arity = arity.Replace("[]", "array");
+            //var result = signature + arity;
+            //result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
+            //return result;
+        }
+        public static BoogieMethod From(IMethodReference methodReference)
+        {
+            return new BoogieMethod(GetMethodName(methodReference));
+        }
+        public static BoogieMethod BoxFrom(Helpers.BoogieType type)
+        {
+            return new BoogieMethod($"$BoxFrom{type.FirstUppercase()}");
+        }
+    }
     public abstract class Addressable
     {
 
@@ -1368,11 +1396,44 @@ namespace TinyBCT
         public abstract string WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value);
 
         public abstract string ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
-        
+        private string ProcedureCall(BoogieMethod procedure, List<IVariable> argumentList, InstructionTranslator instTranslator, IVariable resultVariable = null)
+        {
+            if (Settings.NewAddrModelling)
+            {
+                var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
+                var resultArguments = new List<string> { tempBoogieVar.Expr };
+                return ProcedureCall(procedure, argumentList.Select(v => ReadAddr(v)).ToList(), resultArguments, tempBoogieVar.Expr);
+            } else
+            {
+                var resultVarStr = ReadAddr(resultVariable).Expr;
+                var resultArguments = new List<string> { resultVarStr };
+                return ProcedureCall(procedure, argumentList.Select(v => ReadAddr(v)).ToList(), resultArguments, resultVarStr);
+            }
+        }
+
+        private string ProcedureCall(BoogieMethod procedure, List<Expression> argumentList, List<string> resultArguments, string resultVariableStr = null)
+        {
+            StringBuilder sb = new StringBuilder();
+            var boogieProcedureName = procedure.Name;
+            var arguments = String.Join(",", argumentList.Select(v => v.Expr));
+            if (resultArguments.Count > 0)
+            {
+                sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
+                if (Settings.NewAddrModelling)
+                {
+                    Contract.Assert(resultArguments.Count == 1);
+                    Contract.Assert(resultArguments.Contains(resultVariableStr));
+                }
+                return sb.ToString();
+            }
+            else
+                return string.Format("call {0}({1});", boogieProcedureName, arguments);
+        }
+
         private string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, string resultVariableStr = null)
         {
             StringBuilder sb = new StringBuilder();
-            var boogieProcedureName = Helpers.GetMethodName(procedure);
+            var boogieProcedure = BoogieMethod.From(procedure);
 
             int s = procedure.IsStatic ? 0 : 1;
             var resultArguments = new List<String>();
@@ -1392,19 +1453,7 @@ namespace TinyBCT
                 resultArguments.Add(resultVariableStr);
             }
 
-            var arguments = String.Join(",", argumentList.Select(v => ReadAddr(v).Expr));
-            if (resultArguments.Count > 0)
-            {
-                sb.Append(string.Format("call {0} := {1}({2});", String.Join(",", resultArguments), boogieProcedureName, arguments));
-                if (Settings.NewAddrModelling)
-                {
-                    Contract.Assert(resultArguments.Count == 1);
-                    Contract.Assert(resultArguments.Contains(resultVariableStr));
-                }
-                return sb.ToString();
-            }
-            else
-                return string.Format("call {0}({1});", boogieProcedureName, arguments);
+            return ProcedureCall(boogieProcedure, argumentList.Select(v => ReadAddr(v)).ToList(), resultArguments, resultVariableStr);
         }
         public string ProcedureCall(IMethodReference procedure, List<IVariable> argumentList, BoogieVariable resultVariable = null)
         {
@@ -1686,17 +1735,16 @@ namespace TinyBCT
             return "return;";
         }
 
-        public string BoxFrom(IVariable op1, IVariable result)
+        public string BoxFrom(IVariable op1, IVariable result, InstructionTranslator instructionTranslator)
         {
             var boogieType = Helpers.GetBoogieType(op1.Type);
-            if (boogieType.Equals(Helpers.BoogieType.Ref))
+            if (Helpers.IsBoogieRefType(boogieType))
                 boogieType = Helpers.BoogieType.Union;
-            
-            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieType.FirstUppercase());
-            var args = new List<string>();
-            args.Add(op1.Name);
 
-            return ProcedureCall(boxFromProcedure, args, result.Name);
+            var boxFromProcedure = BoogieMethod.BoxFrom(boogieType);
+            var args = new List<IVariable> { op1 };
+
+            return ProcedureCall(boxFromProcedure, args, instructionTranslator, result);
         }
     }
 }

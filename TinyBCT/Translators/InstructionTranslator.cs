@@ -760,7 +760,7 @@ namespace TinyBCT.Translators
                 else if (Helpers.IsCurrentlyMissing(methodDefinition))
                     PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(methodDefinition));
 
-                var signature = Helpers.GetMethodName(callee);
+                var signature = BoogieMethod.From(callee).Name;
                 var sb = new StringBuilder();
 
                 if (instruction.HasResult)
@@ -830,7 +830,7 @@ namespace TinyBCT.Translators
                     return;
                 }
 
-                var signature = Helpers.GetMethodName(instruction.Method);
+                var signature = BoogieMethod.From(instruction.Method).Name;
 
                 AddBoogie(CallMethod(instruction, copyArgs, instruction.Method));
 
@@ -968,7 +968,7 @@ namespace TinyBCT.Translators
                     ProcessTypeConversion(instruction);
                 } else if (instruction.Operation == ConvertOperation.Box)
                 {
-                    AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction.Result));
+                    AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction.Result, instTranslator));
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
@@ -1629,11 +1629,11 @@ namespace TinyBCT.Translators
                 */
 
                 var invokeDelegateArguments = new List<string>();
-                invokeDelegateArguments.Add(instruction.Arguments[0].Name);
+                invokeDelegateArguments.Add(boogieGenerator.ReadAddr(instruction.Arguments[0]).Expr);
                 foreach (var argument in instruction.Arguments.Skip(1))
                 {
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
-                        invokeDelegateArguments.Add(argument.ToString());
+                        invokeDelegateArguments.Add(boogieGenerator.ReadAddr(argument).Expr);
                     else
                         invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument)).Expr);
                 }
@@ -1835,24 +1835,24 @@ namespace TinyBCT.Translators
                 {
                     if (Helpers.IsBoogieRefType(method.Type))
                     {
-                        sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                        sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
                     } else
                     {
                         var argType = Helpers.GetBoogieType(method.Type);
                         if (!Helpers.IsBoogieRefType(method.Type))
                         {
-                            sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                            sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
                             sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType.FirstUppercase()));
                             sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType.FirstUppercase()));
                         } else
                         {
-                            sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                            sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
                         }
 
                     }
                 } else
                 {
-                    sb.AppendLine(String.Format("\t\tcall {0}({1});", Helpers.GetMethodName(method), String.Join(",", args)));
+                    sb.AppendLine(String.Format("\t\tcall {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
                 }
 
                 sb.AppendLine("\t\treturn;");

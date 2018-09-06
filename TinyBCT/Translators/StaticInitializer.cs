@@ -33,7 +33,7 @@ namespace TinyBCT.Translators
             = new StringBuilder();
             foreach (var mainMethod in mainMethods)
             {
-                var methodName = Helpers.GetMethodName(mainMethod);
+                var methodName = BoogieMethod.From(mainMethod).Name;
                 var parameters = Helpers.GetParametersWithBoogieType(mainMethod);
                 var returnType = Helpers.GetMethodBoogieReturnType(mainMethod).Equals(Helpers.BoogieType.Void) ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(mainMethod) + ")");
                 sb.AppendLine(String.Format("procedure {{:entrypoint}} $Main_Wrapper_{0}({1}) {2}", methodName, parameters, returnType));
@@ -83,7 +83,7 @@ namespace TinyBCT.Translators
 
             foreach (var staticConstructor in staticConstructors)
             {
-                var signature = Helpers.GetMethodName(staticConstructor);
+                var signature = BoogieMethod.From(staticConstructor).Name;
                 sb.AppendLine(String.Format("\tcall {0}();", signature));
                 sb.AppendLine("\tif ($Exception != null)");
                 sb.AppendLine("\t{");
