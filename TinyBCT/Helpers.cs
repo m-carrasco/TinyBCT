@@ -204,7 +204,7 @@ namespace TinyBCT
                 returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
             }
 
-            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true);
+            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", StatementList.Empty, StatementList.Empty, parameters, returnType, true);
 
             return t.TransformText();
         }

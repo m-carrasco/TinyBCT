@@ -69,14 +69,21 @@ namespace TinyBCT.Translators
 
         }
 
-        private StringBuilder sb = new StringBuilder();
-        public void AddBoogie(string boogie)
+        private StatementList stmts = new StatementList();
+        public void AddBoogie(StatementList boogie)
         {
-            sb.AppendLine(boogie);
+            foreach (var s in boogie.Stmts)
+            {
+                AddBoogie(s);
+            }
         }
-        public string Boogie()
+        public void AddBoogie(BoogieStatement stmt)
         {
-            return sb.ToString().Replace("<>", "__");
+            stmts.Add(stmt);
+        }
+        public StatementList Boogie()
+        {
+            return stmts;
         }
 
         public void Translate(/*IList<Instruction> instructions, int idx*/)
@@ -165,8 +172,15 @@ namespace TinyBCT.Translators
             {
                 instTranslator = p;
             }
-
-            protected void AddBoogie(string boogie)
+            protected void AddBoogie(BoogieBlock boogie)
+            {
+                instTranslator.AddBoogie(boogie.Stmts);
+            }
+            protected void AddBoogie(BoogieStatement boogie)
+            {
+                instTranslator.AddBoogie(boogie);
+            }
+            protected void AddBoogie(StatementList boogie)
             {
                 instTranslator.AddBoogie(boogie);
             }
@@ -175,7 +189,7 @@ namespace TinyBCT.Translators
             { 
                 string label = instr.Label;
                 if(!String.IsNullOrEmpty(label))
-                   AddBoogie(String.Format("\t{0}:", label));                    
+                   AddBoogie(BoogieStatement.AddLabel(instr));                    
             }
 
             internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
@@ -207,7 +221,7 @@ namespace TinyBCT.Translators
             // THIS IS NOT THE HAPPIEST NAME FOR THIS FUNCTIOn
             // THIS FUNCTION CAN BE CALLED EVEN IF METHOD CALL OPERATION IS STATIC!
             // IN THAT CASE IT WILL DIRECTLY CALL funcOnPontentialCallee over "method"
-            protected void DynamicDispatch(IMethodReference method, IVariable receiver, MethodCallOperation operation, Func<IMethodReference, string> funcOnPotentialCallee)
+            protected void DynamicDispatch(IMethodReference method, IVariable receiver, MethodCallOperation operation, Func<IMethodReference, StatementList> funcOnPotentialCallee)
             {
                 var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
 
@@ -256,12 +270,12 @@ namespace TinyBCT.Translators
                             else
                             {
                                 AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()).Expr, boogieGenerator.Assert(BoogieLiteral.False)));
+                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()).Expr, boogieGenerator.Assert(BoogieLiteral.False)));
+                            AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
                         }
                     }
                     else
@@ -275,12 +289,12 @@ namespace TinyBCT.Translators
                             else
                             {
                                 AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()).Expr, boogieGenerator.Assert(BoogieLiteral.False)));
+                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()).Expr, boogieGenerator.Assert(BoogieLiteral.False)));
+                            AddBoogie(boogieGenerator.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
                         }
 
                     }
@@ -305,7 +319,7 @@ namespace TinyBCT.Translators
                 return tempVar;
             }
 
-            public string AddSubtypeInformationToExternCall(MethodCallInstruction instruction)
+            public StatementList AddSubtypeInformationToExternCall(MethodCallInstruction instruction)
             {
                 var methodRef = instruction.Method;
                 // IsDelegateInvokation requires containing type != null - not sure if that always holds
@@ -313,7 +327,7 @@ namespace TinyBCT.Translators
                     if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
                         return boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
 
-                return String.Empty;
+                return BoogieStatement.Nop;
             }
         }
 
@@ -492,18 +506,18 @@ namespace TinyBCT.Translators
 
             public override void Visit(SwitchInstruction instruction)
             {
-                StringBuilder sb = new StringBuilder();
+                StatementList stmts = new StatementList();
                 var idx = 0;
                 foreach (var target in instruction.Targets)
                 {
                     var indexCondition = Expression.ExprEquals(boogieGenerator.ReadAddr(instruction.Operand), idx);
                     var body = boogieGenerator.Goto(target);
-                    sb.AppendLine(boogieGenerator.If(indexCondition.Expr, body));
+                    stmts.Add(boogieGenerator.If(indexCondition, body));
                     idx++;
                 }
 
                 var cond = Expression.LessThan(boogieGenerator.ReadAddr(instruction.Operand), instruction.Targets.Count);
-                AddBoogie(boogieGenerator.If(cond.Expr, sb.ToString()));
+                AddBoogie(boogieGenerator.If(cond, stmts));
             }
 
             public override void Visit(UnaryInstruction instruction)
@@ -654,7 +668,7 @@ namespace TinyBCT.Translators
                     AddBoogie(boogieGenerator.VariableAssignment(boogieResVar, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
 
-                AddBoogie("return ;");
+                AddBoogie(BoogieStatement.ReturnStatement);
             }
 
             public override void Visit(LoadInstruction instruction)
@@ -751,7 +765,7 @@ namespace TinyBCT.Translators
                 ExternMethodsCalled.Add(method.ResolvedMethod);
             }
 
-            private string CallMethod(MethodCallInstruction instruction, List<IVariable> arguments, IMethodReference callee)
+            private StatementList CallMethod(MethodCallInstruction instruction, List<IVariable> arguments, IMethodReference callee)
             {
                 var methodDefinition = callee.ResolvedMethod;
                 if (Helpers.IsExternal(methodDefinition))
@@ -761,7 +775,7 @@ namespace TinyBCT.Translators
                     PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(methodDefinition));
 
                 var signature = BoogieMethod.From(callee).Name;
-                var sb = new StringBuilder();
+                var stmts = new StatementList();
 
                 if (instruction.HasResult)
                 {
@@ -771,24 +785,24 @@ namespace TinyBCT.Translators
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
                     if (methodType.Equals(resType) || Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
                     {
-                        sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator, instruction.Result));
+                        stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, instTranslator, instruction.Result));
                     }
                     else
                     {
                         // TODO(rcastano): reuse variable
                         var boogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
-                        sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, boogieVar));
-                        sb.AppendLine(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(resType, boogieVar)));
+                        stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, boogieVar));
+                        stmts.Add(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(resType, boogieVar)));
                     }
                 }
                 else
                 {
-                    sb.AppendLine(boogieGenerator.ProcedureCall(callee, arguments, instTranslator));
+                    stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, instTranslator));
                 }
 
-                sb.AppendLine(AddSubtypeInformationToExternCall(instruction));
+                stmts.Add(AddSubtypeInformationToExternCall(instruction));
 
-                return sb.ToString();
+                return stmts;
             }
 
             public override void Visit(MethodCallInstruction instruction)
@@ -799,7 +813,7 @@ namespace TinyBCT.Translators
                 // if (!Helpers.IsConstructor(instruction.Method))
                 //addLabel(instruction);
                 //var arguments = "";
-                List<string> toAppend = new List<string>();
+                StatementList toAppend = new StatementList();
 
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
                 var copyArgs = ComputeArguments(instruction, toAppend);
@@ -824,7 +838,7 @@ namespace TinyBCT.Translators
                 // All the generics treatment is performed in Dynamic dispatch, so we are not converting some invocations 
                 else if (instruction.Operation == MethodCallOperation.Virtual)
                 {
-                    Func<IMethodReference, string> onPotentialCallee = (potential => CallMethod(instruction, copyArgs, potential));
+                    Func<IMethodReference, StatementList> onPotentialCallee = (potential => CallMethod(instruction, copyArgs, potential));
                     DynamicDispatch(instruction.Method, instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Method.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, onPotentialCallee);
                     AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
                     return;
@@ -837,7 +851,7 @@ namespace TinyBCT.Translators
                 AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
             }
 
-            private List<IVariable> ComputeArguments(MethodCallInstruction instruction,  List<string> toAppend)
+            private List<IVariable> ComputeArguments(MethodCallInstruction instruction, StatementList toAppend)
             {
                 var copyArgs = new List<IVariable>();
 
@@ -892,7 +906,7 @@ namespace TinyBCT.Translators
                     arguments.Add(Helpers.Strings.FixStringLiteral(leftOperand, boogieGenerator).Expr);
                     arguments.Add(Helpers.Strings.FixStringLiteral(rightOperand, boogieGenerator).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
-                    AddBoogie(bg.If(bg.ReadAddr(tempVar).Expr, bg.Goto(instruction.Target)));
+                    AddBoogie(bg.If(bg.ReadAddr(tempVar), bg.Goto(instruction.Target)));
                 }
                 else
                 {
@@ -1280,7 +1294,7 @@ namespace TinyBCT.Translators
                 // only encode behaviour if there was an unhandled exception
                 var target = GetThrowTarget(instruction);
                 var ifBody = String.IsNullOrEmpty(target) ? boogieGenerator.Return() : boogieGenerator.Goto(target);
-                AddBoogie(boogieGenerator.If("$Exception != null", ifBody));
+                AddBoogie(boogieGenerator.If(Expression.ExceptionVarNotNull, ifBody));
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -1355,15 +1369,15 @@ namespace TinyBCT.Translators
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
                 var body = String.IsNullOrEmpty(nextHandler) ? boogieGenerator.Return() : boogieGenerator.Goto(nextHandler);
-                AddBoogie(boogieGenerator.If(Expression.Negation(Expression.Subtype(BoogieVariable.ExceptionTypeVar, instruction.ExceptionType)).Expr, body));
+                AddBoogie(boogieGenerator.If(Expression.Negation(Expression.Subtype(BoogieVariable.ExceptionTypeVar(), instruction.ExceptionType)), body));
 
                 // Exception is handled we reset global variables
                 if (instruction.HasResult) // catch with no specific exception type
-                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, BoogieVariable.ExceptionVar));
-                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionInCatchHandlerVar, BoogieVariable.ExceptionVar));
-                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionInCatchHandlerTypeVar, BoogieVariable.ExceptionTypeVar));
-                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar, boogieGenerator.NullObject()));
-                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionTypeVar, boogieGenerator.NullObject()));
+                    AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, BoogieVariable.ExceptionVar()));
+                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionInCatchHandlerVar(), BoogieVariable.ExceptionVar()));
+                AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionInCatchHandlerTypeVar(), BoogieVariable.ExceptionTypeVar()));
+                AddBoogie(BoogieStatement.ClearExceptionVar);
+                AddBoogie(BoogieStatement.ClearExceptionTypeVar);
             }
 
             public override void Visit(ThrowInstruction instruction)
@@ -1373,13 +1387,13 @@ namespace TinyBCT.Translators
                     var args = new List<string>();
                     args.Add(boogieGenerator.ReadAddr(instruction.Operand).Expr);
                     AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
-                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar, boogieGenerator.ReadAddr(instruction.Operand)));
+                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar(), boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else
                 {
                     // rethrow
-                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionTypeVar, BoogieVariable.ExceptionInCatchHandlerTypeVar));
-                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar, BoogieVariable.ExceptionInCatchHandlerVar));
+                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionTypeVar(), BoogieVariable.ExceptionInCatchHandlerTypeVar()));
+                    AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar(), BoogieVariable.ExceptionInCatchHandlerVar()));
                 }
 
                 var target = GetThrowTarget(instruction);
@@ -1397,21 +1411,22 @@ namespace TinyBCT.Translators
 
             // if $Exception is not null, the method call instruction is handled as if it was a throw instruction
             // nearest catch handler is searched otherwise exit method.
-            public static string HandleExceptionAfterMethodCall(Instruction ins)
+            public static StatementList HandleExceptionAfterMethodCall(Instruction ins)
             {
                 if (!Settings.Exceptions)
-                    return string.Empty;
-
-                var sb = new StringBuilder();
-                sb.AppendLine("\t\tif ($Exception != null)");
-                sb.AppendLine("\t\t{");
+                    return BoogieStatement.Nop;
+                var bg = BoogieGenerator.Instance();
+                var stmts = new StatementList();
+                var null_obj = bg.NullObject();
+                var exceptionNotNull = Expression.ExceptionVarNotNull;
+                var ifStmts = new StatementList();
                 var label = GetThrowTarget(ins);
                 if (String.IsNullOrEmpty(label))
-                    sb.AppendLine("\t\t\treturn;");
+                    ifStmts.Add(BoogieStatement.ReturnStatement);
                 else
-                    sb.AppendLine(String.Format("\t\t\tgoto {0};", label));
-                sb.AppendLine("\t\t}");
-                return sb.ToString();
+                    ifStmts.Add(bg.Goto(label));
+                stmts.Add(bg.If(exceptionNotNull, ifStmts));
+                return stmts;
             }
 
             // retrieves all succesors blocks of the block that contains the throw instruction (it could be a method call instruction)
@@ -1552,9 +1567,9 @@ namespace TinyBCT.Translators
                 var methodRef = loadDelegateStmt.Method;
                 IVariable receiverObject = instruction.Arguments[1];
 
-                Func<IMethodReference, string> d = (potentialMethod) =>
+                Func<IMethodReference, StatementList> d = (potentialMethod) =>
                 {
-                    var sb = new StringBuilder();
+                    var stmts = new StatementList();
 
                     var methodId = DelegateStore.GetMethodIdentifier(potentialMethod);
 
@@ -1569,16 +1584,16 @@ namespace TinyBCT.Translators
                     arguments.Add("Type0()");
 
                     var freshVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(createObjIns.Result.Type));
-                    sb.AppendLine(boogieGenerator.ProcedureCall(String.Format("CreateDelegate_{0}", normalizedType), arguments, freshVar.Expr));
+                    stmts.Add(boogieGenerator.ProcedureCall(String.Format("CreateDelegate_{0}", normalizedType), arguments, freshVar.Expr));
                     // This is a hack.
                     // The first parameter below <createObjIns.Result> (which is an IVariable), when using the new address model, will be used as the address
                     // whereas the second parameter below, <createObjIns.Result.Name> (which is a string) will be copied syntactically.
                     // For example:
                     // memoryInt := WriteInt(memoryInt, _var1, var1); // first one with underscore, second without (this is intentional)
-                    sb.AppendLine(boogieGenerator.VariableAssignment(createObjIns.Result, freshVar));
-                    sb.AppendLine(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
+                    stmts.Add(boogieGenerator.VariableAssignment(createObjIns.Result, freshVar));
+                    stmts.Add(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
 
-                    return sb.ToString();
+                    return stmts;
                 };
 
                 DynamicDispatch(methodRef, receiverObject, methodRef.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, d);
@@ -1752,19 +1767,19 @@ namespace TinyBCT.Translators
             return sb.ToString();
         }
 
-        public static string InvokeDelegateMethod()
+        public static StatementList InvokeDelegateMethod()
         {
-            var sb = new StringBuilder();
+            var stmts = new StatementList();
 
             foreach (var typeRef in MethodGrouping.Keys)
-                sb.AppendLine(InvokeDelegateMethod(typeRef));
+                stmts.Add(InvokeDelegateMethod(typeRef));
 
-            return sb.ToString();
+            return stmts;
         }
 
-        public static string InvokeDelegateMethod(string groupTypeString)
+        public static StatementList InvokeDelegateMethod(string groupTypeString)
         {
-            var sb = new StringBuilder();
+            var stmts = new StatementList();
 
             var invokeArity = MethodGroupType[groupTypeString].ResolvedType.Methods.Single(m => m.Name.ToString().Equals("Invoke"));
             
@@ -1775,17 +1790,17 @@ namespace TinyBCT.Translators
             // for virtual methods we may have to change this to include the reference to the object receiving the message
             var parameters = invokeArity.ParameterCount > 0 ? ","+ String.Join(",", invokeArity.Parameters.Select(v => String.Format("arg{0}$in", v.Index) + " : Ref")) : String.Empty;
 
-            sb.AppendLine(string.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2};", groupTypeString, parameters, hasReturnVariable ? "returns ($r: Ref)" : string.Empty));
-            sb.AppendLine(string.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2}", groupTypeString, parameters, hasReturnVariable ? "returns ($r: Ref)" : string.Empty));
-            sb.AppendLine("{");
+            stmts.Add(BoogieStatement.FromString(string.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2};", groupTypeString, parameters, hasReturnVariable ? "returns ($r: Ref)" : string.Empty)));
+            stmts.Add(BoogieStatement.FromString(string.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2}", groupTypeString, parameters, hasReturnVariable ? "returns ($r: Ref)" : string.Empty)));
+            stmts.Add(BoogieStatement.FromString("{"));
 
             // we declare a local for each parameter - local will not be union, will be the real type (boogie version)
             // the resultRealType variable is for the return value if any - then it will be casted to Union and will be the return value
             foreach (var v in invokeArity.Parameters)
-                sb.AppendLine(String.Format("\tvar local{0} : {1};", v.Index, Helpers.GetBoogieType(v.Type)));
+                stmts.Add(BoogieStatement.FromString(String.Format("\tvar local{0} : {1};", v.Index, Helpers.GetBoogieType(v.Type))));
 
             if (hasReturnVariable)
-                sb.AppendLine(String.Format("\tvar resultRealType: {0};", Helpers.GetBoogieType(invokeArity.Type)));
+                stmts.Add(BoogieStatement.FromString((String.Format("\tvar resultRealType: {0};", Helpers.GetBoogieType(invokeArity.Type)))));
 
             foreach (var m in MethodGrouping[groupTypeString])
             {
@@ -1793,8 +1808,8 @@ namespace TinyBCT.Translators
 
                 var method = Helpers.GetUnspecializedVersion(m);
                 var cond = DelegateExpression.RefToDelegateMethod(id);
-                sb.AppendLine($"\tif ({cond.Expr})");
-                sb.AppendLine("\t{");
+                stmts.Add(BoogieStatement.FromString($"\tif ({cond.Expr})"));
+                stmts.Add(BoogieStatement.FromString("\t{"));
 
                 // we may have to add the receiver object for virtual methods
                 var args = new List<string>();
@@ -1805,11 +1820,11 @@ namespace TinyBCT.Translators
                     var refNotNull = Expression.NotEquals(receiverObject, BoogieGenerator.Instance().NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        sb.AppendLine(BoogieGenerator.Instance().Assert(refNotNull, "nonnull"));
+                        stmts.Add(BoogieGenerator.Instance().Assert(refNotNull, "nonnull"));
                     }
                     else
                     {
-                        sb.AppendLine(BoogieGenerator.Instance().Assume(refNotNull, "nonnull"));
+                        stmts.Add(BoogieGenerator.Instance().Assume(refNotNull, "nonnull"));
                     }
                 }
 
@@ -1822,7 +1837,7 @@ namespace TinyBCT.Translators
                     //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
                     if (!Helpers.IsBoogieRefType(v.Type))
                     {
-                        sb.AppendLine(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType.FirstUppercase()));
+                        stmts.Add(BoogieStatement.FromString(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType.FirstUppercase())));
                         args.Add(String.Format("local{0}", v.Index));
                     }
                     else
@@ -1835,33 +1850,33 @@ namespace TinyBCT.Translators
                 {
                     if (Helpers.IsBoogieRefType(method.Type))
                     {
-                        sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
+                        stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
                     } else
                     {
                         var argType = Helpers.GetBoogieType(method.Type);
                         if (!Helpers.IsBoogieRefType(method.Type))
                         {
-                            sb.AppendLine(String.Format("\t\tcall resultRealType := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
-                            sb.AppendLine(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType.FirstUppercase()));
-                            sb.AppendLine(String.Format("\t\t$r := {0}2Union(resultRealType);", argType.FirstUppercase()));
+                            stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall resultRealType := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
+                            stmts.Add(BoogieStatement.FromString(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType.FirstUppercase())));
+                            stmts.Add(BoogieStatement.FromString(String.Format("\t\t$r := {0}2Union(resultRealType);", argType.FirstUppercase())));
                         } else
                         {
-                            sb.AppendLine(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
+                            stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
                         }
 
                     }
                 } else
                 {
-                    sb.AppendLine(String.Format("\t\tcall {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args)));
+                    stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
                 }
 
-                sb.AppendLine("\t\treturn;");
-                sb.AppendLine("\t}");
+                stmts.Add(BoogieStatement.ReturnStatement);
+                stmts.Add(BoogieStatement.FromString("\t}"));
             }
 
-            sb.AppendLine("}");
+            stmts.Add(BoogieStatement.FromString(("}")));
 
-            return sb.ToString();
+            return stmts;
         }
 
         public static string DefineMethodsIdentifiers()
