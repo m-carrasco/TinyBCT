@@ -759,7 +759,7 @@ namespace TinyBCT.Translators
 
             private StatementList CallMethod(MethodCallInstruction instruction, IMethodReference callee)
             {
-                var methodDefinition = instruction.Method.ResolvedMethod;
+                var methodDefinition = callee.ResolvedMethod;
                 if (Helpers.IsExternal(methodDefinition))
                     AddToExternalMethods(methodDefinition);
                 // Important not to add methods to both sets.
