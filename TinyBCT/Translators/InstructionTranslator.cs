@@ -63,10 +63,14 @@ namespace TinyBCT.Translators
             temporalVariables = new Dictionary<string, Helpers.BoogieType>();
         }
 
+        public BoogieVariable GetFreshVariable(Helpers.BoogieType type, string prefix)
+        {
+            Contract.Assume(prefix != null);
+            return BoogieVariable.GetTempVar(type, temporalVariables, prefix);
+        }
         public BoogieVariable GetFreshVariable(Helpers.BoogieType type)
         {
             return BoogieVariable.GetTempVar(type, temporalVariables);
-
         }
 
         private StatementList stmts = new StatementList();
@@ -225,12 +229,11 @@ namespace TinyBCT.Translators
             {
                 var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
 
-                // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                var getTypeVar = AddNewLocalVariableToMethod("DynamicDispatch_Type_", Types.Instance.PlatformType.SystemObject);
+                var getTypeBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject), "DynamicDispatch_Type_");
 
-                var args = new List<string>();
-                args.Add(boogieGenerator.ReadAddr(receiver).Expr);
-                AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, getTypeVar.Name));
+                var args = new List<Expression>();
+                args.Add(boogieGenerator.ReadAddr(receiver));
+                AddBoogie(boogieGenerator.ProcedureCall(BoogieMethod.GetTypeMethod, args, getTypeBoogieVar));
 
                 if (operation == MethodCallOperation.Virtual)
                 {
@@ -239,7 +242,7 @@ namespace TinyBCT.Translators
                     {
 
                         // example:if ($tmp6 == T$DynamicDispatch.Dog())
-                        AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, calless.First().ContainingType), funcOnPotentialCallee(calless.First())));
+                        AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeBoogieVar, calless.First().ContainingType), funcOnPotentialCallee(calless.First())));
 
                         int i = 0;
                         foreach (var impl in calless)
@@ -252,7 +255,7 @@ namespace TinyBCT.Translators
                                 continue;
                             }
 
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, impl.ContainingType), funcOnPotentialCallee(impl)));
+                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, impl.ContainingType), funcOnPotentialCallee(impl)));
                             i++;
                         }
                     }
@@ -269,7 +272,7 @@ namespace TinyBCT.Translators
                             }
                             else
                             {
-                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
                                 AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
                             }
                         }
@@ -288,7 +291,7 @@ namespace TinyBCT.Translators
                             }
                             else
                             {
-                                AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeVar, method.ContainingType), funcOnPotentialCallee(method)));
+                                AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
                                 AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
                             }
                         }
@@ -308,6 +311,7 @@ namespace TinyBCT.Translators
                     SimpleTranslation.AddToExternalMethods(method);
             }
 
+            // TODO(rcastano): Ideally, remove this because the handling of locals variables differs depending on the adressing model.
             public IVariable AddNewLocalVariableToMethod(string name, ITypeReference type, bool isParameter = false)
             {
                 string variableName = String.Format("{0}{1}", name, instTranslator.AddedVariables.Count);
@@ -408,10 +412,10 @@ namespace TinyBCT.Translators
                 var arrayNotNull = Expression.NotEquals(boogieGenerator.ReadAddr(array), boogieGenerator.NullObject());
                 AddBoogie(boogieGenerator.Assume(arrayNotNull));
                 AddBoogie(boogieGenerator.AssumeArrayLength(boogieGenerator.ReadAddr(array), BoogieLiteral.FromUInt(arrayLength)));
-                List<string> args = new List<string>();
-                args.Add(boogieGenerator.ReadAddr(array).Expr);
+                List<Expression> args = new List<Expression>();
+                args.Add(boogieGenerator.ReadAddr(array));
                 // sets all array elements different than null
-                AddBoogie(boogieGenerator.ProcedureCall("$HavocArrayElementsNoNull", args));
+                AddBoogie(boogieGenerator.ProcedureCall(BoogieMethod.HavocArrayElementsNoNull, args));
 
                 loadTokenIns = null;
             }
@@ -539,12 +543,12 @@ namespace TinyBCT.Translators
                 if (left.Type.TypeCode.Equals(PrimitiveTypeCode.String) ||
                     right.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
-                    string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
+                    BoogieMethod methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
                     
                     var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result.Type));
-                    var arguments = new List<string>();
-                    arguments.Add(Helpers.Strings.FixStringLiteral(left, boogieGenerator).Expr);
-                    arguments.Add(Helpers.Strings.FixStringLiteral(right, boogieGenerator).Expr);
+                    var arguments = new List<Expression>();
+                    arguments.Add(Helpers.Strings.FixStringLiteral(left, boogieGenerator));
+                    arguments.Add(Helpers.Strings.FixStringLiteral(right, boogieGenerator));
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar));
                     AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar));
                 } else
@@ -785,7 +789,7 @@ namespace TinyBCT.Translators
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
                     if (methodType.Equals(resType) || Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
                     {
-                        stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, instTranslator, instruction.Result));
+                        stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, instTranslator, instruction));
                     }
                     else
                     {
@@ -797,7 +801,7 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, instTranslator));
+                    stmts.Add(boogieGenerator.ProcedureCall(callee, arguments, instTranslator, instruction));
                 }
 
                 stmts.Add(AddSubtypeInformationToExternCall(instruction));
@@ -899,14 +903,14 @@ namespace TinyBCT.Translators
                 if (leftOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) ||
                     rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
-                    string methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
+                    BoogieMethod boogieMethod = Helpers.Strings.GetBinaryMethod(instruction.Operation);
 
-                    var tempVar = AddNewLocalVariableToMethod("tempVarStringBinOp_", Types.Instance.PlatformType.SystemBoolean);
-                    var arguments = new List<string>();
-                    arguments.Add(Helpers.Strings.FixStringLiteral(leftOperand, boogieGenerator).Expr);
-                    arguments.Add(Helpers.Strings.FixStringLiteral(rightOperand, boogieGenerator).Expr);
-                    AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar.ToString()));
-                    AddBoogie(bg.If(bg.ReadAddr(tempVar), bg.Goto(instruction.Target)));
+                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.BoogieType.Bool);
+                    var arguments = new List<Expression>();
+                    arguments.Add(Helpers.Strings.FixStringLiteral(leftOperand, boogieGenerator));
+                    arguments.Add(Helpers.Strings.FixStringLiteral(rightOperand, boogieGenerator));
+                    AddBoogie(boogieGenerator.ProcedureCall(boogieMethod, arguments, tempBoogieVar));
+                    AddBoogie(bg.If(tempBoogieVar, bg.Goto(instruction.Target)));
                 }
                 else
                 {
@@ -982,7 +986,7 @@ namespace TinyBCT.Translators
                     ProcessTypeConversion(instruction);
                 } else if (instruction.Operation == ConvertOperation.Box)
                 {
-                    AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction.Result, instTranslator));
+                    AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction, instTranslator));
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
@@ -1384,9 +1388,8 @@ namespace TinyBCT.Translators
             {
                 if (instruction.HasOperand)
                 {
-                    var args = new List<string>();
-                    args.Add(boogieGenerator.ReadAddr(instruction.Operand).Expr);
-                    AddBoogie(boogieGenerator.ProcedureCall("System.Object.GetType", args, "$ExceptionType"));
+                    var args = new List<Expression> { boogieGenerator.ReadAddr(instruction.Operand) };
+                    AddBoogie(boogieGenerator.ProcedureCall(BoogieMethod.GetTypeMethod, args, BoogieVariable.ExceptionTypeVar()));
                     AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar(), boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else
@@ -1576,15 +1579,13 @@ namespace TinyBCT.Translators
                     // instruction.method.containingtype is the instantiated type
                     // i group them by their uninstanciated type
                     DelegateStore.AddDelegatedMethodToGroup(instruction.Method.ContainingType, potentialMethod);
-                    // invoke the correct version of create delegate
-                    var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
-                    var arguments = new List<string>();
-                    arguments.Add(methodId.Expr);
-                    arguments.Add(boogieGenerator.ReadAddr(receiverObject).Expr);
-                    arguments.Add("Type0()");
+                    var arguments = new List<Expression>();
+                    arguments.Add(methodId);
+                    arguments.Add(boogieGenerator.ReadAddr(receiverObject));
+                    arguments.Add(Expression.Type0);
 
                     var freshVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(createObjIns.Result.Type));
-                    stmts.Add(boogieGenerator.ProcedureCall(String.Format("CreateDelegate_{0}", normalizedType), arguments, freshVar.Expr));
+                    stmts.Add(boogieGenerator.ProcedureCall(BoogieMethod.CreateDelegate(instruction), arguments, freshVar));
                     // This is a hack.
                     // The first parameter below <createObjIns.Result> (which is an IVariable), when using the new address model, will be used as the address
                     // whereas the second parameter below, <createObjIns.Result.Name> (which is a string) will be copied syntactically.
@@ -1643,24 +1644,24 @@ namespace TinyBCT.Translators
                         r := Union2Int($res_invoke);
                 */
 
-                var invokeDelegateArguments = new List<string>();
-                invokeDelegateArguments.Add(boogieGenerator.ReadAddr(instruction.Arguments[0]).Expr);
+                var invokeDelegateArguments = new List<Expression>();
+                invokeDelegateArguments.Add(boogieGenerator.ReadAddr(instruction.Arguments[0]));
                 foreach (var argument in instruction.Arguments.Skip(1))
                 {
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
-                        invokeDelegateArguments.Add(boogieGenerator.ReadAddr(argument).Expr);
+                        invokeDelegateArguments.Add(boogieGenerator.ReadAddr(argument));
                     else
-                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument)).Expr);
+                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument)));
                 }
 
                 //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
                 //var argumentsString = string.Join(",", invokeDelegateArguments.ToArray());
                 // invoke the correct version of invoke delegate
-                var normalizedType = Helpers.GetNormalizedTypeForDelegates(instruction.Method.ContainingType);
+                BoogieMethod invokeDelegateMethod = BoogieMethod.InvokeDelegate(instruction);
                 if (instruction.HasResult)
-                    AddBoogie(boogieGenerator.ProcedureCall(string.Format("InvokeDelegate_{0}", normalizedType), invokeDelegateArguments, boogieVar));
+                    AddBoogie(boogieGenerator.ProcedureCall(invokeDelegateMethod, invokeDelegateArguments, boogieVar));
                 else
-                    AddBoogie(boogieGenerator.ProcedureCall(string.Format("InvokeDelegate_{0}", normalizedType), invokeDelegateArguments));
+                    AddBoogie(boogieGenerator.ProcedureCall(invokeDelegateMethod, invokeDelegateArguments));
 
                 if (instruction.HasResult)
                 {

@@ -763,29 +763,32 @@ namespace TinyBCT
             }
 
             // TODO(rcastano): pick better name
-            public static string GetBinaryMethod(BinaryOperation op)
+            public static BoogieMethod GetBinaryMethod(BinaryOperation op)
             {
-                string method = "";
+                BoogieMethod method = null;
                 switch (op)
                 {
-                    case BinaryOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
-                    case BinaryOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
-                    case BinaryOperation.Add: method = "System.String.Concat$System.String$System.String"; break;
+                    case BinaryOperation.Eq: method = BoogieMethod.StringEquality; break;
+                    case BinaryOperation.Neq: method = BoogieMethod.StringInequality; break;
+                    case BinaryOperation.Add: method = BoogieMethod.StringConcat; break;
                 }
+                Contract.Assume(method != null);
                 return method;
             }
             
-            public static string GetBinaryMethod(BranchOperation op)
+            public static BoogieMethod GetBinaryMethod(BranchOperation op)
             {
-                string method = "";
+                BoogieMethod method = null;
                 switch (op)
                 {
-                    case BranchOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
-                    case BranchOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
+                    
+                    case BranchOperation.Eq: method = BoogieMethod.StringEquality; break;
+                    case BranchOperation.Neq: method = BoogieMethod.StringInequality; break;
                     default:
                         Contract.Assert(false);
                         break;
                 }
+                Contract.Assume(method != null);
                 return method;
             }
         }
