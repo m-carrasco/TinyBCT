@@ -764,6 +764,10 @@ namespace TinyBCT
         {
             return new BoogieStatement($"\tvar {var.Expr} : {var.Type};");
         }
+        public static BoogieStatement VariableDeclaration(IVariable var)
+        {
+            return new BoogieStatement($"\tvar {var.Expr} : {var.Type};");
+        }
         public static readonly BoogieStatement Nop = new BoogieStatement(String.Empty);
         internal static readonly BoogieStatement ReturnStatement = new BoogieStatement("return ;");
         public static implicit operator StatementList(BoogieStatement s)
@@ -1279,11 +1283,11 @@ namespace TinyBCT
         public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
         {
             StatementList stmts = new StatementList();
-
-            variables.Where(v => !v.IsParameter)
-            .Select(v =>
-                    String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
-            ).ToList().ForEach(str => stmts.Add(BoogieStatement.FromString(str)));
+            
+            foreach (var v in variables.Where(v => !v.IsParameter))
+            {
+                stmts.Add(BoogieStatement.VariableDeclaration(v));
+            }
 
             foreach (var kv in temporalVariables)
             {
