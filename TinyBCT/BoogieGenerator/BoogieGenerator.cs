@@ -766,7 +766,18 @@ namespace TinyBCT
         }
         public static BoogieStatement VariableDeclaration(IVariable var)
         {
-            return new BoogieStatement($"\tvar {var.Expr} : {var.Type};");
+            return new BoogieStatement($"\tvar {var.Name} : {Helpers.GetBoogieType(var.Type)};");
+        }
+        public static StatementList VariableAssignment(BoogieVariable variableA, Expression expr)
+        {
+            // Adding this check because we haven't cleanly separated the new memory model from the old one yet.
+            // The problem is that the Boogie variable $Exception is set in the prelude as null, but
+            // could be assigned programmatically within BoogieGenerator using null_object (which would be wrong).
+            // As such, I've added a specific field that should be used: BoogieStatement.ClearExceptionVar.
+            Contract.Assume(!(
+                variableA.Equals(BoogieVariable.ExceptionVar()) &&
+                expr.Equals(BoogieGenerator.Instance().NullObject())));
+            return BoogieStatement.FromString($"{variableA.Expr} := {expr.Expr};");
         }
         public static readonly BoogieStatement Nop = new BoogieStatement(String.Empty);
         internal static readonly BoogieStatement ReturnStatement = new BoogieStatement("return ;");
@@ -1697,14 +1708,7 @@ namespace TinyBCT
 
         public StatementList VariableAssignment(BoogieVariable variableA, Expression expr)
         {
-            // Adding this check because we haven't cleanly separated the new memory model from the old one yet.
-            // The problem is that the Boogie variable $Exception is set in the prelude as null, but
-            // could be assigned programmatically within BoogieGenerator using null_object (which would be wrong).
-            // As such, I've added a specific field that should be used: BoogieStatement.ClearExceptionVar.
-            Contract.Assume(!(
-                variableA.Equals(BoogieVariable.ExceptionVar()) &&
-                expr.Equals(BoogieGenerator.Instance().NullObject())));
-            return BoogieStatement.FromString($"{variableA.Expr} := {expr.Expr};");
+            return BoogieStatement.VariableAssignment(variableA, expr);
         }
 
         public StatementList HavocResult(DefinitionInstruction instruction)
