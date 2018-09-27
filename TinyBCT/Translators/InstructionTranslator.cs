@@ -97,7 +97,7 @@ namespace TinyBCT.Translators
                 var expr1 = bg.ReadAddr(this_var);
                 var null_obj = bg.NullObject();
                 var this_var_not_null = Expression.NotEquals(expr1, null_obj);
-                AddBoogie(bg.Assume(this_var_not_null));
+                AddBoogie(BoogieStatement.Assume(this_var_not_null));
 
                 var this_var_type = this_var.Type;
                 if(this_var_type is IManagedPointerType)
@@ -106,7 +106,7 @@ namespace TinyBCT.Translators
                 }
                 
                 var subtype = Expression.Subtype(bg.DynamicType(this_var), this_var_type);
-                AddBoogie(bg.Assume(subtype));
+                AddBoogie(BoogieStatement.Assume(subtype));
 
                 // hack for contractor
                 if (methodBody.MethodDefinition.Name.Value.Contains("STATE$"))
@@ -124,7 +124,7 @@ namespace TinyBCT.Translators
                     var refIsNull = Expression.ExprEquals(expr1, null_obj);
                     var subtype = Expression.Subtype(bg.DynamicType(paramVariable), paramVariable.Type);
                     var or = Expression.Or(refIsNull, subtype);
-                    AddBoogie(bg.Assume(or));
+                    AddBoogie(BoogieStatement.Assume(or));
                 }
             }
 
@@ -268,12 +268,12 @@ namespace TinyBCT.Translators
                             else
                             {
                                 AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
+                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
+                            AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                         }
                     }
                     else
@@ -287,12 +287,12 @@ namespace TinyBCT.Translators
                             else
                             {
                                 AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
+                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), boogieGenerator.Assert(BoogieLiteral.False)));
+                            AddBoogie(boogieGenerator.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                         }
 
                     }
@@ -312,7 +312,7 @@ namespace TinyBCT.Translators
                 // IsDelegateInvokation requires containing type != null - not sure if that always holds
                 if (methodRef.ResolvedMethod == null || Helpers.IsExternal(methodRef.ResolvedMethod) || DelegateInvokeTranslation.IsDelegateInvokation(instruction))
                     if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
-                        return boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
+                        return BoogieStatement.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
 
                 return BoogieStatement.Nop;
             }
@@ -393,7 +393,7 @@ namespace TinyBCT.Translators
                 uint arrayLength = byteSize / elementSize;
 
                 var arrayNotNull = Expression.NotEquals(boogieGenerator.ReadAddr(array), boogieGenerator.NullObject());
-                AddBoogie(boogieGenerator.Assume(arrayNotNull));
+                AddBoogie(BoogieStatement.Assume(arrayNotNull));
                 AddBoogie(boogieGenerator.AssumeArrayLength(boogieGenerator.ReadAddr(array), BoogieLiteral.FromUInt(arrayLength)));
                 List<Expression> args = new List<Expression>();
                 args.Add(boogieGenerator.ReadAddr(array));
@@ -420,11 +420,11 @@ namespace TinyBCT.Translators
                     var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        AddBoogie(boogieGenerator.Assert(refNotNull, annotation: "nonnull"));
+                        AddBoogie(BoogieStatement.Assert(refNotNull, annotation: "nonnull"));
                     }
                     else
                     {
-                        AddBoogie(boogieGenerator.Assume(refNotNull, annotation: "nonnull"));
+                        AddBoogie(BoogieStatement.Assume(refNotNull, annotation: "nonnull"));
                     }
                 }
 
@@ -439,11 +439,11 @@ namespace TinyBCT.Translators
                     var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        AddBoogie(boogieGenerator.Assert(refNotNull, "nonnull"));
+                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
                     }
                     else
                     {
-                        AddBoogie(boogieGenerator.Assume(refNotNull, "nonnull"));
+                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
                     }
                 }
 
@@ -458,11 +458,11 @@ namespace TinyBCT.Translators
                     var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        AddBoogie(boogieGenerator.Assert(refNotNull, "nonnull"));
+                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
                     }
                     else
                     {
-                        AddBoogie(boogieGenerator.Assume(refNotNull, "nonnull"));
+                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
                     }
                 }
 
@@ -678,7 +678,7 @@ namespace TinyBCT.Translators
                     AddBoogie(boogieGenerator.ReadInstanceField(instanceFieldOp, instruction.Result));
 
                     if (Helpers.IsBoogieRefType(instanceFieldOp.Type))
-                        AddBoogie(boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), instanceFieldOp.Type)));
+                        AddBoogie(BoogieStatement.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), instanceFieldOp.Type)));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
                 {
@@ -1061,7 +1061,7 @@ namespace TinyBCT.Translators
                 var arrayContents = Expression.ArrayContents(arrayExpr, freeVar);
                 var arrayContentsNotNull = Expression.NotEquals(arrayContents, boogieGenerator.NullObject());
                 var forallFreeVarArrayContentsNotNull = Expression.ForAll(freeVar, arrayContentsNotNull);
-                AddBoogie(boogieGenerator.Assume(forallFreeVarArrayContentsNotNull));
+                AddBoogie(BoogieStatement.Assume(forallFreeVarArrayContentsNotNull));
             }
 
             private static LoadInstruction arrayLengthAccess = null;
@@ -1086,11 +1086,11 @@ namespace TinyBCT.Translators
                     var refNotNull = Expression.NotEquals(receiverObjectExpr, boogieGenerator.NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        AddBoogie(boogieGenerator.Assert(refNotNull, "nonnull"));
+                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
                     }
                     else
                     {
-                        AddBoogie(boogieGenerator.Assume(refNotNull, "nonnull"));
+                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
                     }
                 }
 
@@ -1121,7 +1121,7 @@ namespace TinyBCT.Translators
                     var argType = Helpers.GetBoogieType(elementAccess.Type);
                     ReadArrayContent(instruction.Result, boogieGenerator.ReadAddr(elementAccess.Array), elementAccess.Indices, argType);
                     if (Helpers.IsBoogieRefType(instruction.Result.Type))
-                        AddBoogie(boogieGenerator.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type)));
+                        AddBoogie(BoogieStatement.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type)));
                     return;
                 }
             }
@@ -1166,11 +1166,11 @@ namespace TinyBCT.Translators
 
                 if (Settings.CheckNullDereferences)
                 {
-                    AddBoogie(boogieGenerator.Assert(refNotNull, "nonnull"));
+                    AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
                 }
                 else
                 {
-                    AddBoogie(boogieGenerator.Assume(refNotNull, "nonnull"));
+                    AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
                 }
                 var arrayExpr = boogieGenerator.ReadAddr(res.Array);
                 var firstIndexExpr = boogieGenerator.ReadAddr(res.Indices[0]);
@@ -1756,11 +1756,11 @@ namespace TinyBCT.Translators
                     var refNotNull = Expression.NotEquals(receiverObject, BoogieGenerator.Instance().NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        stmts.Add(BoogieGenerator.Instance().Assert(refNotNull, "nonnull"));
+                        stmts.Add(BoogieStatement.Assert(refNotNull, "nonnull"));
                     }
                     else
                     {
-                        stmts.Add(BoogieGenerator.Instance().Assume(refNotNull, "nonnull"));
+                        stmts.Add(BoogieStatement.Assume(refNotNull, "nonnull"));
                     }
                 }
 

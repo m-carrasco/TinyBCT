@@ -588,7 +588,7 @@ namespace TinyBCT
                 return "T$" + GetNormalizedType(type) + "()";
             }
         }
-            public static string GetNormalizedType(ITypeReference type)
+        public static string GetNormalizedType(ITypeReference type)
         {
             type = TypeHelper.UninstantiateAndUnspecialize(type);
             var result = TypeHelper.GetTypeName(type, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);

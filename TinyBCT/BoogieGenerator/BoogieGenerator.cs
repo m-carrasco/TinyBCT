@@ -122,6 +122,13 @@ namespace TinyBCT
             Contract.Assume(expr2.Type.Equals(Helpers.BoogieType.Bool));
             return new Expression(Helpers.BoogieType.Bool, $"({expr1.Expr} || {expr2.Expr})");
         }
+        public static Expression GetNormalizedTypeFunction(
+            ITypeReference originalType, ISet<ITypeReference> mentionedClasses,
+            IEnumerable<ITypeReference> typeArguments = null,
+            Func<ITypeReference, Boolean> forceRecursion = null)
+        {
+            return new Expression(Helpers.BoogieType.Ref, Helpers.GetNormalizedTypeFunction(originalType, mentionedClasses, typeArguments, forceRecursion));
+        }
 
         public static bool IsSupportedBinaryOperation(BinaryOperation binaryOperation, Helpers.BoogieType type1, Helpers.BoogieType type2)
         {
@@ -805,6 +812,34 @@ namespace TinyBCT
                 return FromString(String.Format("\t{0}:", label));
             else
                 return Nop;
+        }
+
+        private static string FixAnnotation(string annotation)
+        {
+            if (annotation != null)
+            {
+                Contract.Assume(!annotation.Contains(" "));
+                Contract.Assume(!annotation.Contains(":"));
+                annotation = $"{{ :{annotation} }}";
+            }
+            else
+            {
+                annotation = String.Empty;
+            }
+            return annotation;
+        }
+        public static BoogieStatement Assume(Expression cond, string annotation = null)
+        {
+            annotation = FixAnnotation(annotation);
+            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
+            return BoogieStatement.FromString($"assume {annotation} {cond.Expr};");
+        }
+
+        public static StatementList Assert(Expression cond, string annotation = null)
+        {
+            annotation = FixAnnotation(annotation);
+            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
+            return BoogieStatement.FromString($"assert {annotation} {cond.Expr};");
         }
     }
 
@@ -1568,7 +1603,7 @@ namespace TinyBCT
             var p2u = Expression.PrimitiveType2Union(expr);
             var p2u2p = Expression.Union2PrimitiveType(expr.Type, p2u);
             var eq = Expression.ExprEquals(p2u2p, expr);
-            return Assume(eq);
+            return BoogieStatement.Assume(eq);
         }
 
         public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
@@ -1739,8 +1774,9 @@ namespace TinyBCT
 
         public StatementList AssumeDynamicType(IVariable reference, ITypeReference type)
         {
-            var typeStr = Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses);
-            return BoogieStatement.FromString($"assume {Expression.DynamicType(ReadAddr(reference)).Expr} == {typeStr};");
+            var typeExpr = Expression.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses);
+            var eqExpr = Expression.ExprEquals(Expression.DynamicType(ReadAddr(reference)), typeExpr);
+            return BoogieStatement.Assume(eqExpr);
         }
 
         public StatementList AssumeTypeConstructor(IVariable arg, ITypeReference type)
@@ -1756,42 +1792,16 @@ namespace TinyBCT
         public StatementList Assert(IVariable cond)
         {
             Contract.Assume(Helpers.GetBoogieType(cond.Type).Equals(Helpers.BoogieType.Bool));
-            return Assert(ReadAddr(cond));
-        }
-        private static string FixAnnotation(string annotation)
-        {
-            if (annotation != null)
-            {
-                Contract.Assume(!annotation.Contains(" "));
-                Contract.Assume(!annotation.Contains(":"));
-                annotation = $"{{ :{annotation} }}";
-            }
-            else
-            {
-                annotation = String.Empty;
-            }
-            return annotation;
-        }
-        public StatementList Assert(Expression cond, string annotation = null)
-        {
-            annotation = FixAnnotation(annotation);
-            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
-            return BoogieStatement.FromString($"assert {annotation} {cond.Expr};");
+            return BoogieStatement.Assert(ReadAddr(cond));
         }
 
         public StatementList LocationAttributes(string sourceFile, int sourceLine)
         {
             return BoogieStatement.FromString($"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} true;");
         }
-        public BoogieStatement Assume(Expression cond, string annotation = null)
-        {
-            annotation = FixAnnotation(annotation);
-            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
-            return BoogieStatement.FromString($"assume {annotation} {cond.Expr};");
-        }
         public BoogieStatement Assume(IVariable cond)
         {
-            return Assume(ReadAddr(cond));
+            return BoogieStatement.Assume(ReadAddr(cond));
         }
 
         public abstract Expression NullObject();
@@ -1847,7 +1857,7 @@ namespace TinyBCT
         {
             Contract.Assume(length.Type.Equals(Helpers.BoogieType.Int));
             var eqLength = Expression.ExprEquals(Expression.ArrayLength(array), length);
-            return Assume(eqLength);
+            return BoogieStatement.Assume(eqLength);
         }
         
         public StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
