@@ -293,20 +293,17 @@ namespace TinyBCT
             Contract.Assume(op1.Type.Equals(Helpers.BoogieType.Int));
             return new Expression(Helpers.BoogieType.Bool, $"({op1.Expr} < {index})");
         }
+        public static Expression LoadInstanceFieldAddr(IFieldReference field, Expression instance)
+        {
+            String map = FieldTranslator.GetFieldName(field);
+            return new Expression(Helpers.BoogieType.Addr, $"LoadInstanceFieldAddr({map}, {instance.Expr})");
+        }
 
         public override string ToString()
         {
             throw new Exception("This method should not be called, use property Expr.");
         }
-
-        internal static Expression TEMPORARY_HACK_FromAddress(Addressable addr)
-        {
-            if (addr is AddressExpression addrExpr)
-            {
-                return new Expression(Helpers.GetBoogieType(addrExpr.Type), addrExpr.Expr);
-            }
-            throw new NotImplementedException();
-        }
+        
         // TODO(rcastano): I'm not sure why this is necessary. It is related to the dispatching of delegates.
         internal static readonly Expression Type0 = new Expression(Helpers.BoogieType.Ref, "Type0()");
     }
@@ -507,7 +504,7 @@ namespace TinyBCT
         }
 
         // Call InstructionTranslator.GetFreshVariable instead of this.
-        public static BoogieVariable GetTempVar(Helpers.BoogieType type, Dictionary<string, Helpers.BoogieType> usedVarNames, string prefix = "$temp_")
+        public static BoogieVariable GetTempVar(Helpers.BoogieType type, Dictionary<string, BoogieVariable> usedVarNames, string prefix = "$temp_")
         {
             int i = usedVarNames.Count - 1;
             var name = String.Empty;
@@ -515,8 +512,9 @@ namespace TinyBCT
                 ++i;
                 name = $"{prefix}{type.FirstUppercase()}_{i}";
             } while (usedVarNames.ContainsKey(name));
-            usedVarNames.Add(name, type);
-            return new BoogieVariable(type, name);
+            var newBoogieVar = new BoogieVariable(type, name);
+            usedVarNames.Add(name, newBoogieVar);
+            return newBoogieVar;
         }
 
         static internal string AdaptNameToBoogie(string name)
@@ -608,7 +606,7 @@ namespace TinyBCT
             {
                 Key = key;
             }
-            public string Expr { get { return $"{ReadFunction}({MemoryMap}, {Key.Expr})"; } }
+            public string Expr { get { return $"{ReadFunction}({MemoryMap}, {Key.Expr.Expr})"; } }
             public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Type); } }
             private AddressExpression Key { get; }
             private string MemoryMap { get { return $"$memory{Type.FirstUppercase()}"; } }
@@ -762,6 +760,10 @@ namespace TinyBCT
         {
             return new BoogieStatement(str);
         }
+        public static BoogieStatement VariableDeclaration(BoogieVariable var)
+        {
+            return new BoogieStatement($"\tvar {var.Expr} : {var.Type};");
+        }
         public static readonly BoogieStatement Nop = new BoogieStatement(String.Empty);
         internal static readonly BoogieStatement ReturnStatement = new BoogieStatement("return ;");
         public static implicit operator StatementList(BoogieStatement s)
@@ -860,7 +862,7 @@ namespace TinyBCT
                 Key = key;
                 Value = value;
             }
-            public string Stmt { get { return $"{MemoryMap} := {WriteFunction}({MemoryMap}, {Key.Expr}, {Value});"; } }
+            public string Stmt { get { return $"{MemoryMap} := {WriteFunction}({MemoryMap}, {Key.Expr.Expr}, {Value});"; } }
             public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Type); } }
             private AddressExpression Key { get; }
             // TODO(rcastano): This should be "Expression Value"
@@ -940,7 +942,7 @@ namespace TinyBCT
     // expr field is an expression that in boogie will be typed as Addr
     public class AddressExpression : Addressable
     {
-        public AddressExpression(ITypeReference t, string e)
+        public AddressExpression(ITypeReference t, Expression e)
         {
             Type = t;
             Expr = e;
@@ -948,12 +950,12 @@ namespace TinyBCT
 
         public override string ToString()
         {
-            return Expr;
+            throw new Exception("This method should not be called, use property Expr within property Expr (that is Expr.Expr).");
         }
 
         // make them only readable
         public ITypeReference Type;
-        public string Expr;
+        public Expression Expr;
     }
 
     // todo: refactor hierarchy
@@ -1026,21 +1028,18 @@ namespace TinyBCT
         //    return string.Format("{0} := {1};", variableA, expr);
         //}
 
-        public override StatementList DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables)
+        public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
         {
             var stmts = new StatementList();
-            variables.Select(v =>
-                    String.Format("\tvar {0} : {1};", AddressOf(v), "Addr")
-            ).ToList().ForEach(str => stmts.Add(BoogieStatement.FromString(str)));
+            foreach (var v in variables)
+            {
+                stmts.Add(BoogieStatement.VariableDeclaration(BoogieVariable.AddressVar(v)));
+            }
 
-            assignedInMethodCalls.Select(v =>
-                    String.Format("\tvar {0} : {1};", v, Helpers.GetBoogieType(v.Type))
-            ).ToList().ForEach(str => stmts.Add(BoogieStatement.FromString(str)));
-
-            temporalVariables.Select(kv =>
-                    String.Format("\tvar {0} : {1};", kv.Key, kv.Value)
-            ).ToList().ForEach(str => stmts.Add(BoogieStatement.FromString(str)));
-
+            foreach (var kv in temporalVariables)
+            {
+                stmts.Add(BoogieStatement.VariableDeclaration(kv.Value));
+            }
 
             return stmts;
         }
@@ -1119,14 +1118,14 @@ namespace TinyBCT
                 var dereference = value as Dereference;
                 // read addr of the reference
                 // index that addr into the corresponding 'heap'
-                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference).Expr);
+                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference));
                 return WriteAddr(AddressOf(variableA), ReadAddr(addr));
             } else if (value is Reference)
             {
                 var reference = value as Reference;
-                var addr = AddressOf(reference.Value);
-                Expression expr = Expression.TEMPORARY_HACK_FromAddress(addr);
-                return WriteAddr(AddressOf(variableA), expr);
+                var addr = AddressOf(reference.Value) as AddressExpression;
+                Contract.Assume(addr != null);
+                return WriteAddr(AddressOf(variableA), addr.Expr);
             }
 
             Contract.Assert(false);
@@ -1190,20 +1189,19 @@ namespace TinyBCT
 
         public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
-            String map = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-            return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance).Expr));
+            var expr = Expression.LoadInstanceFieldAddr(instanceFieldAccess.Field, ValueOfVariable(instanceFieldAccess.Instance));
+            return new AddressExpression(instanceFieldAccess.Field.Type, expr);
         }
 
         public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
         {
-            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
+            var address = new AddressExpression(staticFieldAccess.Field.Type, BoogieVariable.From(new StaticField(staticFieldAccess)));
             return address;
         }
 
         public override Addressable AddressOf(IVariable var)
         {
-            return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
+            return new AddressExpression(var.Type, BoogieVariable.AddressVar(var));
         }
 
 
@@ -1278,7 +1276,7 @@ namespace TinyBCT
         {
             return BoogieStatement.Nop;
         }
-        public override StatementList DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables)
+        public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
         {
             StatementList stmts = new StatementList();
 
@@ -1287,9 +1285,10 @@ namespace TinyBCT
                     String.Format("\tvar {0} : {1};", v.Name, Helpers.GetBoogieType(v.Type))
             ).ToList().ForEach(str => stmts.Add(BoogieStatement.FromString(str)));
 
-            temporalVariables.Select(kv =>
-                    String.Format("\tvar {0} : {1};", kv.Key, kv.Value)
-            ).ToList().ForEach(str => stmts.Add(BoogieStatement.FromString(str)));
+            foreach (var kv in temporalVariables)
+            {
+                stmts.Add(BoogieStatement.VariableDeclaration(kv.Value));
+            }
 
             return stmts;
         }
@@ -1515,7 +1514,7 @@ namespace TinyBCT
 
         public abstract Expression ReadAddr(Addressable addr);
         
-        public abstract StatementList DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables);
+        public abstract StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables);
 
         public abstract StatementList AllocLocalVariables(IList<IVariable> variables);
 

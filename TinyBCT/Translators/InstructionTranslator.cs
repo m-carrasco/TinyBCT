@@ -43,24 +43,19 @@ namespace TinyBCT.Translators
         // for example for delegates there are instructions that are no longer used
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
-
-        // new address modelling only:
-        // The variables stored in this set are accessed in a slightly different way than local variables.
-        // As such, we need to create the _{var_name} boogie variable for the address but also
-        // the {var_name};
-        public ISet<IVariable> ShouldCreateValueVariable { get; } = new HashSet<IVariable>();
+        
 
         private IPrimarySourceLocation prevSourceLocation;
 
         protected IMethodDefinition method;
-        public Dictionary<string, Helpers.BoogieType> temporalVariables;
+        public Dictionary<string, BoogieVariable> temporalVariables;
 
         public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody)
         {
             this.CHA = CHA;
             this.method = methodBody.MethodDefinition;
             this.methodBody = methodBody;
-            temporalVariables = new Dictionary<string, Helpers.BoogieType>();
+            temporalVariables = new Dictionary<string, BoogieVariable>();
         }
 
         public BoogieVariable GetFreshVariable(Helpers.BoogieType type, string prefix)
@@ -897,7 +892,7 @@ namespace TinyBCT.Translators
                 }
                 else if (dereference != null && Settings.NewAddrModelling)
                 {
-                    var address = new AddressExpression(dereference.Type, boogieGenerator.ReadAddr(dereference.Reference).Expr);
+                    var address = new AddressExpression(dereference.Type, boogieGenerator.ReadAddr(dereference.Reference));
                     AddBoogie(boogieGenerator.WriteAddr(address, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else

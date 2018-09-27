@@ -125,12 +125,10 @@ namespace TinyBCT
             this.CHA = CHA;
         }
 
-        StatementList TranslateInstructions(ref ISet<IVariable> assignedInMethodCalls, ref Dictionary<string, Helpers.BoogieType> temporalVariables)
+        StatementList TranslateInstructions(out Dictionary<string, BoogieVariable> temporalVariables)
         {
             InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody);
             instTranslator.Translate();
-
-            assignedInMethodCalls = instTranslator.ShouldCreateValueVariable;
 
             foreach (var v in instTranslator.RemovedVariables)
                 methodBody.Variables.Remove(v);
@@ -141,13 +139,13 @@ namespace TinyBCT
             return instTranslator.Boogie();
         }
 
-        StatementList TranslateLocalVariables(ISet<IVariable> assignedInMethodCalls, Dictionary<string, Helpers.BoogieType> temporalVariables)
+        StatementList TranslateLocalVariables(Dictionary<string, BoogieVariable> temporalVariables)
         {
             StatementList localVariablesStmts = new StatementList();
             var bg = BoogieGenerator.Instance();
 
             var allVariables = methodBody.Variables.Union(methodBody.Parameters).ToList();
-            localVariablesStmts.Add(bg.DeclareLocalVariables(allVariables, assignedInMethodCalls, temporalVariables));
+            localVariablesStmts.Add(bg.DeclareLocalVariables(allVariables, temporalVariables));
 
             localVariablesStmts.Add(bg.AllocLocalVariables(allVariables));
 
@@ -185,11 +183,8 @@ namespace TinyBCT
             // instructions must be translated before local variables
             // modification to local variables can ocurr while instruction translation is done
             // for example when delegate creation is detected some local variables are deleted.
-
-            ISet<IVariable> assignedInMethodCalls = null;
-            Dictionary<string, Helpers.BoogieType> temporalVariables = new Dictionary<string, Helpers.BoogieType>();
-            var ins = TranslateInstructions(ref assignedInMethodCalls, ref temporalVariables);
-            var localVariables = TranslateLocalVariables(assignedInMethodCalls, temporalVariables);
+            var ins = TranslateInstructions(out Dictionary<string, BoogieVariable> temporalVariables);
+            var localVariables = TranslateLocalVariables(temporalVariables);
             var methodName = BoogieMethod.From(methodDefinition).Name;
             var attr = TranslateAttr();
             var parametersWithTypes = Helpers.GetParametersWithBoogieType(methodDefinition);
