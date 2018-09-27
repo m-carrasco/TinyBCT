@@ -559,6 +559,14 @@ namespace TinyBCT
             var fieldName = FieldTranslator.GetFieldName(staticField.Field);
             return new BoogieVariable(Helpers.GetBoogieType(staticField.Type), fieldName);
         }
+        // This method should be used with extreme care. In general an incorrect usage should lead to a
+        // name resolution error at the Boogie level.
+        // The names of the Boogie variable generator for a .NET variable differs when using the
+        // new address modeling (sound address modeling) as opposed to the old one, which is unsound.
+        // The sound address modeling will create a Boogie variable _{original_name_of_the_dotNET_var},
+        // whereas the old one will copy the original name of the .Net variable.
+        // TODO(rcastano): restrict the cases in which this conversion from IVariable
+        // to BoogieVariable can be performed.
         static public BoogieVariable FromDotNetVariable(IVariable variable)
         {
             Contract.Requires(!Settings.NewAddrModelling);
@@ -784,7 +792,26 @@ namespace TinyBCT
             Contract.Assume(!(
                 variableA.Equals(BoogieVariable.ExceptionVar()) &&
                 expr.Equals(BoogieGenerator.Instance().NullObject())));
-            return BoogieStatement.FromString($"{variableA.Expr} := {expr.Expr};");
+            return new BoogieStatement($"{variableA.Expr} := {expr.Expr};");
+        }
+        public static StatementList ProcedureCall(BoogieMethod procedure, List<Expression> argumentList, List<BoogieVariable> resultArguments, BoogieVariable resultVariable = null)
+        {
+            StatementList stmts = new StatementList();
+            var boogieProcedureName = procedure.Name;
+            var arguments = String.Join(",", argumentList.Select(v => v.Expr));
+            if (resultArguments.Count > 0)
+            {
+                var resultArgumentsStr = String.Join(",", resultArguments.Select(v => v.Expr));
+                stmts.Add(new BoogieStatement($"call {resultArgumentsStr} := {boogieProcedureName}({arguments});"));
+                if (Settings.NewAddrModelling)
+                {
+                    Contract.Assert(resultArguments.Count == 1);
+                    Contract.Assert(resultArguments.Contains(resultVariable));
+                }
+                return stmts;
+            }
+            else
+                return new BoogieStatement($"call {boogieProcedureName}({arguments});");
         }
         public static readonly BoogieStatement Nop = new BoogieStatement(String.Empty);
         internal static readonly BoogieStatement ReturnStatement = new BoogieStatement("return ;");
@@ -832,14 +859,14 @@ namespace TinyBCT
         {
             annotation = FixAnnotation(annotation);
             Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
-            return BoogieStatement.FromString($"assume {annotation} {cond.Expr};");
+            return new BoogieStatement($"assume {annotation} {cond.Expr};");
         }
 
         public static StatementList Assert(Expression cond, string annotation = null)
         {
             annotation = FixAnnotation(annotation);
             Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
-            return BoogieStatement.FromString($"assert {annotation} {cond.Expr};");
+            return new BoogieStatement($"assert {annotation} {cond.Expr};");
         }
     }
 
@@ -1319,7 +1346,7 @@ namespace TinyBCT
 
         public override StatementList VariableAssignment(IVariable variableA, Expression expr)
         {
-            return BoogieStatement.FromString($"{variableA} := {expr.Expr};");
+            return BoogieStatement.VariableAssignment(BoogieVariable.FromDotNetVariable(variableA), expr);
         }
 
         public override StatementList AllocLocalVariables(IList<IVariable> variables)
@@ -1364,7 +1391,7 @@ namespace TinyBCT
                 resultArguments.Add(resultVariable);
             }
 
-            return ProcedureCall(boogieProcedure, argumentList.Select(v => v.Item1).ToList(), resultArguments, resultVariable);
+            return BoogieStatement.ProcedureCall(boogieProcedure, argumentList.Select(v => v.Item1).ToList(), resultArguments, resultVariable);
         }
 
         public override Expression ReadAddr(IVariable var)
@@ -1679,26 +1706,7 @@ namespace TinyBCT
             {
                 resultArgList.Add(resultVariable);
             }
-            return ProcedureCall(procedure, argumentList, resultArgList, resultVariable);
-        }
-        protected StatementList ProcedureCall(BoogieMethod procedure, List<Expression> argumentList, List<BoogieVariable> resultArguments, BoogieVariable resultVariable = null)
-        {
-            StatementList stmts = new StatementList();
-            var boogieProcedureName = procedure.Name;
-            var arguments = String.Join(",", argumentList.Select(v => v.Expr));
-            if (resultArguments.Count > 0)
-            {
-                var resultArgumentsStr = String.Join(",", resultArguments.Select(v => v.Expr));
-                stmts.Add(BoogieStatement.FromString(string.Format("call {0} := {1}({2});", resultArgumentsStr, boogieProcedureName, arguments)));
-                if (Settings.NewAddrModelling)
-                {
-                    Contract.Assert(resultArguments.Count == 1);
-                    Contract.Assert(resultArguments.Contains(resultVariable));
-                }
-                return stmts;
-            }
-            else
-                return BoogieStatement.FromString(string.Format("call {0}({1});", boogieProcedureName, arguments));
+            return BoogieStatement.ProcedureCall(procedure, argumentList, resultArgList, resultVariable);
         }
 
         public abstract StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null);
@@ -1923,13 +1931,13 @@ namespace TinyBCT
             {
                 var tempBoogieVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(result.Type));
                 var resultArguments = new List<BoogieVariable> { tempBoogieVar};
-                return ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, tempBoogieVar);
+                return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, tempBoogieVar);
             }
             else
             {
                 var resultBoogieVar = BoogieVariable.GetAssignedVar(convertInstruction);
                 var resultArguments = new List<BoogieVariable> { resultBoogieVar };
-                return ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, resultBoogieVar);
+                return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, resultBoogieVar);
             }
         }
     }
