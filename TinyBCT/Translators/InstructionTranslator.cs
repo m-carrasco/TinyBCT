@@ -1180,7 +1180,7 @@ namespace TinyBCT.Translators
                         assume Union2Int(Int2Union(0)) == 0;
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
-                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(instruction.Operand)));
+                    AddBoogie(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(instruction.Operand)));
                     AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Operand))));
                 }
                 else
@@ -1561,7 +1561,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         continue;
 
-                    AddBoogie(boogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(argument)));
+                    AddBoogie(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(argument)));
                     //AddBoogie(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
                 }
 
@@ -1726,17 +1726,18 @@ namespace TinyBCT.Translators
             // for virtual methods we may have to change this to include the reference to the object receiving the message
             var parameters = invokeArity.ParameterCount > 0 ? ","+ String.Join(",", invokeArity.Parameters.Select(v => String.Format("arg{0}$in", v.Index) + " : Ref")) : String.Empty;
 
-            stmts.Add(BoogieStatement.FromString(string.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2};", groupTypeString, parameters, hasReturnVariable ? "returns ($r: Ref)" : string.Empty)));
-            stmts.Add(BoogieStatement.FromString(string.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2}", groupTypeString, parameters, hasReturnVariable ? "returns ($r: Ref)" : string.Empty)));
+            stmts.Add(BoogieStatement.FromString(string.Format("procedure {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2};", groupTypeString, parameters, hasReturnVariable ? "returns ($result: Ref)" : string.Empty)));
+            stmts.Add(BoogieStatement.FromString(string.Format("implementation {{:inline 1}} InvokeDelegate_{0}($this: Ref{1}) {2}", groupTypeString, parameters, hasReturnVariable ? "returns ($result: Ref)" : string.Empty)));
             stmts.Add(BoogieStatement.FromString("{"));
 
+            
             // we declare a local for each parameter - local will not be union, will be the real type (boogie version)
             // the resultRealType variable is for the return value if any - then it will be casted to Union and will be the return value
             foreach (var v in invokeArity.Parameters)
-                stmts.Add(BoogieStatement.FromString(String.Format("\tvar local{0} : {1};", v.Index, Helpers.GetBoogieType(v.Type))));
+                stmts.Add(BoogieStatement.VariableDeclaration(DelegateHandlingVariable.From(v)));
 
             if (hasReturnVariable)
-                stmts.Add(BoogieStatement.FromString((String.Format("\tvar resultRealType: {0};", Helpers.GetBoogieType(invokeArity.Type)))));
+                stmts.Add(BoogieStatement.VariableDeclaration(DelegateHandlingVariable.ResultVar(invokeArity)));
 
             foreach (var m in MethodGrouping[groupTypeString])
             {
@@ -1771,33 +1772,38 @@ namespace TinyBCT.Translators
                     var argType = Helpers.GetBoogieType(v.Type);
                     //if (argType.Equals("Ref")) // Ref and Union are alias
                     //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
+
+                    var paramBoogieParam = DelegateHandlingParameter.From(v);
                     if (!Helpers.IsBoogieRefType(v.Type))
                     {
-                        stmts.Add(BoogieStatement.FromString(String.Format("\t\tlocal{0} := Union2{1}(arg{0}$in);", v.Index, argType.FirstUppercase())));
-                        args.Add(String.Format("local{0}", v.Index));
+                        var paramBoogieVar = DelegateHandlingVariable.From(v);
+                        stmts.Add(BoogieStatement.VariableAssignment(paramBoogieVar, Expression.Union2PrimitiveType(argType, paramBoogieParam)));
+                        args.Add(paramBoogieVar.Expr);
                     }
                     else
                     {
-                        args.Add(String.Format("arg{0}$in", v.Index));
+                        args.Add(paramBoogieParam.Expr);
                     }
                 }
 
                 if (hasReturnVariable)
                 {
+                    var resultVar = BoogieVariable.ResultVar(Helpers.BoogieType.Ref);
                     if (Helpers.IsBoogieRefType(method.Type))
                     {
-                        stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
+                        stmts.Add(BoogieStatement.FromString($"\t\tcall {resultVar.Expr} := {BoogieMethod.From(method).Name}({String.Join(",", args)});"));
                     } else
                     {
                         var argType = Helpers.GetBoogieType(method.Type);
                         if (!Helpers.IsBoogieRefType(method.Type))
                         {
-                            stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall resultRealType := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
-                            stmts.Add(BoogieStatement.FromString(String.Format("\t\tassume Union2{0}({0}2Union(resultRealType)) == resultRealType;", argType.FirstUppercase())));
-                            stmts.Add(BoogieStatement.FromString(String.Format("\t\t$r := {0}2Union(resultRealType);", argType.FirstUppercase())));
+                            var delegateResultVar = DelegateHandlingVariable.ResultVar(invokeArity);
+                            stmts.Add(BoogieStatement.FromString($"\t\tcall {delegateResultVar.Expr} := {BoogieMethod.From(method).Name}({String.Join(",", args)});"));
+                            stmts.Add(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(delegateResultVar));
+                            stmts.Add(BoogieStatement.FromString($"\t\t{resultVar.Expr} := {Expression.PrimitiveType2Union(delegateResultVar).Expr};"));
                         } else
                         {
-                            stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall $r := {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
+                            stmts.Add(BoogieStatement.FromString($"\t\tcall {resultVar.Expr} := {BoogieMethod.From(method).Name}({String.Join(",", args)});"));
                         }
 
                     }

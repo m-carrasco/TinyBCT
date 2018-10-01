@@ -587,7 +587,34 @@ namespace TinyBCT
             return new BoogieVariable(Helpers.BoogieType.Addr, $"_{var.Name}");
         }
     }
-    public class BoogieParameter : BoogieVariable
+
+    public class DelegateHandlingVariable : BoogieVariable
+    {
+        protected DelegateHandlingVariable(Helpers.BoogieType type, string name) : base(type, name) { }
+        public static DelegateHandlingVariable From(IParameterTypeInformation paramInfo)
+        {
+            return new DelegateHandlingVariable(Helpers.GetBoogieType(paramInfo.Type), $"local{paramInfo.Index}");
+        }
+        public static DelegateHandlingVariable From(IParameterDefinition paramInfo)
+        {
+            return new DelegateHandlingVariable(Helpers.GetBoogieType(paramInfo.Type), $"local{paramInfo.Index}");
+        }
+        public static DelegateHandlingVariable ResultVar(IMethodDefinition methodDefinition)
+        {
+            return new DelegateHandlingVariable(Helpers.GetBoogieType(methodDefinition.Type), "resultRealType");
+        }
+    }
+
+    public class DelegateHandlingParameter : DelegateHandlingVariable
+    {
+        protected DelegateHandlingParameter(Helpers.BoogieType type, string name) : base(type, name) { }
+        public new static DelegateHandlingParameter From(IParameterTypeInformation paramInfo)
+        {
+            return new DelegateHandlingParameter(Helpers.BoogieType.Ref, $"arg{paramInfo.Index}$in");
+        }
+    }
+
+        public class BoogieParameter : BoogieVariable
     {
         private BoogieParameter(Helpers.BoogieType type, string name) : base(type, name)
         {
@@ -869,6 +896,7 @@ namespace TinyBCT
             return new BoogieStatement($"assert {annotation} {cond.Expr};");
         }
     }
+    
 
     // TODO(rcastano): The current encoding of blocks is very preliminary.
     // We're opening and closing brackets as boogie statements, hence not
@@ -1625,7 +1653,7 @@ namespace TinyBCT
 
         protected abstract Expression ValueOfVariable(IVariable var);
         
-        public StatementList AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
+        public static StatementList AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
         {
             var p2u = Expression.PrimitiveType2Union(expr);
             var p2u2p = Expression.Union2PrimitiveType(expr.Type, p2u);
@@ -1914,7 +1942,7 @@ namespace TinyBCT
 
         public StatementList Return()
         {
-            return BoogieStatement.FromString("return;");
+            return BoogieStatement.ReturnStatement;
         }
 
         public StatementList BoxFrom(IVariable op1, ConvertInstruction convertInstruction, InstructionTranslator instructionTranslator)
