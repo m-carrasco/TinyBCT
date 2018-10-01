@@ -840,6 +840,62 @@ namespace TinyBCT
             else
                 return new BoogieStatement($"call {boogieProcedureName}({arguments});");
         }
+        private static BoogieStatement FromList(StatementList stmts)
+        {
+            Contract.Assume(stmts.Stmts.Count != 0);
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("{");
+            foreach (var s in stmts.Stmts)
+            {
+                sb.AppendLine(s.Stmt);
+            }
+            sb.AppendLine("}");
+            return new BoogieStatement(sb.ToString());
+        }
+
+        public static StatementList If(Expression condition, StatementList body)
+        {
+            var stmts = new StatementList();
+            stmts.Add(new BoogieStatement($"if ({condition.Expr})"));
+            stmts.Add(FromList(body));
+            return stmts;
+        }
+        public static StatementList ElseIf(Expression condition, StatementList body)
+        {
+            StatementList stmts = new StatementList();
+
+            stmts.Add(new BoogieStatement($"else if ({condition.Expr})"));
+            stmts.Add(FromList(body));
+
+            return stmts;
+        }
+        public static StatementList Else(StatementList body)
+        {
+            StatementList stmts = new StatementList();
+
+            stmts.Add(new BoogieStatement("else"));
+            stmts.Add(FromList(body));
+
+            return stmts;
+        }
+        public static BoogieStatement LocationAttributes(string sourceFile, int sourceLine)
+        {
+            return new BoogieStatement($"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} true;");
+        }
+        public static BoogieStatement AllocObjectAxiom(IVariable paramVariable)
+        {
+            Contract.Assume(Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object));
+            return new BoogieStatement(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
+        }
+
+        public static BoogieStatement AllocAddrAxiom(IVariable paramVariable)
+        {
+            Contract.Assume(Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr));
+            return new BoogieStatement(String.Format("assume $AllocAddr[{0}] == true || {0} != null_addr;", paramVariable));
+        }
+        
+
         public static readonly BoogieStatement Nop = new BoogieStatement(String.Empty);
         internal static readonly BoogieStatement ReturnStatement = new BoogieStatement("return ;");
         public static implicit operator StatementList(BoogieStatement s)
@@ -894,6 +950,19 @@ namespace TinyBCT
             annotation = FixAnnotation(annotation);
             Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
             return new BoogieStatement($"assert {annotation} {cond.Expr};");
+        }
+
+        public static BoogieStatement Goto(string label)
+        {
+            return new BoogieStatement(String.Format("\t\tgoto {0};", label));
+        }
+        public static BoogieStatement HavocResult(DefinitionInstruction instruction)
+        {
+            return new BoogieStatement(String.Format("havoc {0};", instruction.Result));
+        }
+        public static StatementList AssumeTypeConstructor(Expression arg, string type)
+        {
+            return BoogieStatement.FromString(String.Format("assume $TypeConstructor($DynamicType({0})) == T${1};", arg.Expr, type));
         }
     }
     
@@ -1271,10 +1340,10 @@ namespace TinyBCT
 
                 if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
                 {
-                    stmts.Add(BoogieStatement.FromString(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable)));
+                    stmts.Add(BoogieStatement.AllocObjectAxiom(paramVariable));
                 } else if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr))
                 {
-                    stmts.Add(BoogieStatement.FromString(String.Format("assume $AllocAddr[{0}] == true || {0} != null_addr;", paramVariable)));
+                    stmts.Add(BoogieStatement.AllocAddrAxiom(paramVariable));
                 }
             }
 
@@ -1782,11 +1851,6 @@ namespace TinyBCT
             return BoogieStatement.VariableAssignment(variableA, expr);
         }
 
-        public StatementList HavocResult(DefinitionInstruction instruction)
-        {
-            return BoogieStatement.FromString(String.Format("havoc {0};", instruction.Result));
-        }
-
         public Expression BranchOperationExpression(IVariable op1, IInmediateValue op2, BranchOperation branchOperation)
         {
             BoogieLiteral ifConst = null;
@@ -1796,11 +1860,6 @@ namespace TinyBCT
             }
             var op2Expr = op2 is Constant ? ifConst : ReadAddr(AddressOf(op2));
             return Expression.BranchOperationExpression(ReadAddr(op1), op2Expr, branchOperation);
-        }
-
-        public StatementList Goto(string label)
-        {
-            return BoogieStatement.FromString(String.Format("\t\tgoto {0};", label));
         }
 
         public Expression DynamicType(IVariable reference)
@@ -1817,12 +1876,7 @@ namespace TinyBCT
 
         public StatementList AssumeTypeConstructor(IVariable arg, ITypeReference type)
         {
-            return AssumeTypeConstructor(ReadAddr(arg).Expr, type.ToString());
-        }
-
-        public StatementList AssumeTypeConstructor(string arg, string type)
-        {
-            return BoogieStatement.FromString(String.Format("assume $TypeConstructor($DynamicType({0})) == T${1};", arg, type));
+            return BoogieStatement.AssumeTypeConstructor(ReadAddr(arg), type.ToString());
         }
 
         public StatementList Assert(IVariable cond)
@@ -1831,54 +1885,12 @@ namespace TinyBCT
             return BoogieStatement.Assert(ReadAddr(cond));
         }
 
-        public StatementList LocationAttributes(string sourceFile, int sourceLine)
-        {
-            return BoogieStatement.FromString($"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} true;");
-        }
         public BoogieStatement Assume(IVariable cond)
         {
             return BoogieStatement.Assume(ReadAddr(cond));
         }
 
         public abstract Expression NullObject();
-
-        public BoogieBlock If(Expression condition, StatementList body)
-        {
-            BoogieBlock stmts = new BoogieBlock();
-
-            stmts.Add(BoogieStatement.FromString(String.Format("if ({0})", condition.Expr)));
-            stmts.Add(BoogieStatement.FromString("{"));
-            stmts.Add(body);
-            stmts.Add(BoogieStatement.FromString("}"));
-
-            return stmts;
-        }
-        // TODO(rcastano): This should have its own type, something along the lines
-        // of ElseBlock.
-        public BoogieBlock Else( StatementList body)
-        {
-            BoogieBlock stmts = new BoogieBlock();
-
-            stmts.Add(BoogieStatement.FromString("else"));
-            stmts.Add(BoogieStatement.FromString("{"));
-            stmts.Add(body);
-            stmts.Add(BoogieStatement.FromString("}"));
-
-            return stmts;
-        }
-
-
-        public BoogieBlock ElseIf(Expression condition, StatementList body)
-        {
-            BoogieBlock stmts = new BoogieBlock();
-
-            stmts.Add(BoogieStatement.FromString(String.Format("else if ({0})", condition.Expr)));
-            stmts.Add(BoogieStatement.FromString("{"));
-            stmts.Add(body);
-            stmts.Add(BoogieStatement.FromString("}"));
-
-            return stmts;
-        }
 
         public Expression Subtype(IVariable var, ITypeReference type)
         {
@@ -1938,11 +1950,6 @@ namespace TinyBCT
             l.Add(index);
             l.Add(value);
             return ProcedureCall(BoogieMethod.WriteArrayElement, l);
-        }
-
-        public StatementList Return()
-        {
-            return BoogieStatement.ReturnStatement;
         }
 
         public StatementList BoxFrom(IVariable op1, ConvertInstruction convertInstruction, InstructionTranslator instructionTranslator)

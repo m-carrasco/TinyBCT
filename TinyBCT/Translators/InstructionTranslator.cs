@@ -205,14 +205,14 @@ namespace TinyBCT.Translators
                 { 
                     var fileName = location.SourceDocument.Name;
                     var sourceLine = location.StartLine;
-                    AddBoogie(boogieGenerator.LocationAttributes(fileName.ToString(), sourceLine));
+                    AddBoogie(BoogieStatement.LocationAttributes(fileName.ToString(), sourceLine));
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
                 }
                 else 
                 {
                     if (Settings.DebugLines)
                     {
-                        AddBoogie(boogieGenerator.LocationAttributes("Empty", 0));
+                        AddBoogie(BoogieStatement.LocationAttributes("Empty", 0));
                     }
                 }
             }
@@ -237,7 +237,7 @@ namespace TinyBCT.Translators
                     {
 
                         // example:if ($tmp6 == T$DynamicDispatch.Dog())
-                        AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeBoogieVar, calless.First().ContainingType), funcOnPotentialCallee(calless.First())));
+                        AddBoogie(BoogieStatement.If(boogieGenerator.Subtype(getTypeBoogieVar, calless.First().ContainingType), funcOnPotentialCallee(calless.First())));
 
                         int i = 0;
                         foreach (var impl in calless)
@@ -250,7 +250,7 @@ namespace TinyBCT.Translators
                                 continue;
                             }
 
-                            AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, impl.ContainingType), funcOnPotentialCallee(impl)));
+                            AddBoogie(BoogieStatement.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, impl.ContainingType), funcOnPotentialCallee(impl)));
                             i++;
                         }
                     }
@@ -263,17 +263,17 @@ namespace TinyBCT.Translators
                         {
                             if (Settings.AvoidSubtypeCheckingForInterfaces)
                             {
-                                AddBoogie(boogieGenerator.Else(funcOnPotentialCallee(method)));
+                                AddBoogie(BoogieStatement.Else(funcOnPotentialCallee(method)));
                             }
                             else
                             {
-                                AddBoogie(boogieGenerator.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
+                                AddBoogie(BoogieStatement.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
+                                AddBoogie(BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
+                            AddBoogie(BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                         }
                     }
                     else
@@ -286,13 +286,13 @@ namespace TinyBCT.Translators
                             }
                             else
                             {
-                                AddBoogie(boogieGenerator.If(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(boogieGenerator.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
+                                AddBoogie(BoogieStatement.If(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
+                                AddBoogie(BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                             }
                         }
                         else
                         {
-                            AddBoogie(boogieGenerator.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
+                            AddBoogie(BoogieStatement.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
                         }
 
                     }
@@ -480,7 +480,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadTokenInstruction instruction)
             {
-                AddBoogie(boogieGenerator.HavocResult(instruction));
+                AddBoogie(BoogieStatement.HavocResult(instruction));
 
                 //// unexpected LoadTokenInstruction
                 //// only handled for array initialization, see the AtomicArrayInitializationTranslation.
@@ -498,13 +498,13 @@ namespace TinyBCT.Translators
                 foreach (var target in instruction.Targets)
                 {
                     var indexCondition = Expression.ExprEquals(boogieGenerator.ReadAddr(instruction.Operand), idx);
-                    var body = boogieGenerator.Goto(target);
-                    stmts.Add(boogieGenerator.If(indexCondition, body));
+                    var body = BoogieStatement.Goto(target);
+                    stmts.Add(BoogieStatement.If(indexCondition, body));
                     idx++;
                 }
 
                 var cond = Expression.LessThan(boogieGenerator.ReadAddr(instruction.Operand), instruction.Targets.Count);
-                AddBoogie(boogieGenerator.If(cond, stmts));
+                AddBoogie(BoogieStatement.If(cond, stmts));
             }
 
             public override void Visit(UnaryInstruction instruction)
@@ -553,7 +553,7 @@ namespace TinyBCT.Translators
                     }
                     else
                     {
-                        AddBoogie(boogieGenerator.HavocResult(instruction));
+                        AddBoogie(BoogieStatement.HavocResult(instruction));
                     }
                 }
             }
@@ -612,13 +612,13 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        AddBoogie(boogieGenerator.Goto(target.First()));
+                        AddBoogie(BoogieStatement.Goto(target.First()));
                         return;
                     }
 
                 }
 
-                AddBoogie(boogieGenerator.Goto(instruction.Target));
+                AddBoogie(BoogieStatement.Goto(instruction.Target));
             }
 
             public override void Visit(ReturnInstruction instruction)
@@ -848,11 +848,11 @@ namespace TinyBCT.Translators
                     arguments.Add(Helpers.Strings.FixStringLiteral(leftOperand, boogieGenerator));
                     arguments.Add(Helpers.Strings.FixStringLiteral(rightOperand, boogieGenerator));
                     AddBoogie(boogieGenerator.ProcedureCall(boogieMethod, arguments, tempBoogieVar));
-                    AddBoogie(bg.If(tempBoogieVar, bg.Goto(instruction.Target)));
+                    AddBoogie(BoogieStatement.If(tempBoogieVar, BoogieStatement.Goto(instruction.Target)));
                 }
                 else
                 {
-                    AddBoogie(bg.If(bg.BranchOperationExpression(leftOperand, rightOperand, instruction.Operation), bg.Goto(instruction.Target)));
+                    AddBoogie(BoogieStatement.If(bg.BranchOperationExpression(leftOperand, rightOperand, instruction.Operation), BoogieStatement.Goto(instruction.Target)));
                 }
             }
 
@@ -866,7 +866,7 @@ namespace TinyBCT.Translators
                 var typeString = Helpers.GetNormalizedType(TypeHelper.UninstantiateAndUnspecialize(instruction.AllocationType));
                 InstructionTranslator.MentionedClasses.Add(instruction.AllocationType);
                 AddBoogie(bg.AssumeDynamicType(instruction.Result, instruction.AllocationType));
-                AddBoogie(bg.AssumeTypeConstructor(bg.ReadAddr(instruction.Result).Expr, typeString));
+                AddBoogie(BoogieStatement.AssumeTypeConstructor(bg.ReadAddr(instruction.Result), typeString));
             }
 
             public override void Visit(StoreInstruction instruction)
@@ -914,8 +914,7 @@ namespace TinyBCT.Translators
 
             private void ProcessTypeConversion(ConvertInstruction instruction)
             {
-                var bg = boogieGenerator;
-                AddBoogie(bg.HavocResult(instruction));
+                AddBoogie(BoogieStatement.HavocResult(instruction));
             }
             public override void Visit(ConvertInstruction instruction)
             {
@@ -1232,8 +1231,8 @@ namespace TinyBCT.Translators
 
                 // only encode behaviour if there was an unhandled exception
                 var target = GetThrowTarget(instruction);
-                var ifBody = String.IsNullOrEmpty(target) ? boogieGenerator.Return() : boogieGenerator.Goto(target);
-                AddBoogie(boogieGenerator.If(Expression.ExceptionVarNotNull, ifBody));
+                var ifBody = String.IsNullOrEmpty(target) ? BoogieStatement.ReturnStatement : BoogieStatement.Goto(target);
+                AddBoogie(BoogieStatement.If(Expression.ExceptionVarNotNull, ifBody));
             }
 
             public override void Visit(UnconditionalBranchInstruction instruction)
@@ -1290,12 +1289,12 @@ namespace TinyBCT.Translators
 
                     if (target.Count() > 0) // is there a finally?
                     {
-                        AddBoogie(boogieGenerator.Goto(target.First()));
+                        AddBoogie(BoogieStatement.Goto(target.First()));
                         return;
                     }
 
                 //}
-                AddBoogie(boogieGenerator.Goto(instruction.Target));
+                AddBoogie(BoogieStatement.Goto(instruction.Target));
             }
 
             public override void Visit(TryInstruction instruction)
@@ -1307,8 +1306,8 @@ namespace TinyBCT.Translators
             {
                 // we jump to next catch handler, finally handler or exit method with return.
                 var nextHandler = GetNextHandlerIfCurrentCatchNotMatch(instruction);//GetNextExceptionHandlerLabel(instTranslator.methodBody.ExceptionInformation, instruction.Label);
-                var body = String.IsNullOrEmpty(nextHandler) ? boogieGenerator.Return() : boogieGenerator.Goto(nextHandler);
-                AddBoogie(boogieGenerator.If(Expression.Negation(Expression.Subtype(BoogieVariable.ExceptionTypeVar(), instruction.ExceptionType)), body));
+                var body = String.IsNullOrEmpty(nextHandler) ? BoogieStatement.ReturnStatement : BoogieStatement.Goto(nextHandler);
+                AddBoogie(BoogieStatement.If(Expression.Negation(Expression.Subtype(BoogieVariable.ExceptionTypeVar(), instruction.ExceptionType)), body));
 
                 // Exception is handled we reset global variables
                 if (instruction.HasResult) // catch with no specific exception type
@@ -1337,9 +1336,9 @@ namespace TinyBCT.Translators
                 var target = GetThrowTarget(instruction);
 
                 if (String.IsNullOrEmpty(target))
-                    AddBoogie(boogieGenerator.Return());
+                    AddBoogie(BoogieStatement.ReturnStatement);
                 else
-                    AddBoogie(boogieGenerator.Goto(target));
+                    AddBoogie(BoogieStatement.Goto(target));
             }
 
             public override void Visit(FinallyInstruction instruction)
@@ -1362,8 +1361,8 @@ namespace TinyBCT.Translators
                 if (String.IsNullOrEmpty(label))
                     ifStmts.Add(BoogieStatement.ReturnStatement);
                 else
-                    ifStmts.Add(bg.Goto(label));
-                stmts.Add(bg.If(exceptionNotNull, ifStmts));
+                    ifStmts.Add(BoogieStatement.Goto(label));
+                stmts.Add(BoogieStatement.If(exceptionNotNull, ifStmts));
                 return stmts;
             }
 
@@ -1745,23 +1744,22 @@ namespace TinyBCT.Translators
 
                 var method = Helpers.GetUnspecializedVersion(m);
                 var cond = DelegateExpression.RefToDelegateMethod(id);
-                stmts.Add(BoogieStatement.FromString($"\tif ({cond.Expr})"));
-                stmts.Add(BoogieStatement.FromString("\t{"));
+                var ifStmts = new StatementList();
 
                 // we may have to add the receiver object for virtual methods
-                var args = new List<string>();
+                var args = new List<Expression>();
                 if (method.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 {
                     var receiverObject = DelegateExpression.RefToDelegateReceiver(id);
-                    args.Add(receiverObject.Expr);
+                    args.Add(receiverObject);
                     var refNotNull = Expression.NotEquals(receiverObject, BoogieGenerator.Instance().NullObject());
                     if (Settings.CheckNullDereferences)
                     {
-                        stmts.Add(BoogieStatement.Assert(refNotNull, "nonnull"));
+                        ifStmts.Add(BoogieStatement.Assert(refNotNull, "nonnull"));
                     }
                     else
                     {
-                        stmts.Add(BoogieStatement.Assume(refNotNull, "nonnull"));
+                        ifStmts.Add(BoogieStatement.Assume(refNotNull, "nonnull"));
                     }
                 }
 
@@ -1777,12 +1775,12 @@ namespace TinyBCT.Translators
                     if (!Helpers.IsBoogieRefType(v.Type))
                     {
                         var paramBoogieVar = DelegateHandlingVariable.From(v);
-                        stmts.Add(BoogieStatement.VariableAssignment(paramBoogieVar, Expression.Union2PrimitiveType(argType, paramBoogieParam)));
-                        args.Add(paramBoogieVar.Expr);
+                        ifStmts.Add(BoogieStatement.VariableAssignment(paramBoogieVar, Expression.Union2PrimitiveType(argType, paramBoogieParam)));
+                        args.Add(paramBoogieVar);
                     }
                     else
                     {
-                        args.Add(paramBoogieParam.Expr);
+                        args.Add(paramBoogieParam);
                     }
                 }
 
@@ -1791,29 +1789,29 @@ namespace TinyBCT.Translators
                     var resultVar = BoogieVariable.ResultVar(Helpers.BoogieType.Ref);
                     if (Helpers.IsBoogieRefType(method.Type))
                     {
-                        stmts.Add(BoogieStatement.FromString($"\t\tcall {resultVar.Expr} := {BoogieMethod.From(method).Name}({String.Join(",", args)});"));
+                        ifStmts.Add(BoogieStatement.ProcedureCall(BoogieMethod.From(method), args, new List<BoogieVariable> { resultVar }, resultVar));
                     } else
                     {
                         var argType = Helpers.GetBoogieType(method.Type);
                         if (!Helpers.IsBoogieRefType(method.Type))
                         {
                             var delegateResultVar = DelegateHandlingVariable.ResultVar(invokeArity);
-                            stmts.Add(BoogieStatement.FromString($"\t\tcall {delegateResultVar.Expr} := {BoogieMethod.From(method).Name}({String.Join(",", args)});"));
-                            stmts.Add(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(delegateResultVar));
-                            stmts.Add(BoogieStatement.FromString($"\t\t{resultVar.Expr} := {Expression.PrimitiveType2Union(delegateResultVar).Expr};"));
+                            ifStmts.Add(BoogieStatement.ProcedureCall(BoogieMethod.From(method), args, new List<BoogieVariable> { delegateResultVar }, delegateResultVar));
+                            ifStmts.Add(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(delegateResultVar));
+                            ifStmts.Add(BoogieStatement.VariableAssignment(resultVar, Expression.PrimitiveType2Union(delegateResultVar)));
                         } else
                         {
-                            stmts.Add(BoogieStatement.FromString($"\t\tcall {resultVar.Expr} := {BoogieMethod.From(method).Name}({String.Join(",", args)});"));
+                            ifStmts.Add(BoogieStatement.ProcedureCall(BoogieMethod.From(method), args, new List<BoogieVariable> { resultVar }, resultVar));
                         }
 
                     }
                 } else
                 {
-                    stmts.Add(BoogieStatement.FromString(String.Format("\t\tcall {0}({1});", BoogieMethod.From(method).Name, String.Join(",", args))));
+                    ifStmts.Add(BoogieStatement.ProcedureCall(BoogieMethod.From(method), args, new List<BoogieVariable> { }));
                 }
 
-                stmts.Add(BoogieStatement.ReturnStatement);
-                stmts.Add(BoogieStatement.FromString("\t}"));
+                ifStmts.Add(BoogieStatement.ReturnStatement);
+                stmts.Add(BoogieStatement.If(cond, ifStmts));
             }
 
             stmts.Add(BoogieStatement.FromString(("}")));
