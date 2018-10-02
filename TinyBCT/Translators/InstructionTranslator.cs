@@ -203,7 +203,7 @@ namespace TinyBCT.Translators
                 }
                 if(location!=null)
                 { 
-                    var fileName = location.SourceDocument.Name;
+                    var fileName = location.SourceDocument.Location;
                     var sourceLine = location.StartLine;
                     AddBoogie(BoogieStatement.LocationAttributes(fileName.ToString(), sourceLine));
                     //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
