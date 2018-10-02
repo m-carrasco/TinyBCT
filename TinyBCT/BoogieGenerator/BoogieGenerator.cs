@@ -122,6 +122,12 @@ namespace TinyBCT
             Contract.Assume(expr2.Type.Equals(Helpers.BoogieType.Bool));
             return new Expression(Helpers.BoogieType.Bool, $"({expr1.Expr} || {expr2.Expr})");
         }
+        public static Expression Implies(Expression antecedent, Expression consequent)
+        {
+            Contract.Assume(antecedent.Type.Equals(Helpers.BoogieType.Bool));
+            Contract.Assume(consequent.Type.Equals(Helpers.BoogieType.Bool));
+            return new Expression(Helpers.BoogieType.Bool, $"({antecedent.Expr} ==> {consequent.Expr})");
+        }
         public static Expression GetNormalizedTypeFunction(
             ITypeReference originalType, ISet<ITypeReference> mentionedClasses,
             IEnumerable<ITypeReference> typeArguments = null,

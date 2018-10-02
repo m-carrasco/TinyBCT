@@ -310,9 +310,11 @@ namespace TinyBCT.Translators
             {
                 var methodRef = instruction.Method;
                 // IsDelegateInvokation requires containing type != null - not sure if that always holds
-                if (methodRef.ResolvedMethod == null || Helpers.IsExternal(methodRef.ResolvedMethod) || DelegateInvokeTranslation.IsDelegateInvokation(instruction))
-                    if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
-                        return BoogieStatement.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type));
+                if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
+                {
+                    var resultNotNull = Expression.NotEquals(boogieGenerator.ReadAddr(instruction.Result), boogieGenerator.NullObject());
+                    return BoogieStatement.Assume(Expression.Implies(resultNotNull, Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), methodRef.Type)));
+                }
 
                 return BoogieStatement.Nop;
             }
