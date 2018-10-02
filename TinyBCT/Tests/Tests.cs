@@ -160,6 +160,10 @@ public class TestsBase
 
     protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalTinyBCTOptions = "", bool useCSC = false) {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
+        if (!System.IO.Directory.Exists(pathTempDir))
+        {
+            System.IO.Directory.CreateDirectory(pathTempDir);
+        }
         var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, additionalTinyBCTOptions: additionalTinyBCTOptions);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
@@ -1839,7 +1843,7 @@ class Test {
         var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass3", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(20000)]
     [TestCategory("Av-Regressions")]
     public void TestSet4()
     {

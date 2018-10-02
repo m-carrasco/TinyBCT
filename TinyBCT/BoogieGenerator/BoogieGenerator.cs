@@ -11,8 +11,12 @@ using TinyBCT.Translators;
 
 namespace TinyBCT
 {
+    public abstract class Addressable
+    {
+
+    }
     // expr field is an expression that in boogie will be typed as Addr
-    public class AddressExpression
+    public class AddressExpression : Addressable
     {
         public AddressExpression(ITypeReference t, string e)
         {
@@ -32,13 +36,43 @@ namespace TinyBCT
 
     // todo: refactor hierarchy
     // only used when we are not using split fields and the old mem addressing
-    public class AddressExpressionUnionHeap : AddressExpression
+    public class InstanceField : Addressable
     {
-        public IFieldReference Field;
-        public IVariable Instance;
+        public IFieldReference Field { get; }
+        public IVariable Instance { get; }
 
-        public AddressExpressionUnionHeap(ITypeReference t, string e) : base(t, e)
+        public InstanceField(IFieldReference field, IVariable instance)
         {
+            Field = field;
+            Instance = instance;
+        }
+    }
+
+    public class StaticField : Addressable
+    {
+        public IFieldReference Field { get; }
+        public ITypeReference Type { get; }
+
+        public StaticField(IFieldReference field, ITypeReference type)
+        {
+            Field = field;
+            Type = type;
+        }
+    }
+    public class DotNetVariable : Addressable
+    {
+        public string Name { get; }
+        public ITypeReference Type { get; }
+
+        public DotNetVariable(string name, ITypeReference type)
+        {
+            Name = name;
+            Type = type;
+        }
+
+        public override string ToString()
+        {
+            return Name;
         }
     }
 
@@ -91,42 +125,57 @@ namespace TinyBCT
             return ReadAddr(AddressOf(addr));
         }
 
-        public override string ReadAddr(AddressExpression addr)
+        public override string ReadAddr(Addressable addr)
         {
-            var boogieType = Helpers.GetBoogieType(addr.Type);
+            if (addr is AddressExpression)
+            {
+                var addrExpr = addr as AddressExpression;
+                var boogieType = Helpers.GetBoogieType(addrExpr.Type);
 
-            if (boogieType.Equals("int"))
-                return String.Format("ReadInt({0}, {1})", "$memoryInt", addr.Expr);
-            else if (boogieType.Equals("bool"))
-                return String.Format("ReadBool({0}, {1})", "$memoryBool", addr.Expr);
-            else if (boogieType.Equals("Object"))
-                return String.Format("ReadObject({0}, {1})", "$memoryObject", addr.Expr);
-            else if (boogieType.Equals("real"))
-                return String.Format("ReadReal({0}, {1})", "$memoryReal", addr.Expr);
-            else if (boogieType.Equals("Addr"))
-                return String.Format("ReadAddr({0}, {1})", "$memoryAddr", addr.Expr);
+                if (boogieType.Equals(Helpers.BoogieType.Int))
+                    return String.Format("ReadInt({0}, {1})", "$memoryInt", addrExpr.Expr);
+                else if (boogieType.Equals(Helpers.BoogieType.Bool))
+                    return String.Format("ReadBool({0}, {1})", "$memoryBool", addrExpr.Expr);
+                else if (boogieType.Equals(Helpers.BoogieType.Object))
+                    return String.Format("ReadObject({0}, {1})", "$memoryObject", addrExpr.Expr);
+                else if (boogieType.Equals(Helpers.BoogieType.Real))
+                    return String.Format("ReadReal({0}, {1})", "$memoryReal", addrExpr.Expr);
+                else if (boogieType.Equals(Helpers.BoogieType.Addr))
+                    return String.Format("ReadAddr({0}, {1})", "$memoryAddr", addrExpr.Expr);
 
-            Contract.Assert(false);
-            return "";
+                // This point of the program should not be reachable.
+                Contract.Assert(false);
+                return "";
+            } else
+            {
+                throw new NotImplementedException();
+            }
         }
 
-        public override string WriteAddr(AddressExpression addr, String value)
+        public override string WriteAddr(Addressable addr, String value)
         {
-            var boogieType = Helpers.GetBoogieType(addr.Type);
+            if (addr is AddressExpression)
+            {
+                var addrExpr = addr as AddressExpression;
+                var boogieType = Helpers.GetBoogieType(addrExpr.Type);
 
-            if (boogieType.Equals("int"))
-                return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addr.Expr, value));
-            else if (boogieType.Equals("bool"))
-                return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addr.Expr, value));
-            else if (boogieType.Equals("Object"))
-                return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addr.Expr, value));
-            else if (boogieType.Equals("real"))
-                return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", addr.Expr, value));
-            else if (boogieType.Equals("Addr"))
-                return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", addr.Expr, value));
+                if (boogieType.Equals(Helpers.BoogieType.Int))
+                    return VariableAssignment("$memoryInt", String.Format("{0}({1},{2},{3})", "WriteInt", "$memoryInt", addrExpr.Expr, value));
+                else if (boogieType.Equals(Helpers.BoogieType.Bool))
+                    return VariableAssignment("$memoryBool", String.Format("{0}({1},{2},{3})", "WriteBool", "$memoryBool", addrExpr.Expr, value));
+                else if (boogieType.Equals(Helpers.BoogieType.Object))
+                    return VariableAssignment("$memoryObject", String.Format("{0}({1},{2},{3})", "WriteObject", "$memoryObject", addrExpr.Expr, value));
+                else if (boogieType.Equals(Helpers.BoogieType.Real))
+                    return VariableAssignment("$memoryReal", String.Format("{0}({1},{2},{3})", "WriteReal", "$memoryReal", addrExpr.Expr, value));
+                else if (boogieType.Equals(Helpers.BoogieType.Addr))
+                    return VariableAssignment("$memoryAddr", String.Format("{0}({1},{2},{3})", "WriteAddr", "$memoryAddr", addrExpr.Expr, value));
 
-            Contract.Assert(false);
-            return "";
+                Contract.Assert(false);
+                return "";
+            } else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public override string VariableAssignment(IVariable variableA, IValue value)
@@ -202,10 +251,10 @@ namespace TinyBCT
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
                 sb.AppendLine(VariableAssignment(paramVariable, constantValue));
 
-                if (Helpers.GetBoogieType(paramVariable.Type).Equals("Object"))
+                if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
                 {
                     sb.AppendLine(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
-                } else if (Helpers.GetBoogieType(paramVariable.Type).Equals("Addr"))
+                } else if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr))
                 {
                     sb.AppendLine(String.Format("assume $AllocAddr[{0}] == true || {0} != null_addr;", paramVariable));
                 }
@@ -225,20 +274,20 @@ namespace TinyBCT
             return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
         }*/
 
-        public override AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
+        public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
             String map = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
             return new AddressExpression(instanceFieldAccess.Field.Type, string.Format("LoadInstanceFieldAddr({0}, {1})", map, ValueOfVariable(instanceFieldAccess.Instance)));
         }
 
-        public override AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
+        public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
         {
             String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
             var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
             return address;
         }
 
-        public override AddressExpression AddressOf(IVariable var)
+        public override Addressable AddressOf(IVariable var)
         {
             return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
         }
@@ -253,7 +302,7 @@ namespace TinyBCT
             if (Helpers.IsGenericField(instanceFieldAccess.Field))
             {
                 var boogieType = Helpers.GetBoogieType(result.Type);
-                if (!boogieType.Equals("Object"))
+                if (!boogieType.Equals(Helpers.BoogieType.Object))
                 {
                     return VariableAssignment(result, Union2PrimitiveType(boogieType, readValue));
                 } else
@@ -272,7 +321,7 @@ namespace TinyBCT
             StringBuilder sb = new StringBuilder();
 
             var boogieType = Helpers.GetBoogieType(value.Type);
-            if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Object"))
+            if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
                 sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
                 sb.AppendLine(WriteAddr(AddressOf(instanceFieldAccess), PrimitiveType2Union(boogieType, ReadAddr(value))));
@@ -380,11 +429,10 @@ namespace TinyBCT
             else
             {
                 var boogieType = Helpers.GetBoogieType(value.Type);
-                Contract.Assert(!string.IsNullOrEmpty(boogieType));
                // var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
                 //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
 
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
                     sb.AppendLine(AssumeInverseRelationUnionAndPrimitiveType(value));
                     //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
@@ -404,7 +452,6 @@ namespace TinyBCT
             String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
 
             var boogieType = Helpers.GetBoogieType(result.Type);
-            Contract.Assert(!string.IsNullOrEmpty(boogieType));
 
             if (!Settings.SplitFields)
             {
@@ -426,7 +473,7 @@ namespace TinyBCT
                 var heapAccess = string.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name);
 
                 //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals("Ref"))
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
                     sb.AppendLine(VariableAssignment(result, Union2PrimitiveType(boogieType, heapAccess)));
                 }
@@ -437,53 +484,77 @@ namespace TinyBCT
             return sb.ToString();
         }
 
-        public override string ReadAddr(AddressExpression addr)
+        public override string ReadAddr(Addressable addr)
         {
-            if (addr is AddressExpressionUnionHeap)
+            if (addr is InstanceField instanceField)
             {
-                var a = addr as AddressExpressionUnionHeap;
-                return String.Format("Read($Heap,{0},{1})", a.Instance, FieldTranslator.GetFieldName(a.Field));
-            } else
-                return addr.Expr;
-        }
-
-        public override AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess)
-        {
-            if (Settings.SplitFields)
+                var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
+                var instanceName = instanceField.Instance.Name;
+                if (Settings.SplitFields)
+                {
+                    return $"{fieldName}[{instanceName}]";
+                } else
+                {
+                    return $"Read($Heap,{instanceName},{fieldName})";
+                }
+            } else if (addr is StaticField staticField)
             {
-                String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-                return new AddressExpression(instanceFieldAccess.Field.Type, String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance.Name));
-            } else
+                return FieldTranslator.GetFieldName(staticField.Field);
+            } else if (addr is DotNetVariable v)
             {
-                var a = new AddressExpressionUnionHeap(instanceFieldAccess.Type, "");
-                a.Field = instanceFieldAccess.Field;
-                a.Instance = instanceFieldAccess.Instance;
-                return a;
+                return v.Name;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
-        public override AddressExpression AddressOf(StaticFieldAccess staticFieldAccess)
+        public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
-            String fieldName = FieldTranslator.GetFieldName(staticFieldAccess.Field);
-            var address = new AddressExpression(staticFieldAccess.Field.Type, fieldName);
-            return address;
+            return new InstanceField(instanceFieldAccess.Field, instanceFieldAccess.Instance);
         }
 
-        public override AddressExpression AddressOf(IVariable var)
+        public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
         {
-            return new AddressExpression(var.Type, var.Name);
+            return new StaticField(staticFieldAccess.Field, staticFieldAccess.Field.Type);
         }
 
-        public override string WriteAddr(AddressExpression addr, string value)
+        public override Addressable AddressOf(IVariable var)
         {
-            if (addr is AddressExpressionUnionHeap)
+            return new DotNetVariable(var.Name, var.Type);
+        }
+
+        public override string WriteAddr(Addressable addr, string value)
+        {
+            if (addr is InstanceField instanceField)
             {
-                var a = addr as AddressExpressionUnionHeap;
-                var fieldName = FieldTranslator.GetFieldName(a.Field);
-                return String.Format("$Heap := Write($Heap, {0}, {1}, {2});", a.Instance, fieldName, value);
-            } else
+                var instanceName = instanceField.Instance;
+                var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
+                if (Settings.SplitFields)
+                {
+                    return $"{fieldName}[{instanceName}] := {value};";
+                }
+                else
+                {
+                    // return $"Read($Heap,{instanceName},{fieldName})";
+                    return $"$Heap := Write($Heap, {instanceName}, {fieldName}, {value});";
+                }
+                
+            }
+            else if (addr is StaticField staticField)
             {
-                return VariableAssignment(addr.Expr, value);
+                var fieldName = FieldTranslator.GetFieldName(staticField.Field);
+                return VariableAssignment(fieldName, value);
+            }
+            else if (addr is DotNetVariable v)
+            {
+                var varName = v.Name;
+                return VariableAssignment(varName, value);
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
     }
@@ -538,13 +609,13 @@ namespace TinyBCT
 
         public abstract string ReadAddr(IVariable var);
 
-        public abstract string ReadAddr(AddressExpression addr);
+        public abstract string ReadAddr(Addressable addr);
 
         public abstract string DeclareLocalVariables(IList<IVariable> variables, ISet<IVariable> assignedInMethodCalls);
 
         public abstract string AllocLocalVariables(IList<IVariable> variables);
 
-        public AddressExpression AddressOf(IValue value)
+        public Addressable AddressOf(IValue value)
         {
             if (value is InstanceFieldAccess)
             {
@@ -563,9 +634,9 @@ namespace TinyBCT
                 throw new NotImplementedException();
         }
 
-        public abstract AddressExpression AddressOf(InstanceFieldAccess instanceFieldAccess);
-        public abstract AddressExpression AddressOf(StaticFieldAccess staticFieldAccess);
-        public abstract AddressExpression AddressOf(IVariable var);
+        public abstract Addressable AddressOf(InstanceFieldAccess instanceFieldAccess);
+        public abstract Addressable AddressOf(StaticFieldAccess staticFieldAccess);
+        public abstract Addressable AddressOf(IVariable var);
 
         public string WriteAddr(IVariable addr, IValue value)
         {
@@ -577,29 +648,28 @@ namespace TinyBCT
             return WriteAddr(AddressOf(addr), value.ToString());
         }
 
-        public string WriteAddr(AddressExpression addr, IValue value)
+        public string WriteAddr(Addressable addr, IValue value)
         {
             return WriteAddr(addr, value.ToString());
         }
 
-        public abstract string WriteAddr(AddressExpression addr, string value);
+        public abstract string WriteAddr(Addressable addr, string value);
 
         public abstract string AllocAddr(IVariable var);
         public abstract string AllocObject(IVariable var, ISet<IVariable> shouldCreateValueVariable);
 
         protected abstract string ValueOfVariable(IVariable var);
 
-        public string AssumeInverseRelationUnionAndPrimitiveType(string variable, string boogieType)
+        public string AssumeInverseRelationUnionAndPrimitiveType(string variable, Helpers.BoogieType boogieType)
         {
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            var e1 = string.Format("{0}2Union({1})", boogieType, variable);
-            return string.Format("assume Union2{0}({1}) == {2};", boogieType, e1, variable);
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            var e1 = string.Format("{0}2Union({1})", boogieTypeStr, variable);
+            return string.Format("assume Union2{0}({1}) == {2};", boogieTypeStr, e1, variable);
         }
 
         public string AssumeInverseRelationUnionAndPrimitiveType(IVariable variable)
         {
             var boogieType = Helpers.GetBoogieType(variable.Type);
-            Contract.Assert(!String.IsNullOrEmpty(boogieType));
 
             return AssumeInverseRelationUnionAndPrimitiveType(variable.ToString(), boogieType);
         }
@@ -611,11 +681,10 @@ namespace TinyBCT
             return PrimitiveType2Union(boogieType, value.ToString());
         }
 
-        public string PrimitiveType2Union(string boogieType, string value)
+        public string PrimitiveType2Union(Helpers.BoogieType boogieType, string value)
         {
-            // int -> Int, bool -> Bool
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            return string.Format("{0}2Union({1})", boogieType, value);
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            return string.Format("{0}2Union({1})", boogieTypeStr, value);
         }
 
         public string Union2PrimitiveType(IVariable value)
@@ -625,11 +694,10 @@ namespace TinyBCT
 
             return Union2PrimitiveType(boogieType, value.ToString());
         }
-        public string Union2PrimitiveType(string boogieType, string value)
+        public string Union2PrimitiveType(Helpers.BoogieType boogieType, string value)
         {
-            // int -> Int, bool -> Bool
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            return string.Format("Union2{0}({1})", boogieType, value);
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
+            return string.Format("Union2{0}({1})", boogieTypeStr, value);
         }
 
         public string WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
@@ -752,7 +820,7 @@ namespace TinyBCT
             {
                 case BinaryOperation.And:
                 case BinaryOperation.Or:
-                    return Helpers.GetBoogieType(op1.Type) == "bool" && Helpers.GetBoogieType(op2.Type) == "bool";
+                    return Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool) && Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool);
                 case BinaryOperation.Add:
                 case BinaryOperation.Sub:
                 case BinaryOperation.Mul:
@@ -821,7 +889,7 @@ namespace TinyBCT
                 case BinaryOperation.Div:
                     {
                         if (Helpers.GetBoogieType(op1.Type).Equals(Helpers.GetBoogieType(op2.Type)) &&
-                            Helpers.GetBoogieType(op1.Type).Equals("int"))
+                            Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Int))
                             operation = "div";
                         else
                             operation = "/";
@@ -852,15 +920,15 @@ namespace TinyBCT
                 case BinaryOperation.Rem: operation = "mod";break;
                 case BinaryOperation.And:
                     {
-                        Contract.Assert(Helpers.GetBoogieType(op1.Type) == "bool");
-                        Contract.Assert(Helpers.GetBoogieType(op2.Type) == "bool");
+                        Contract.Assert(Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool));
+                        Contract.Assert(Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool));
                         operation = "&&";
                         break;
                     }
                 case BinaryOperation.Or:
                     {
-                        Contract.Assert(Helpers.GetBoogieType(op1.Type) == "bool");
-                        Contract.Assert(Helpers.GetBoogieType(op2.Type) == "bool");
+                        Contract.Assert(Helpers.GetBoogieType(op1.Type).Equals(Helpers.BoogieType.Bool));
+                        Contract.Assert(Helpers.GetBoogieType(op2.Type).Equals(Helpers.BoogieType.Bool));
                         operation = "||";
                         break;
                     }
@@ -1067,11 +1135,11 @@ namespace TinyBCT
         public string BoxFrom(IVariable op1, IVariable result)
         {
             var boogieType = Helpers.GetBoogieType(op1.Type);
-            boogieType = boogieType[0].ToString().ToUpper() + boogieType.Substring(1);
-            if (boogieType.Equals("Ref"))
-                boogieType = "Union";
+            if (boogieType.Equals(Helpers.BoogieType.Ref))
+                boogieType = Helpers.BoogieType.Union;
+            var boogieTypeStr = boogieType.ToString()[0].ToString().ToUpper() + boogieType.ToString().Substring(1);
 
-            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieType);
+            var boxFromProcedure = String.Format("$BoxFrom{0}", boogieTypeStr);
             var args = new List<string>();
             args.Add(op1.Name);
 
