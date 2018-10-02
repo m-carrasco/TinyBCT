@@ -928,6 +928,17 @@ namespace TinyBCT.Translators
                     AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction, instTranslator));
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
+                    // Diego: to check
+                    var operandExpr = boogieGenerator.ReadAddr(instruction.Operand);
+                    var refNotNull = Expression.NotEquals(operandExpr, boogieGenerator.NullObject());
+                    if (Settings.CheckNullDereferences)
+                    {
+                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
+                    }
+                    else
+                    {
+                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
+                    }
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), boogieGenerator.ReadAddr(instruction.Operand))));
                     else
