@@ -384,7 +384,13 @@ namespace TinyBCT
             return
                 constant != null &&
                 Helpers.IsBoogieRefType(constant.Type) &&
-                constant.ToString().Equals("null");
+                (constant.ToString().Equals("null") ||
+                 // TODO: This should be removed once the underlying framework
+                 // correctly translates null constants.
+                 // This hack was added in commit 618c5aef82328a487552a191821afea77bf2cc1e,
+                 // as a fix to "inference of null as 0 (remove when framework solve this)" (quoting
+                 // from commit message).
+                 constant.ToString().Equals("0"));
         }
         private static BoogieLiteral FromBool(Constant constant)
         {

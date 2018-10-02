@@ -118,6 +118,9 @@ namespace TinyBCT
             if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
                 return BoogieType.Int;
 
+            if (type.IsEnum)
+                return BoogieType.Int;
+
             if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
                 return BoogieType.Bool;
 
