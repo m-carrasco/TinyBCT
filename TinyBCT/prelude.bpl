@@ -36,13 +36,13 @@ implementation {:inline 1} AllocAddr() returns (x: Addr)
 
 axiom (forall aA, aB : InstanceFieldAddr, oA, oB : Object :: {LoadInstanceFieldAddr(aA, oA), LoadInstanceFieldAddr(aB, oB)} oA != oB ==> LoadInstanceFieldAddr(aA, oA) != LoadInstanceFieldAddr(aB, oB));
 
-procedure {:allocator} {:inline 1} AllocObject() returns (x: Object);
+procedure {:allocator} {:inline 1} AuxAllocObject() returns (x: Object);
 procedure {:inline 1} AllocObject() returns (x: Object);
   modifies $AllocObject;
 
 implementation {:inline 1} AllocObject() returns (x: Object)
 {
-    call x := AllocObject();
+    call x := AuxAllocObject();
     assume $AllocObject[x] == false && x != null_object;
     $AllocObject[x] := true;
 }
