@@ -1949,6 +1949,14 @@ class Test {
 [TestClass]
 public class TestsManu : TestsBase
 {
+    [TestMethod, Timeout(10000)]
+    [TestCategory("NotImplemented")]
+    public void Async1()
+    {
+        // additionalTinyBCTOptions: "/atomicInitArray=true"
+        var corralResult = CorralTestHelper("Async", @"Test.Async.Async1", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 
     [TestMethod, Timeout(10000)]
     [TestCategory("NotImplemented")]
