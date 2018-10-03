@@ -891,9 +891,18 @@ namespace TinyBCT
 
             return stmts;
         }
-        public static BoogieStatement LocationAttributes(string sourceFile, int sourceLine)
+        public static BoogieStatement LocationAttributes(string sourceFile, int sourceLine, string additionalAttribute)
         {
-            return new BoogieStatement($"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} true;");
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"assert {{:sourceFile \"{sourceFile}\"}} {{:sourceLine \"{sourceLine}\"}} ");
+            if (additionalAttribute != null)
+            {
+                Contract.Assume(additionalAttribute.StartsWith("{:"));
+                Contract.Assume(additionalAttribute.EndsWith("}"));
+                sb.Append($"{additionalAttribute} ");
+            }
+            sb.Append("true;");
+            return new BoogieStatement(sb.ToString());
         }
         public static BoogieStatement AllocObjectAxiom(IVariable paramVariable)
         {

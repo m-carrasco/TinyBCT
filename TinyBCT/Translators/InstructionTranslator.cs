@@ -43,9 +43,7 @@ namespace TinyBCT.Translators
         // for example for delegates there are instructions that are no longer used
         public ISet<IVariable> RemovedVariables { get; } = new HashSet<IVariable>();
         public ISet<IVariable> AddedVariables { get; } = new HashSet<IVariable>();
-        
-
-        private IPrimarySourceLocation prevSourceLocation;
+        public IPrimarySourceLocation CurrentInstructionLocation { get; private set; }
 
         protected IMethodDefinition method;
         public Dictionary<string, BoogieVariable> temporalVariables;
@@ -133,9 +131,10 @@ namespace TinyBCT.Translators
                 SetState(instructions, idx);
                 var currentInstruction = instructions[idx];
                 translation.AddLabel(currentInstruction);
-                translation.AddLineNumbers(currentInstruction, prevSourceLocation);
                 if (currentInstruction.Location != null)
-                    prevSourceLocation = currentInstruction.Location;
+                    CurrentInstructionLocation = currentInstruction.Location;
+                if (Settings.EmitLineNumbers)
+                    AddBoogie(translation.LineNumbersStatement(CurrentInstructionLocation));
                 instructions[idx].Accept(translation);
                 lastInstruction = instructions[idx];
             }
@@ -191,30 +190,31 @@ namespace TinyBCT.Translators
                    AddBoogie(BoogieStatement.AddLabel(instr));                    
             }
 
-            internal void AddLineNumbers(Instruction instr, IPrimarySourceLocation prevSourceLocation)
+            internal BoogieStatement LineNumbersStatement(IPrimarySourceLocation location, string additionalAttribute = null)
             {
                 if (!Settings.EmitLineNumbers)
-                    return;
-                IPrimarySourceLocation location = instr.Location;
-
-                if (location == null && prevSourceLocation != null)
+                    return BoogieStatement.Nop;
+                if (location != null)
                 {
-                    location = prevSourceLocation;
-                }
-                if(location!=null)
-                { 
                     var fileName = location.SourceDocument.Location;
                     var sourceLine = location.StartLine;
-                    AddBoogie(BoogieStatement.LocationAttributes(fileName.ToString(), sourceLine));
-                    //     assert {:first} {:sourceFile "C:\Users\diegog\source\repos\corral\AddOns\AngelicVerifierNull\test\c#\As\As.cs"} {:sourceLine 23} true;
+                    return BoogieStatement.LocationAttributes(fileName.ToString(), sourceLine, additionalAttribute);
                 }
-                else 
+                else
                 {
                     if (Settings.DebugLines)
                     {
-                        AddBoogie(BoogieStatement.LocationAttributes("Empty", 0));
+                        return BoogieStatement.LocationAttributes("Empty", 0, additionalAttribute);
                     }
                 }
+                return BoogieStatement.Nop;
+            }
+            internal void AddLineNumbers(IPrimarySourceLocation location, string additionalAttribute = null)
+            {
+                if (!Settings.EmitLineNumbers)
+                    return;
+                var stmt = LineNumbersStatement(location, additionalAttribute);
+                AddBoogie(stmt);
             }
 
             // THIS IS NOT THE HAPPIEST NAME FOR THIS FUNCTIOn
@@ -766,6 +766,13 @@ namespace TinyBCT.Translators
                 var signature = BoogieMethod.From(callee).Name;
                 var stmts = new StatementList();
 
+                var location = instTranslator.CurrentInstructionLocation;
+                if (location != null && Settings.EmitLineNumbers)
+                {
+                    var SDVDefectAttr = $"{{:print \"Call \\\"{instTranslator.method.Name}\\\" \\\"{callee.Name}\\\"\"}}";
+                    stmts.Add(LineNumbersStatement(location, SDVDefectAttr));
+                }
+
                 if (instruction.HasResult)
                 {
                     //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
@@ -790,7 +797,15 @@ namespace TinyBCT.Translators
                 }
 
                 stmts.Add(AddSubtypeInformationToExternCall(instruction));
-
+                if (location != null && Settings.EmitLineNumbers)
+                {
+                    // This attribute causes the angelic verification pipeline to print "Return" as part of the
+                    // output file subsequently used by sdvdefect. This causes sdvdefect to (optionally) collapse
+                    // the statements executed within the method being called.
+                    var SDVDefectAttr = $"{{:print \"Return\"}}";
+                    stmts.Add(LineNumbersStatement(location, SDVDefectAttr));
+                }
+                
                 return stmts;
             }
 

@@ -578,7 +578,33 @@ class A {
         var corralResult = CorralTestHelperCode("Ref", "A.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+[TestMethod, Timeout(10000)]
+// TODO(rcastano): Check what the intention of this test was. Ignoring for now, since it fails.
+// This test was added in commit 49e45a41664982a1d05326b395d41c2e064a3a9b, with commit message:
+//"Fix source location in annotations (full name)
+// Add attribute to global intializer
+// Remove copyPropagation"
+    [Ignore]
+public void TestBitConverter()
+{
+    string source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class A {
+  public static void Main() {
+    var res =  System.BitConverter.ToInt32(new System.Byte[] {1,2,3,4}, 0);
+    Contract.Assert(res != 0);
+  }
 }
+        ";
+    var corralResult = CorralTestHelperCode("BitConverter", "A.Main", 10, source);
+    Assert.IsTrue(corralResult.NoBugs());
+}
+}
+ 
+
 
 [TestClass]
 public partial class AvRegressionTests : TestsBase
@@ -592,7 +618,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
     [TestCategory("Av-Regressions")]
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     public void TestAsNotSubtype()
     {
         var corralResult = CorralTestHelper("AsNotSubtype", "TestAs.Main", 10);

@@ -30,6 +30,7 @@ namespace TinyBCT
         public static bool NewAddrModelling = false;
         public static bool DebugLines = false;
 
+
         // options should start with /  (currently there are no options)
         // every argument found after the first arg not starting with / will be considered a file to be processed
         public static void Load(string[] args)
@@ -105,7 +106,7 @@ namespace TinyBCT
                 .SetDefault(false)
                 .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
 
-            p.Setup<bool>( "DebugLines")
+            p.Setup<bool>("DebugLines")
                 .Callback(b => DebugLines = b)
                 .SetDefault(false)
                 .WithDescription("This settings forces the line numbers to be printed even when no input file exists (TinyBCT can be called without a file).");

@@ -113,12 +113,13 @@ namespace TinyBCT
             if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
                 return BoogieType.Int;
 
+            // hack for Enums
+            if (type.IsEnum)
+                return BoogieType.Int;
+
             // not sure about this
             // appeared when accessing anArray.Length
             if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
-                return BoogieType.Int;
-
-            if (type.IsEnum)
                 return BoogieType.Int;
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
@@ -483,6 +484,7 @@ namespace TinyBCT
         {
             var parameters = String.Empty;
             IMethodDefinition methodDef = methodRef as IMethodDefinition;
+            // hack for handling type as variable
             if (methodDef != null)
                 parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v.Type))));
             else
