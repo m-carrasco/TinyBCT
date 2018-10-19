@@ -224,7 +224,7 @@ namespace TinyBCT.Translators
             {
                 var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
 
-                var getTypeBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject), "DynamicDispatch_Type_");
+                var getTypeBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "DynamicDispatch_Type_");
 
                 var args = new List<Expression>();
                 args.Add(boogieGenerator.ReadAddr(receiver));
@@ -786,7 +786,7 @@ namespace TinyBCT.Translators
                     else
                     {
                         // TODO(rcastano): reuse variable
-                        var boogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
+                        var boogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType());
                         stmts.Add(boogieGenerator.ProcedureCall(callee, instruction, instTranslator, boogieVar));
                         stmts.Add(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(resType, boogieVar)));
                     }
@@ -894,7 +894,7 @@ namespace TinyBCT.Translators
 
                 if (instanceFieldAccess != null)
                 {
-                    var p = boogieGenerator.WriteInstanceField(instanceFieldAccess, instruction.Operand);
+                    var p = boogieGenerator.WriteInstanceField(instanceFieldAccess, instruction.Operand, instTranslator);
                     AddBoogie(p);
                 }
                 else if (staticFieldAccess != null)
@@ -996,7 +996,7 @@ namespace TinyBCT.Translators
 
                         var bg = boogieGenerator;
                         var desiredTyped = instanceFieldAccess.Field.Type;
-                        AddBoogie(bg.WriteInstanceField(instanceFieldAccess, Expression.NullOrZero(desiredTyped)));
+                        AddBoogie(bg.WriteInstanceField(instanceFieldAccess, Expression.NullOrZero(desiredTyped), instTranslator));
                     }
                     else 
                     {
@@ -1169,13 +1169,13 @@ namespace TinyBCT.Translators
                     else
                     {
                         // Store Union element and then cast it to the correct type
-                        var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
+                        var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType());
                         AddBoogie(boogieGenerator.CallReadArrayElement(tempBoogieVar, arrayExpr, firstIndexExpr));
                         AddBoogie(boogieGenerator.VariableAssignment(insResult, Expression.Union2PrimitiveType(boogieType, tempBoogieVar)));
                     }
                 } else
                 {
-                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
+                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType());
                     AddBoogie(boogieGenerator.CallReadArrayElement(tempBoogieVar, arrayExpr, firstIndexExpr));
                     ReadArrayContent(insResult, tempBoogieVar, indexes.Skip(1).ToList(), boogieType);
                 }
@@ -1207,8 +1207,8 @@ namespace TinyBCT.Translators
                         assume Union2Int(Int2Union(0)) == 0;
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
-                    AddBoogie(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(instruction.Operand)));
-                    AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Operand))));
+                    AddBoogie(Expression.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(instruction.Operand)));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Operand), instTranslator)));
                 }
                 else
                     AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, boogieGenerator.ReadAddr(instruction.Operand)));
@@ -1577,7 +1577,7 @@ namespace TinyBCT.Translators
                 // this local variable will hold the InvokeDelegate result 
                 // the intent is to translate its type to Union (or Ref they are alias)
                 // note: analysis-net changed and required to pass a method reference in the LocalVariable constructor
-                var boogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Types.Instance.PlatformType.SystemObject));
+                var boogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType());
 
                 // create if it doesnt exist yet
                 // i want the specialized type
@@ -1588,7 +1588,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         continue;
 
-                    AddBoogie(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(argument)));
+                    AddBoogie(Expression.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(argument)));
                     //AddBoogie(String.Format("\t\tassume Union2{0}({0}2Union({1})) == {1};", argType, argument));
                 }
 
@@ -1613,7 +1613,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
                         invokeDelegateArguments.Add(boogieGenerator.ReadAddr(argument));
                     else
-                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument)));
+                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument), instTranslator));
                 }
 
                 //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
@@ -1825,8 +1825,8 @@ namespace TinyBCT.Translators
                         {
                             var delegateResultVar = DelegateHandlingVariable.ResultVar(invokeArity);
                             ifStmts.Add(BoogieStatement.ProcedureCall(BoogieMethod.From(method), args, new List<BoogieVariable> { delegateResultVar }, delegateResultVar));
-                            ifStmts.Add(BoogieGenerator.AssumeInverseRelationUnionAndPrimitiveType(delegateResultVar));
-                            ifStmts.Add(BoogieStatement.VariableAssignment(resultVar, Expression.PrimitiveType2Union(delegateResultVar)));
+                            ifStmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(delegateResultVar));
+                            ifStmts.Add(BoogieStatement.VariableAssignment(resultVar, Expression.PrimitiveType2Union(delegateResultVar, ifStmts)));
                         } else
                         {
                             ifStmts.Add(BoogieStatement.ProcedureCall(BoogieMethod.From(method), args, new List<BoogieVariable> { resultVar }, resultVar));

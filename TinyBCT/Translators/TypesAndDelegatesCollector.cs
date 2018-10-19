@@ -61,6 +61,11 @@ namespace TinyBCT.Translators
         {
             base.TraverseChildren(assembly);
         }
+
+        public override void TraverseChildren(ITypeDefinition typeDefinition)
+        {
+            base.TraverseChildren(typeDefinition);
+        }
         public override void TraverseChildren(IMethodDefinition methodDefinition)
         {
             //var signature = MemberHelper.GetMethodSignature(methodDefinition, NameFormattingOptions.Signature | NameFormattingOptions.ParameterName);

@@ -98,6 +98,15 @@ namespace TinyBCT
             // if it is external, its definition will be translated only if it is called
             // that case is handled on the method call instruction translation
             // calling Dissasembler on a external method will raise an exception.
+            var implementsIAsyncStateMachineInterface = methodDefinition.ContainingTypeDefinition.Interfaces.Count(t => t.GetName().Contains("IAsyncStateMachine")) > 0;
+            if (methodDefinition.Name.Value.Equals("MoveNext") &&
+                implementsIAsyncStateMachineInterface)
+            {
+                // 
+                Console.WriteLine("is async");
+                System.Diagnostics.Contracts.Contract.Assume(methodDefinition.ContainingTypeDefinition is INamedTypeDefinition);
+                Helpers.asyncMoveNexts.Add(methodDefinition);
+            }
             if (!methodDefinition.IsExternal)
             {
                 //MethodBody methodBody = null;

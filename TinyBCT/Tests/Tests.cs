@@ -2956,6 +2956,36 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [TestMethod]
+    [TestCategory("Async")]
+    [TestCategory("NotImplemented")]
+    public void Async1()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+using System.Threading.Tasks;
+
+internal class Async
+{
+    public static void Async1()
+    {
+        Task<int> task = DoSomethingAsync(10);
+        task.Wait();
+        int x = task.Result;
+        Contract.Assert(x == 11);
+    }
+
+    private static async Task<int> DoSomethingAsync(int initValue)
+    {
+        int count = initValue + 1;
+        return count;
+    }
+}
+            ";
+        var corralResult = CorralTestHelperCode("Async1", "Async.Async1", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* Exceptions ******************************
 
     [TestMethod, Timeout(10000)]

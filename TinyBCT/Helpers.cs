@@ -16,6 +16,7 @@ namespace TinyBCT
 {
     public static class Helpers
     {
+        public static ISet<IMethodDefinition> asyncMoveNexts = new HashSet<IMethodDefinition>();
         internal static ISet<string> methodsTranslated = new HashSet<string>();
         public static bool IsInstructionImplemented(Instruction inst)
         {
@@ -104,6 +105,13 @@ namespace TinyBCT
                 return Const.ToString();
             }
         };
+        // The boogie type we use for a .NET object is different depending on the address modeling.
+        // Since in many cases we need to access this type programatically and we were
+        // using Helpers.GetBoogieType(object_type), this helper encapsulates that.
+        public static BoogieType ObjectType()
+        {
+            return Helpers.GetBoogieType(Backend.Types.Instance.PlatformType.SystemObject);
+        }
         public static BoogieType GetBoogieType(ITypeReference type)
         {
             INamedTypeDefinition namedType = type as INamedTypeDefinition;

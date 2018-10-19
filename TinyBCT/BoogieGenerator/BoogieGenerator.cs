@@ -21,15 +21,36 @@ namespace TinyBCT
         }
         public Helpers.BoogieType Type { get; }
         public string Expr { get; }
-        public static Expression PrimitiveType2Union(Expression expr)
+        // We should not use this externally, we want to add the assumption that, for
+        // any primitive type expression p where we use Int2Union(p) (or Bool2Union),
+        // then Union2Int(Int2Union(p)) == p holds.
+        private static Expression PrimitiveType2Union(Expression expr)
+        {
+            return new Expression(Helpers.BoogieType.Union, $"{expr.Type.FirstUppercase()}2Union({expr.Expr})");
+        }
+        public static Expression PrimitiveType2Union(Expression expr, StatementList stmts)
         {
             Contract.Assert(!Helpers.IsBoogieRefType(expr.Type));
-            return new Expression(Helpers.BoogieType.Union, $"{expr.Type.FirstUppercase()}2Union({expr.Expr})");
+            stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
+            return PrimitiveType2Union(expr);
+        }
+        public static Expression PrimitiveType2Union(Expression expr, InstructionTranslator instTranslator)
+        {
+            Contract.Assert(!Helpers.IsBoogieRefType(expr.Type));
+            instTranslator.AddBoogie(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
+            return PrimitiveType2Union(expr);
         }
         public static Expression Union2PrimitiveType(Helpers.BoogieType boogieType, Expression expr)
         {
             Contract.Assume(!Helpers.IsBoogieRefType(boogieType));
             return new Expression(boogieType, $"Union2{boogieType.FirstUppercase()}({expr.Expr})");
+        }
+        public static StatementList AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
+        {
+            var p2u = Expression.PrimitiveType2Union(expr);
+            var p2u2p = Expression.Union2PrimitiveType(expr.Type, p2u);
+            var eq = Expression.ExprEquals(p2u2p, expr);
+            return BoogieStatement.Assume(eq);
         }
         public static Expression As(Expression expr, ITypeReference arg2)
         {
@@ -311,6 +332,14 @@ namespace TinyBCT
             String map = FieldTranslator.GetFieldName(field);
             return new Expression(Helpers.BoogieType.Addr, $"LoadInstanceFieldAddr({map}, {instance.Expr})");
         }
+        public static Expression IsTask(BoogieVariable boogieVar)
+        {
+            return new Expression(Helpers.BoogieType.Bool, $"({DynamicType(boogieVar).Expr} == T$System.Threading.Tasks.Task`1(T$T()))");
+        }
+        public static Expression IsAsyncTaskMethodBuilder(BoogieVariable boogieVar)
+        {
+            return new Expression(Helpers.BoogieType.Bool, $"({DynamicType(boogieVar).Expr} == T$System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1(T$T()))");
+        }
 
         public override string ToString()
         {
@@ -525,14 +554,17 @@ namespace TinyBCT
         // Call InstructionTranslator.GetFreshVariable instead of this.
         public static BoogieVariable GetTempVar(Helpers.BoogieType type, Dictionary<string, BoogieVariable> usedVarNames, string prefix = "$temp_")
         {
-            int i = usedVarNames.Count - 1;
+            int i = usedVarNames != null ? usedVarNames.Count - 1 : -1;
             var name = String.Empty;
             do {
                 ++i;
                 name = $"{prefix}{type.FirstUppercase()}_{i}";
-            } while (usedVarNames.ContainsKey(name));
+            } while (usedVarNames != null && usedVarNames.ContainsKey(name));
             var newBoogieVar = new BoogieVariable(type, name);
-            usedVarNames.Add(name, newBoogieVar);
+            if (usedVarNames != null)
+            {
+                usedVarNames.Add(name, newBoogieVar);
+            }
             return newBoogieVar;
         }
 
@@ -1207,12 +1239,15 @@ namespace TinyBCT
             var resultBoogieVar = BoogieVariable.AddressVar(var);
             return this.ProcedureCall(BoogieMethod.AllocAddr, new List<Expression> { }, resultBoogieVar);
         }
-
+        public override StatementList AllocObject(BoogieVariable boogieVar)
+        {
+            return this.ProcedureCall(BoogieMethod.AllocObject, new List<Expression> { }, boogieVar);
+        }
         public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
         {
             var freshVariable = instTranslator.GetFreshVariable(Helpers.GetBoogieType(var.Type));
             var stmts = new StatementList();
-            stmts.Add(this.ProcedureCall(BoogieMethod.AllocObject, new List<Expression> { }, freshVariable));
+            stmts.Add(this.AllocObject(freshVariable));
             stmts.Add(this.VariableAssignment(var, freshVariable));
             return stmts;
         }
@@ -1423,15 +1458,15 @@ namespace TinyBCT
             }
         }
         
-        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr)
+        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr, InstructionTranslator instTranslator)
         {
             StatementList stmts = new StatementList();
 
             var boogieType = expr.Type;
             if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
-                stmts.Add(AssumeInverseRelationUnionAndPrimitiveType(expr));
-                stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr)));
+                stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
+                stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
             }
             else
                 stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), expr));
@@ -1521,10 +1556,13 @@ namespace TinyBCT
         {
             return BoogieStatement.Nop;
         }
-
+        public override StatementList AllocObject(BoogieVariable boogieVar)
+        {
+            return this.ProcedureCall(BoogieMethod.Alloc, new List<Expression> { }, boogieVar);
+        }
         public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
         {
-            return this.ProcedureCall(BoogieMethod.Alloc, new List<Expression> { }, BoogieVariable.FromDotNetVariable(var));
+            return this.AllocObject(BoogieVariable.FromDotNetVariable(var));
         }
 
         // in this memory addressing the value of a variable is the variable itself 
@@ -1533,7 +1571,7 @@ namespace TinyBCT
             return BoogieVariable.FromDotNetVariable(var);
         }
 
-        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr)
+        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr, InstructionTranslator instTranslator)
         {
             StatementList stmts = new StatementList();
 
@@ -1546,8 +1584,8 @@ namespace TinyBCT
             {
                 if (!Helpers.IsBoogieRefType(expr.Type)) // int, bool, real
                 {
-                    stmts.Add(AssumeInverseRelationUnionAndPrimitiveType(expr));
-                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr)));
+                    stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
+                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
                     //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
                 }
                 else
@@ -1564,9 +1602,9 @@ namespace TinyBCT
 
                 if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
-                    stmts.Add(AssumeInverseRelationUnionAndPrimitiveType(expr));
+                    stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
                     //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
-                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr)));
+                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
                 }
                 else
                     stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), expr));
@@ -1739,17 +1777,10 @@ namespace TinyBCT
         public abstract StatementList WriteAddr(Addressable addr, Expression value);
 
         public abstract StatementList AllocAddr(IVariable var);
+        public abstract StatementList AllocObject(BoogieVariable var);
         public abstract StatementList AllocObject(IVariable var, InstructionTranslator instTranslator);
 
         protected abstract Expression ValueOfVariable(IVariable var);
-        
-        public static StatementList AssumeInverseRelationUnionAndPrimitiveType(Expression expr)
-        {
-            var p2u = Expression.PrimitiveType2Union(expr);
-            var p2u2p = Expression.Union2PrimitiveType(expr.Type, p2u);
-            var eq = Expression.ExprEquals(p2u2p, expr);
-            return BoogieStatement.Assume(eq);
-        }
 
         public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
         {
@@ -1771,11 +1802,11 @@ namespace TinyBCT
 
             return stmts;
         }
-        public StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value)
+        public StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value, InstructionTranslator instTranslator)
         {
-            return WriteInstanceField(instanceFieldAccess, ReadAddr(value));
+            return WriteInstanceField(instanceFieldAccess, ReadAddr(value), instTranslator);
         }
-        public abstract StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value);
+        public abstract StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value, InstructionTranslator instTranslator);
 
         public abstract StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
         protected List<(Expression, IVariable)> ComputeArguments(MethodCallInstruction instruction, InstructionTranslator instTranslator)
@@ -1802,10 +1833,10 @@ namespace TinyBCT
                 if (!paramType.Equals(argType))
                 {
                     // TODO(rcastano): try to reuse variables.
-                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(Backend.Types.Instance.PlatformType.SystemObject), "$temp_var_");
+                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
                     
                     // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
-                    instTranslator.AddBoogie(VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(ReadAddr(instruction.Arguments.ElementAt(arg_i)))));
+                    instTranslator.AddBoogie(VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(ReadAddr(instruction.Arguments.ElementAt(arg_i)), instTranslator)));
 
                     copyArgs.Add((tempBoogieVar, null));
                 }

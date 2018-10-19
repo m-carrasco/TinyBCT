@@ -43,6 +43,74 @@ namespace TinyBCT
 
         }
 
+        public static void CreateAllAsyncMethods(StreamWriter sw)
+        {
+            StatementList stmts = new StatementList();
+
+            Action<StatementList> fStmt = (s => stmts.Add(s));
+            Action<string> fStr = (s => fStmt(BoogieStatement.FromString(s)));
+
+            var taskVar = BoogieVariable.GetTempVar(Helpers.ObjectType(), null, "task");
+            var objectTypeStr = Helpers.ObjectType().FirstUppercase();
+            fStr($"var resultAsync : [{objectTypeStr}] {objectTypeStr};");
+            fStr($"var builder2task: [{objectTypeStr}] {objectTypeStr};");
+            fStr($"procedure {{:extern}} System.Threading.Tasks.Task`1.get_Result(this : {objectTypeStr}) returns ($result : {objectTypeStr}) {{");
+            fStr("$result := resultAsync[this];");
+            fStr("}");
+            fStr("");
+            fStr($"procedure {{:extern}} System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.Create() returns ($result : {objectTypeStr}) {{");
+            fStmt(BoogieStatement.VariableDeclaration(taskVar));
+            var bg = BoogieGenerator.Instance();
+            fStmt(bg.AllocObject(taskVar));
+            fStmt(BoogieStatement.Assume(Expression.IsTask(taskVar)));
+            var resultVar = BoogieVariable.ResultVar(Helpers.ObjectType());
+            fStmt(bg.AllocObject(resultVar));
+            
+            fStmt(BoogieStatement.Assume(Expression.IsAsyncTaskMethodBuilder(resultVar)));
+            fStr($"builder2task[$result] := {taskVar.Expr};");
+            fStr("}");
+            fStr($"procedure {{:extern}} System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.get_Task(this : {objectTypeStr}) returns ($result : {objectTypeStr}) {{");
+            fStr("$result := builder2task[this];");
+            fStr("}");
+            fStr($"procedure {{:extern}} System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.SetResult$`0(this : {objectTypeStr},result : {objectTypeStr}) {{");
+            fStr($"var task : {objectTypeStr};");
+            fStr("task := builder2task[this];");
+            fStr($"resultAsync[task] := result;");
+            fStr("}");
+            foreach (var stmt in stmts)
+            {
+                sw.WriteLine(stmt.Stmt);
+            }
+            CreateAsyncStartMethod(sw);
+        }
+        public static void CreateAsyncStartMethod(StreamWriter sw)
+        {
+            StatementList stmts = new StatementList();
+
+            var boogieGetTypeRes = BoogieVariable.GetTempVar(Helpers.ObjectType(), null /* need dict with used var names*/, prefix: "asyncType");
+            var stateMachineVar = BoogieVariable.GetTempVar(Helpers.ObjectType(), null /* need dict with used var names*/, prefix: "stateMachineCopy");
+            stmts.Add(BoogieStatement.VariableDeclaration(stateMachineVar));
+            stmts.Add(BoogieStatement.VariableDeclaration(boogieGetTypeRes));
+            stmts.Add(BoogieStatement.FromString($"{stateMachineVar.Expr} := stateMachine;"));
+            foreach (var asyncMethod in Helpers.asyncMoveNexts)
+            {
+                var asyncType = asyncMethod.ContainingTypeDefinition;
+                var bg = BoogieGenerator.Instance();
+                stmts.Add(bg.ProcedureCall(BoogieMethod.GetTypeMethod, new List<Expression> { stateMachineVar }, boogieGetTypeRes));
+                StatementList ifStmts = new StatementList();
+                ifStmts.Add(BoogieGenerator.Instance().ProcedureCall(BoogieMethod.From(asyncMethod), new List<Expression> { stateMachineVar }));
+                
+                stmts.Add(BoogieStatement.If(Expression.Subtype(boogieGetTypeRes, asyncType), ifStmts));
+            }
+            stmts.Add(BoogieStatement.FromString($"v0$out := {stateMachineVar.Expr};"));
+            
+            sw.WriteLine(@"procedure {:extern} System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.Start``1$``0$(this : Ref,stateMachine : Ref) returns (v0$out : Ref) {");
+            foreach (var stmt in stmts)
+            {
+                sw.WriteLine(stmt.Stmt);
+            }
+            sw.WriteLine("}");
+        }
 
         public static void Main(string[] args)
         {
@@ -139,6 +207,8 @@ namespace TinyBCT
             streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
             streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
+
+            CreateAllAsyncMethods(streamWriter);
 
             
 
