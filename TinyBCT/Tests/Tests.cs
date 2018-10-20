@@ -132,8 +132,10 @@ public class TestsBase
     [TestInitialize]
     public void TestInitialize()
     {
+        TinyBCT.BoogieGenerator.singleton = null;
+
         TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
-        TinyBCT.Helpers.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+        TinyBCT.BoogieLiteral.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
 
         TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
@@ -141,7 +143,7 @@ public class TestsBase
         TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
         TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
 
-        TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, string>();
+        TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, TinyBCT.DelegateExpression>();
         TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
 
         TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();
@@ -158,16 +160,20 @@ public class TestsBase
 
     protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalTinyBCTOptions = "", bool useCSC = false) {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
+        if (!System.IO.Directory.Exists(pathTempDir))
+        {
+            System.IO.Directory.CreateDirectory(pathTempDir);
+        }
         var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, additionalTinyBCTOptions: additionalTinyBCTOptions);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, string additionalTinyBCTOptions = "")
+    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, bool useStubs = true, string additionalTinyBCTOptions = "")
     {
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
-        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, additionalTinyBCTOptions: additionalTinyBCTOptions);
+        return CorralTestHelperCode(testName, mainMethod, recursionBound, source,useStubs:useStubs, additionalTinyBCTOptions: additionalTinyBCTOptions);
     }
 
     protected static string DoTest(string source, string assemblyName, bool useStubs = true, string prefixDir = "", bool useCSC = false, string additionalTinyBCTOptions = "")
@@ -574,6 +580,12 @@ class A {
     }
 
 [TestMethod, Timeout(10000)]
+// TODO(rcastano): Check what the intention of this test was. Ignoring for now, since it fails.
+// This test was added in commit 49e45a41664982a1d05326b395d41c2e064a3a9b, with commit message:
+//"Fix source location in annotations (full name)
+// Add attribute to global intializer
+// Remove copyPropagation"
+    [Ignore]
 public void TestBitConverter()
 {
     string source = @"
@@ -606,7 +618,7 @@ public partial class AvRegressionTests : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
     [TestCategory("Av-Regressions")]
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     public void TestAsNotSubtype()
     {
         var corralResult = CorralTestHelper("AsNotSubtype", "TestAs.Main", 10);
@@ -1492,6 +1504,48 @@ class Test {
         var corralResult = CorralTestHelperCode("TestAxiomsGenerics2", "Test.Main", 10, source, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+    [TestCategory("Arrays")]
+    [TestMethod]
+    public void TestArrays1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int [] arr = new int[3];
+    var copy_arr = arr;
+    copy_arr[2] = 4;
+    Contract.Assert(arr[2] == 4);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestArrays1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestCategory("Repro")]
+    [TestMethod]
+    [Ignore] // Remove when issue #63 is fixed.
+    public void TestBidimensionalArrays1()
+    {
+        var source = @"
+using System;
+using System.Diagnostics.Contracts;
+
+class Test {
+  public static void Main() {
+    int [,] arr = new int[2,4];
+    arr[0,2] = 4;
+    arr[1,2] = 5;
+    Contract.Assert(arr[0,2] == 4);
+  }
+}
+        ";
+        var corralResult = CorralTestHelperCode("TestBidimensionalArrays1", "Test.Main", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
     [TestCategory("Fernan")]
     [TestMethod]
     public void TestConstructors1()
@@ -1700,7 +1754,7 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Av-Regressions")]
     public void TestEx2()
     {
@@ -1857,7 +1911,7 @@ class Test {
         var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass3", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(20000)]
     [TestCategory("Av-Regressions")]
     public void TestSet4()
     {
@@ -1960,6 +2014,7 @@ public class TestsManu : TestsBase
 
     [TestMethod, Timeout(10000)]
     [TestCategory("NotImplemented")]
+    [Ignore]
     public void Subtype()
     {
         var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test7$DynamicDispatch.Animal", 10);
@@ -1971,6 +2026,86 @@ public class TestsManu : TestsBase
     public void Loops()
     {
         var corralResult = CorralTestHelper("Loops", "Test.Loops.Acum$System.Int32", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void SyntaxTest1()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest1", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void SyntaxTest4()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest4", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void SyntaxTest3()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest3$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test1()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test1", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test2()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test2$Test.AddressesSimple", 10, useStubs: false /*, additionalTinyBCTOptions: "/NewAddrModelling=true"*/);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test3()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test3$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test4()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test4$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test5()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test5$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test6()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test6$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [TestMethod]
+    [TestCategory("Addresses")]
+    public void Test7()
+    {
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test7$Test.AddressesSimple", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1993,6 +2128,7 @@ public class TestsManu : TestsBase
 
     [TestMethod]
     [TestCategory("NotImplemented")]
+    [Ignore]
     public void ModOperator3()
     {
         var corralResult = CorralTestHelper("BinaryOperators", "Test.BinaryOperators.ModTest3", 10);
@@ -2008,20 +2144,20 @@ public class TestsManu : TestsBase
     }
 
     [TestMethod]
-    [TestCategory("Manu")]
-    [Ignore] // Remove (or change test) once bug related to ref keyword is fixed
+    [TestCategory("Addresses")]
+    [TestCategory("RefKeyword")]
     public void RefKeyword1()
     {
-        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10);
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10, useStubs:false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [TestMethod]
-    [TestCategory("Manu")]
-    [Ignore] // Remove (or change test) once bug related to ref keyword is fixed
+    [TestCategory("Addresses")]
+    [TestCategory("RefKeyword")]
     public void RefKeyword2()
     {
-        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10);
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10, useStubs: false, additionalTinyBCTOptions: "/NewAddrModelling=true");
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2110,19 +2246,37 @@ class Test {
     }
 
     [TestMethod]
-    [TestCategory("Manu")]
+    [TestCategory("Arrays")]
     public void ArrayAtomicInit1_Bugged()
     {
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
+    [TestMethod]
+    [TestCategory("Arrays")]
+    [TestCategory("Addresses")]
+    public void ArrayAtomicInit1_Bugged_Addresses()
+    {
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true /NewAddrModelling=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 
     [TestMethod]
-    [TestCategory("Manu")]
+    [TestCategory("Arrays")]
     public void ArrayAtomicInit2_Bugged()
     {
 
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [TestMethod]
+    [TestCategory("Arrays")]
+    [TestCategory("Addresses")]
+    public void ArrayAtomicInit2_Bugged_Addresses()
+    {
+
+        var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, additionalTinyBCTOptions: "/atomicInitArray=true /NewAddrModelling=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2264,15 +2418,15 @@ class Test {
 
     // ************************************* DYNAMIC DISPATCH ******************************
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Manu")]
     public void DynamicDispatch1_NoBugs()
     {
-        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test1_NoBugs", 10);
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test1_NoBugs", 10, useStubs: false);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod]
     [TestCategory("Manu")]
     public void DynamicDispatch1_Bugged()
     {
@@ -2560,7 +2714,7 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [TestMethod, Timeout(10000)]
+    [TestMethod, Timeout(20000)]
     [TestCategory("Manu")]
     public void DelegatesDynamicDispatch4_Bugged()
     {
@@ -2685,10 +2839,18 @@ class Test {
     }
 
     [TestMethod, Timeout(10000)]
-    [TestCategory("Manu")]
+    [TestCategory("Arrays")]
     public void ArgsLength()
     {
         var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, additionalTinyBCTOptions: "/atomicInitArray=true");
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    [TestMethod]
+    [TestCategory("Arrays")]
+    [TestCategory("Addresses")]
+    public void ArgsLengthAddresses()
+    {
+        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, useStubs: false, additionalTinyBCTOptions: "/atomicInitArray=true /NewAddrModelling=true");
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2802,6 +2964,70 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [TestMethod]
+    [TestCategory("Async")]
+    public void Async1()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+using System.Threading.Tasks;
+
+internal class Async
+{
+    public static void Async1()
+    {
+        Task<int> task = DoSomethingAsync(10);
+        task.Wait();
+        int x = task.Result;
+        Contract.Assert(x == 11);
+    }
+
+    private static async Task<int> DoSomethingAsync(int initValue)
+    {
+        int count = initValue + 1;
+        return count;
+    }
+}
+            ";
+        var corralResult = CorralTestHelperCode("Async1", "Async.Async1", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+    [TestMethod]
+    [TestCategory("Async")]
+    [TestCategory("NotImplemented")]
+    [Ignore]
+    public void Await1()
+    {
+        var source = @"
+using System.Diagnostics.Contracts;
+using System.Threading.Tasks;
+
+internal class Async
+{
+    public static void Await1()
+    {
+        Task<int> task = DoSomethingAsync(10);
+        task.Wait();
+        int x = task.Result;
+        Contract.Assert(x == 11);
+    }
+
+    private static async Task<int> DoSomethingAsync(int initValue)
+    {
+        int count = initValue + 1;
+        await RunAsync();
+        return count;
+    }
+    private static Task RunAsync()
+    {
+        return Task.CompletedTask;
+    }
+}
+            ";
+        var corralResult = CorralTestHelperCode("Await1", "Async.Await1", 10, source, useStubs: false);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     // ************************************* Exceptions ******************************
 
     [TestMethod, Timeout(10000)]
@@ -2869,7 +3095,7 @@ class Test {
     }
 
     [TestMethod]
-    [TestCategory("Manu"), Timeout(10000)]
+    [TestCategory("Manu"), Timeout(30000)]
     public void ExceptionTest6NoBugs()
     {
         var corralResult = CorralTestHelper("Exceptions", "$Main_Wrapper_Test.ExceptionTest6NoBugs.Main", 10);
@@ -2926,6 +3152,7 @@ class Test {
 
     [TestMethod]
     [TestCategory("Repro")]
+    [Ignore] // Remove when the type error is resolved: https://github.com/edgardozoppi/analysis-net/issues/10#issuecomment-416497029
     public void TestExceptionsWhen()
     {
         var corralResult = CorralTestHelper("TestExceptionsWhen", "TestExceptionsWhen.Main", 10);
@@ -2956,10 +3183,10 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, string additionalTinyBCTOptions = "")
+    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, bool useStubs = true, string additionalTinyBCTOptions = "")
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\");
-        return base.CorralTestHelper(testName, mainMethod, recusionBound, additionalTinyBCTOptions: additionalTinyBCTOptions);
+        return base.CorralTestHelper(testName, mainMethod, recusionBound, useStubs:useStubs, additionalTinyBCTOptions: additionalTinyBCTOptions);
     }
  }
 

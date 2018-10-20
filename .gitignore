@@ -262,3 +262,7 @@ __pycache__/
 /TinyBCT/Dependencies/CollectionStubs.dll_tac_output.txt
 /Test/TempDirForTests
 /Test/TestUtilsAux/TestCSCCompiles
+<<<<<<< HEAD
+/TinyBCT/Dependencies
+=======
+>>>>>>> master

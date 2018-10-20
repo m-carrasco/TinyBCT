@@ -1,4 +1,122 @@
-﻿type Ref;
+﻿// ************** NEW MEMORY MODELLING ************
+
+type Addr;
+type Object = Union;
+// already declared in old prelude
+// type Union;
+
+var $AllocAddr: [Addr]bool;
+var $AllocObject: [Object]bool;
+
+const unique null_addr: Addr;
+const null_object : Object;
+axiom null_object == null;
+
+type HeapInt = [Addr]int;
+type HeapBool = [Addr]bool;
+type HeapReal = [Addr]real;
+type HeapAddr = [Addr]Addr;
+type HeapObject = [Addr]Object;
+
+// for fields
+type InstanceFieldAddr = [Object]Addr;
+
+procedure {:allocator} {:inline 1} AuxAllocAddr() returns (x: Addr);
+
+procedure {:inline 1} AllocAddr() returns (x: Addr);
+  modifies $AllocAddr;
+
+implementation {:inline 1} AllocAddr() returns (x: Addr)
+{
+    call x := AuxAllocAddr();
+    assume $AllocAddr[x] == false; //&& x != null_addr;
+	assume (forall aA : InstanceFieldAddr, oA : Object :: { LoadInstanceFieldAddr(aA, oA) } LoadInstanceFieldAddr(aA, oA) != x);
+    $AllocAddr[x] := true;
+}
+
+axiom (forall aA, aB : InstanceFieldAddr, oA, oB : Object :: {LoadInstanceFieldAddr(aA, oA), LoadInstanceFieldAddr(aB, oB)} oA != oB ==> LoadInstanceFieldAddr(aA, oA) != LoadInstanceFieldAddr(aB, oB));
+
+procedure {:allocator} {:inline 1} AuxAllocObject() returns (x: Object);
+procedure {:inline 1} AllocObject() returns (x: Object);
+  modifies $AllocObject;
+
+implementation {:inline 1} AllocObject() returns (x: Object)
+{
+    call x := AuxAllocObject();
+    assume $AllocObject[x] == false && x != null_object;
+    $AllocObject[x] := true;
+}
+
+var $memoryInt : HeapInt;
+var $memoryAddr : HeapAddr;
+var $memoryBool : HeapBool;
+var $memoryReal : HeapReal;
+var $memoryObject : HeapObject;
+
+function {:inline true} LoadInstanceFieldAddr(H: InstanceFieldAddr, o: Object) : Addr
+{
+  H[o]
+}
+
+function {:inline true} StoreInstanceFieldAddr(H: InstanceFieldAddr, o: Object, v : Addr) : InstanceFieldAddr
+{
+  H[o := v]
+}
+
+function {:inline true} ReadBool(H: HeapBool, a: Addr) : bool
+{
+  H[a]
+}
+
+function {:inline true} WriteBool(H: HeapBool, a: Addr, v : bool) : HeapBool
+{
+  H[a := v]
+}
+
+function {:inline true} ReadInt(H: HeapInt, a: Addr) : int
+{
+  H[a]
+}
+
+function {:inline true} WriteInt(H: HeapInt, a: Addr, v : int) : HeapInt
+{
+  H[a := v]
+}
+
+function {:inline true} ReadReal(H: HeapReal, a: Addr) : real
+{
+  H[a]
+}
+
+function {:inline true} WriteReal(H: HeapReal, a: Addr, v : real) : HeapReal
+{
+  H[a := v]
+}
+
+
+function {:inline true} ReadAddr(H: HeapAddr, a: Addr) : Addr
+{
+  H[a]
+}
+
+function {:inline true} WriteAddr(H: HeapAddr, a: Addr, v : Addr) : HeapAddr
+{
+  H[a := v]
+}
+
+function {:inline true} ReadObject(H: HeapObject, a: Addr) : Object
+{
+  H[a]
+}
+
+function {:inline true} WriteObject(H: HeapObject, a: Addr, v : Object) : HeapObject
+{
+  H[a := v]
+}
+
+// **************************
+
+type Ref;
 
 type Field;
 
@@ -9,11 +127,12 @@ type HeapType = [Ref][Field]Union;
 const {:allocated} unique null: Ref;
 
 var $Alloc: [Ref]bool;
+
 procedure {:allocator} AuxAlloc() returns (x: Ref);
-procedure  {:inline 1} Alloc() returns (x: Ref);
+procedure {:inline 1} Alloc() returns (x: Ref);
   modifies $Alloc;
 
-implementation  {:inline 1} Alloc() returns (x: Ref)
+implementation {:inline 1} Alloc() returns (x: Ref)
 {
     call x := AuxAlloc();
     assume $Alloc[x] == false && x != null;

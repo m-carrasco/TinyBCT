@@ -27,6 +27,7 @@ namespace TinyBCT
         public static bool CheckNullDereferences = false;
         public static bool DebugLargeDLL = false;
         public static bool SilentExceptionsForMethods = false;
+        public static bool NewAddrModelling = false;
         public static bool DebugLines = false;
 
 
@@ -100,11 +101,15 @@ namespace TinyBCT
                 "the translation will continue silently and the method will be replaced " +
                 "with an extern method (not necessarily a sound over-approximation).");
 
-            p.Setup<bool>("DebugLines")
-               .Callback(b => DebugLines = b)
-               .SetDefault(false)
-               .WithDescription("This settings forces the line numbers to be printed even when no input file exists (TinyBCT can be called without a file).");
+            p.Setup<bool>('m', "NewAddrModelling")
+                .Callback(b => NewAddrModelling = b)
+                .SetDefault(false)
+                .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
 
+            p.Setup<bool>("DebugLines")
+                .Callback(b => DebugLines = b)
+                .SetDefault(false)
+                .WithDescription("This settings forces the line numbers to be printed even when no input file exists (TinyBCT can be called without a file).");
 
             var result = p.Parse(args);
 

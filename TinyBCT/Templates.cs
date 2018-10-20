@@ -11,8 +11,8 @@ namespace TinyBCT
     partial class BoogieProcedureTemplate
     {
         string methodName;
-        string instructions;
-        string localVariables;
+        StatementList instructions;
+        StatementList localVariables;
         string attr;
         string parametersWithTypes;
         string returnTypeIfAny;
@@ -20,8 +20,8 @@ namespace TinyBCT
 
         public BoogieProcedureTemplate(string pMethodName, 
                                         string pAttr, 
-                                        string pLocalVariables, 
-                                        string pInstructions, 
+                                        StatementList pLocalVariables,
+                                        StatementList pInstructions, 
                                         string pParametersWithTypes, 
                                         string pReturnTypeIfAny,
                                         bool pIsExtern)
@@ -35,8 +35,8 @@ namespace TinyBCT
             isExtern = pIsExtern;
         }
 
-        public string LocalVariablesDeclaration() { return localVariables; }
-        public string Instructions() { return instructions; }
+        public StatementList LocalVariablesDeclaration() { return localVariables; }
+        public StatementList Instructions() { return instructions; }
         public string ProcedureName() { return methodName; }
         public string ParametersWithType() { return parametersWithTypes; }
         public string ReturnTypeIfAny() { return returnTypeIfAny;  }

@@ -34,8 +34,8 @@ namespace TinyBCT
         public void Transform()
         {
             // these variables hold the default value
-            IDictionary<string, LocalVariable> boogieTypeToLocalVariable =
-                new Dictionary<string, LocalVariable>();
+            IDictionary<Helpers.BoogieType, LocalVariable > boogieTypeToLocalVariable =
+                new Dictionary<Helpers.BoogieType, LocalVariable>();
 
             // they are the same stored in boogieTypeToLocalVariable
             IList<LocalVariable> variables 
@@ -101,13 +101,13 @@ namespace TinyBCT
             }
         }
 
-        private void CreateLocalVariablesWithDefaultValues(IDictionary<string, LocalVariable> boogieTypeToLocalVariable, IList<LocalVariable> variables, IList<Instruction> instructions)
+        private void CreateLocalVariablesWithDefaultValues(IDictionary<Helpers.BoogieType, LocalVariable> boogieTypeToLocalVariable, IList<LocalVariable> variables, IList<Instruction> instructions)
         {
             // int
 
             var defaultInt = new LocalVariable("$defaultIntValue", false, methodBody.MethodDefinition);
             defaultInt.Type = Types.Instance.PlatformType.SystemInt32;
-            Contract.Assert(Helpers.GetBoogieType(defaultInt.Type).Equals("int"));
+            Contract.Assert(Helpers.GetBoogieType(defaultInt.Type).Equals(Helpers.BoogieType.Int));
 
             var intAssign = new LoadInstruction(0, defaultInt, new Constant(0) { Type = defaultInt.Type });
             intAssign.Label = String.Empty;
@@ -115,13 +115,13 @@ namespace TinyBCT
             variables.Add(defaultInt);
             instructions.Add(intAssign);
 
-            boogieTypeToLocalVariable.Add("int", defaultInt);
+            boogieTypeToLocalVariable.Add(Helpers.BoogieType.Int, defaultInt);
 
             // real
 
             var defaultReal = new LocalVariable("$defaultRealValue", false, methodBody.MethodDefinition);
             defaultReal.Type = Types.Instance.PlatformType.SystemFloat32;
-            Contract.Assert(Helpers.GetBoogieType(defaultReal.Type).Equals("real"));
+            Contract.Assert(Helpers.GetBoogieType(defaultReal.Type).Equals(Helpers.BoogieType.Real));
 
             var realAssing = new LoadInstruction(0, defaultReal, new Constant(0F) { Type = defaultReal.Type });
             realAssing.Label = String.Empty;
@@ -129,13 +129,13 @@ namespace TinyBCT
             variables.Add(defaultReal);
             instructions.Add(realAssing);
 
-            boogieTypeToLocalVariable.Add("real", defaultReal);
+            boogieTypeToLocalVariable.Add(Helpers.BoogieType.Real, defaultReal);
 
             // bool
 
             var defaultBool = new LocalVariable("$defaultBoolValue", false, methodBody.MethodDefinition);
             defaultBool.Type = Types.Instance.PlatformType.SystemBoolean;
-            Contract.Assert(Helpers.GetBoogieType(defaultBool.Type).Equals("bool"));
+            Contract.Assert(Helpers.GetBoogieType(defaultBool.Type).Equals(Helpers.BoogieType.Bool));
 
             var boolAssign = new LoadInstruction(0, defaultBool, new Constant(false) { Type = defaultBool.Type });
             boolAssign.Label = String.Empty;
@@ -143,13 +143,13 @@ namespace TinyBCT
             variables.Add(defaultBool);
             instructions.Add(boolAssign);
 
-            boogieTypeToLocalVariable.Add("bool", defaultBool);
+            boogieTypeToLocalVariable.Add(Helpers.BoogieType.Bool, defaultBool);
 
             // Ref
 
             var defaultRef = new LocalVariable("$defaultRef", false, methodBody.MethodDefinition);
             defaultRef.Type = Types.Instance.PlatformType.SystemObject;
-            Contract.Assert(Helpers.GetBoogieType(defaultRef.Type).Equals("Ref"));
+            Contract.Assert(Helpers.GetBoogieType(defaultRef.Type).Equals(Helpers.BoogieType.Ref));
 
             var refAssign  = new LoadInstruction(0, defaultRef, new Constant(null) { Type = defaultRef.Type });
             refAssign.Label = String.Empty;
@@ -157,7 +157,7 @@ namespace TinyBCT
             variables.Add(defaultRef);
             instructions.Add(refAssign);
 
-            boogieTypeToLocalVariable.Add("Ref", defaultRef);
+            boogieTypeToLocalVariable.Add(Helpers.BoogieType.Ref, defaultRef);
         }
     }
 }

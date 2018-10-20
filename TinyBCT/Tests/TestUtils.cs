@@ -90,6 +90,7 @@ namespace Test
             pProcess.StartInfo.RedirectStandardOutput = true;
             pProcess.StartInfo.RedirectStandardError = true;
             var cmd = corralPath + " " + pProcess.StartInfo.Arguments;
+            Console.WriteLine(cmd);
             pProcess.Start();
             string output = pProcess.StandardOutput.ReadToEnd();
             string err = pProcess.StandardError.ReadToEnd();

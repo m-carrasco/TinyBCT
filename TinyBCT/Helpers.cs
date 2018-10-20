@@ -14,8 +14,9 @@ using System.Threading.Tasks;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT
 {
-    static class Helpers
+    public static class Helpers
     {
+        public static ISet<IMethodDefinition> asyncMoveNexts = new HashSet<IMethodDefinition>();
         internal static ISet<string> methodsTranslated = new HashSet<string>();
         public static bool IsInstructionImplemented(Instruction inst)
         {
@@ -74,42 +75,80 @@ namespace TinyBCT
             return elementTypeBytes;
         }
 
-        public static String GetBoogieType(ITypeReference type)
+        public class BoogieType {
+            private BoogieType(ConstValue c)
+            {
+                Const = c;
+            }
+            public static readonly BoogieType Int = new BoogieType(ConstValue.Int);
+            public static readonly BoogieType Bool = new BoogieType(ConstValue.Bool);
+            public static readonly BoogieType Real = new BoogieType(ConstValue.Real);
+            public static readonly BoogieType Object = new BoogieType(ConstValue.Object);
+            public static readonly BoogieType Ref = new BoogieType(ConstValue.Ref);
+            public static readonly BoogieType Addr = new BoogieType(ConstValue.Addr);
+            public static readonly BoogieType Union = new BoogieType(ConstValue.Union);
+            public static readonly BoogieType Void = new BoogieType(ConstValue.Void);
+            private ConstValue Const { get; }
+            private enum ConstValue { Int, Bool, Real, Object, Ref, Addr, Union, Void };
+            public string FirstUppercase()
+            {
+                return Const.ToString();
+            }
+            public override string ToString()
+            {
+                if (Const == ConstValue.Int)
+                    return "int";
+                if (Const == ConstValue.Real)
+                    return "real";
+                if (Const == ConstValue.Bool)
+                    return "bool";
+                return Const.ToString();
+            }
+        };
+        // The boogie type we use for a .NET object is different depending on the address modeling.
+        // Since in many cases we need to access this type programatically and we were
+        // using Helpers.GetBoogieType(object_type), this helper encapsulates that.
+        public static BoogieType ObjectType()
+        {
+            return Helpers.GetBoogieType(Backend.Types.Instance.PlatformType.SystemObject);
+        }
+        public static BoogieType GetBoogieType(ITypeReference type)
         {
             INamedTypeDefinition namedType = type as INamedTypeDefinition;
             if (namedType != null && type.IsEnum)
                 return GetBoogieType(namedType.UnderlyingType);
 
             if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
-                return "int";
+                return BoogieType.Int;
 
             // hack for Enums
-            if (type.IsEnum) 
-                return "int";
-
+            if (type.IsEnum)
+                return BoogieType.Int;
 
             // not sure about this
             // appeared when accessing anArray.Length
             if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
-                return "int";
+                return BoogieType.Int;
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
-                return "bool";
+                return BoogieType.Bool;
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.Float32))
-                return "real";
+                return BoogieType.Real;
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.Float64))
-                return "real";
+                return BoogieType.Real;
 
             if (type.TypeCode.Equals(PrimitiveTypeCode.String))
-                return "Ref";
+                return Settings.NewAddrModelling ? BoogieType.Object : BoogieType.Ref;
 
-            // hack 
             if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
-                return "Ref";
+                return Settings.NewAddrModelling ? BoogieType.Object : BoogieType.Ref;
 
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && Settings.NewAddrModelling)
+                return BoogieType.Addr;
+
+            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && !Settings.NewAddrModelling)
             {
                 // manuel: we type a reference accordingly to its target type
                 // we just support reference writes/reads for arguments
@@ -130,11 +169,10 @@ namespace TinyBCT
 
             // void type will return null
             if (Types.Instance.PlatformType.SystemVoid.Equals(type))
-                return "Void";
+                return BoogieType.Void;
 
             Contract.Assert(false);
-
-            return null;
+            throw new Exception("Invalid program state reached");
         }
         public static IMethodReference GetUnspecializedVersion(IMethodReference method)
         {
@@ -146,51 +184,39 @@ namespace TinyBCT
             //}
             //return method;
         }
-        public static String GetMethodName(IMethodReference methodDefinition)
-        {
-            return CreateUniqueMethodName(methodDefinition);
 
-            //var signature = MemberHelper.GetMethodSignature(GetUnspecializedVersion(methodDefinition), NameFormattingOptions.UseGenericTypeNameSuffix);
-            //signature = signature.Replace("..", ".#"); // for ctor its name is ..ctor it changes to .#ctor            
-            //var arity = Helpers.GetArityWithNonBoogieTypes(methodDefinition);
-            //arity = arity.Replace("[]", "array");
-            //var result = signature + arity;
-            //result = result.Replace('<', '$').Replace('>', '$').Replace(", ", "$"); // for example containing type for delegates
-            //return result;
-        }
-
-        public static String GetMethodBoogieReturnType(IMethodReference methodDefinition)
+        public static Helpers.BoogieType GetMethodBoogieReturnType(IMethodReference methodDefinition)
         {
             return GetBoogieType(methodDefinition.Type);
         }
 
         public static String GetExternalMethodDefinition(IMethodReference methodRef)
         {
+            var methodName = BoogieMethod.From(methodRef).Name;
             if (Helpers.IsCurrentlyMissing(methodRef))
             {
                 // TODO(rcastano): Add logger. Print this as INFO or WARNING level.
-                Console.WriteLine("WARNING: Creating non-deterministic definition for missing method: " + Helpers.GetMethodName(methodRef));
+                Console.WriteLine("WARNING: Creating non-deterministic definition for missing method: " + methodName);
             }
-            var methodName = Helpers.GetMethodName(methodRef);
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
             var returnType = String.Empty;
 
             // manuel: i can't check for p.IsOut with a method reference, i need a method definition
             // i think that is not possible if it is extern.
-            if (Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void") && !methodRef.Parameters.Any(p => p.IsByReference))
+            if (Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void) && !Settings.NewAddrModelling && !methodRef.Parameters.Any(p => p.IsByReference))
             {
                 returnType = String.Empty;
             } else
             {
                 var returnVariables = new List<String>();
-                returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
-                if (!Helpers.GetMethodBoogieReturnType(methodRef).Equals("Void"))
+                returnVariables = methodRef.Parameters.Where(p => p.IsByReference && !Settings.NewAddrModelling).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                if (!Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void))
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
 
                 returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
             }
 
-            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", String.Empty, String.Empty, parameters, returnType, true);
+            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", StatementList.Empty, StatementList.Empty, parameters, returnType, true);
 
             return t.TransformText();
         }
@@ -468,9 +494,9 @@ namespace TinyBCT
             IMethodDefinition methodDef = methodRef as IMethodDefinition;
             // hack for handling type as variable
             if (methodDef != null)
-                parameters =  String.Join(",", methodDef.Parameters.Select(v => (v.Name.Value=="type"?"$type": v.Name.Value) + " : " + GetBoogieType(v.Type)));
+                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v.Type))));
             else
-                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + GetBoogieType(v.Type)));
+                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v.Type))));
 
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);
@@ -501,7 +527,7 @@ namespace TinyBCT
             // The value of this condition can change throughout the execution of the translation.
             // For that reason, it should be called at the end of the translation again to confirm
             // the method is actually missing from the binary.
-            return !methodsTranslated.Contains(Helpers.GetMethodName(methodReference));
+            return !methodsTranslated.Contains(BoogieMethod.From(methodReference).Name);
         }
 
         // workaround
@@ -509,7 +535,7 @@ namespace TinyBCT
         {
             if (methodDefinition.IsConstructor)
             {
-                var methodName = Helpers.GetMethodName(methodDefinition);
+                var methodName = BoogieMethod.From(methodDefinition).Name;
                 if (methodName.Equals("System.Object.#ctor"))
                     return true;
             }
@@ -522,7 +548,7 @@ namespace TinyBCT
 
         public static void addTranslatedMethod(IMethodDefinition methodDefinition)
         {
-            methodsTranslated.Add(Helpers.GetMethodName(methodDefinition));
+            methodsTranslated.Add(BoogieMethod.From(methodDefinition).Name);
         }
         public static string GetNormalizedTypeFunction(
             ITypeReference originalType, ISet<ITypeReference> mentionedClasses,
@@ -575,7 +601,7 @@ namespace TinyBCT
                 return "T$" + GetNormalizedType(type) + "()";
             }
         }
-            public static string GetNormalizedType(ITypeReference type)
+        public static string GetNormalizedType(ITypeReference type)
         {
             type = TypeHelper.UninstantiateAndUnspecialize(type);
             var result = TypeHelper.GetTypeName(type, NameFormattingOptions.UseGenericTypeNameSuffix | NameFormattingOptions.OmitTypeArguments);
@@ -678,20 +704,23 @@ namespace TinyBCT
             return method.Name.Value == ".ctor";
         }
 
+        public static Boolean IsBoogieRefType(Helpers.BoogieType type)
+        {
+            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object) || type.Equals(Helpers.BoogieType.Union) || type.Equals(Helpers.BoogieType.Addr);
+        }
         public static Boolean IsBoogieRefType(ITypeReference r)
         {
-            var type = Helpers.GetBoogieType(r);
-
-            Contract.Assert(!string.IsNullOrEmpty(type));
-
-            return type.Equals("Ref");
+            return IsBoogieRefType(Helpers.GetBoogieType(r));
         }
 
         public static class Strings
         {
-            internal static ISet<string> stringLiterals = new HashSet<string>();
             internal static IDictionary<Char, int> specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
             internal static readonly Regex illegalBoogieCharactersRegex = new Regex(@"[^a-zA-Z_.$#'`~^\?]");
+            public static bool ContainsIllegalCharacters(string s)
+            {
+                return illegalBoogieCharactersRegex.Match(s).Success;
+            }
             public static string ReplaceIllegalChars(string s)
             {
                 StringBuilder sb = new StringBuilder();
@@ -730,75 +759,49 @@ namespace TinyBCT
 
                 //return s; // .Replace('<', '_').Replace('>', '_');
             }
-
-            public const string constNameForNullString = "$string_literal_NullValue";
-            public static string ConstNameForStringLiteral(string literal)
-            {
-                // String literal will start and end with '"'.
-                System.Diagnostics.Contracts.Contract.Assume(literal[0] == '"' && literal[literal.Length - 1] == '"');
-                stringLiterals.Add(literal);
-                var fixedString = ReplaceSpaces(NormalizeStringForCorral(literal.Substring(1, literal.Length - 2)));
-                if (illegalBoogieCharactersRegex.Match(fixedString).Success)
-                {
-                    fixedString = ReplaceIllegalChars(fixedString);
-                }
-                return String.Format("$string_literal_{0}", fixedString);
-            }
-            public static string fixStringLiteral(IValue v)
+            
+            public static Expression FixStringLiteral(IValue v, BoogieGenerator bg)
             {
                 string vStr = v.ToString();
-                if (v is Constant)
+                if (v is Constant cons)
                 {
-                    if ((v as Constant).Value != null)
-                    {
-                        vStr = ConstNameForStringLiteral(vStr);
-                        stringLiterals.Add(v.ToString());
-                    }
-                    else
-                    {
-                        vStr = constNameForNullString;
-                    }
-                }
-                return vStr;
-            }
-
-            public static void writeStringConsts(System.IO.StreamWriter sw)
-            {
-                var addedConsts = new HashSet<string>();
-                sw.WriteLine(String.Format("\tconst unique {0} : Ref;", Helpers.Strings.constNameForNullString));
-                foreach (var lit in stringLiterals)
+                    return BoogieLiteral.FromString(cons);
+                } else if (v is IVariable variable)
                 {
-                    var boogieConst = Helpers.Strings.ConstNameForStringLiteral(lit);
-                    sw.WriteLine(
-                        String.Format("\tconst unique {0} : Ref;", boogieConst)
-                        );
+                    return bg.ReadAddr(variable);
+                } else
+                {
+                    throw new NotImplementedException();
                 }
             }
 
             // TODO(rcastano): pick better name
-            public static string GetBinaryMethod(BinaryOperation op)
+            public static BoogieMethod GetBinaryMethod(BinaryOperation op)
             {
-                string method = "";
+                BoogieMethod method = null;
                 switch (op)
                 {
-                    case BinaryOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
-                    case BinaryOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
-                    case BinaryOperation.Add: method = "System.String.Concat$System.String$System.String"; break;
+                    case BinaryOperation.Eq: method = BoogieMethod.StringEquality; break;
+                    case BinaryOperation.Neq: method = BoogieMethod.StringInequality; break;
+                    case BinaryOperation.Add: method = BoogieMethod.StringConcat; break;
                 }
+                Contract.Assume(method != null);
                 return method;
             }
             
-            public static string GetBinaryMethod(BranchOperation op)
+            public static BoogieMethod GetBinaryMethod(BranchOperation op)
             {
-                string method = "";
+                BoogieMethod method = null;
                 switch (op)
                 {
-                    case BranchOperation.Eq: method = "System.String.op_Equality$System.String$System.String"; break;
-                    case BranchOperation.Neq: method = "System.String.op_Inequality$System.String$System.String"; break;
+                    
+                    case BranchOperation.Eq: method = BoogieMethod.StringEquality; break;
+                    case BranchOperation.Neq: method = BoogieMethod.StringInequality; break;
                     default:
                         Contract.Assert(false);
                         break;
                 }
+                Contract.Assume(method != null);
                 return method;
             }
         }
