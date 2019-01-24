@@ -35,7 +35,7 @@ namespace Test
                 if (checkSyntaxError)
                 {
                     result = result && err.Equals("");
-                    result = result && !output.Contains(": error:");
+                    result = result && !output.ToUpper().Contains(": ERROR:");
                 }
                 if (!result)
                 {

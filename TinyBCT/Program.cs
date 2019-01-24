@@ -208,7 +208,7 @@ namespace TinyBCT
             streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
             streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
 
-            CreateAllAsyncMethods(streamWriter);
+            // CreateAllAsyncMethods(streamWriter);
 
             
 

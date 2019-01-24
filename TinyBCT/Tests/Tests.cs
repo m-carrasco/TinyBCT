@@ -2957,6 +2957,7 @@ class Test {
 
     [TestMethod]
     [TestCategory("Async")]
+    [Ignore]
     public void Async1()
     {
         var source = @"
