@@ -419,14 +419,17 @@ namespace TinyBCT.Translators
                 if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
                 {
                     var arg_ref = boogieGenerator.ReadAddr(instruction.Arguments.ElementAt(0));
-                    var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
-                    if (Settings.CheckNullDereferences)
+                    if (arg_ref.Type == Helpers.BoogieType.Ref)
                     {
-                        AddBoogie(BoogieStatement.Assert(refNotNull, annotation: "nonnull"));
-                    }
-                    else
-                    {
-                        AddBoogie(BoogieStatement.Assume(refNotNull, annotation: "nonnull"));
+                        var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
+                        if (Settings.CheckNullDereferences)
+                        {
+                            AddBoogie(BoogieStatement.Assert(refNotNull, annotation: "nonnull"));
+                        }
+                        else
+                        {
+                            AddBoogie(BoogieStatement.Assume(refNotNull, annotation: "nonnull"));
+                        }
                     }
                 }
 
@@ -438,14 +441,17 @@ namespace TinyBCT.Translators
                 {
                     var instanceFieldAccess = instruction.Operand as InstanceFieldAccess;
                     var arg_ref = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
-                    var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
-                    if (Settings.CheckNullDereferences)
+                    if (arg_ref.Type == Helpers.BoogieType.Ref)
                     {
-                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                    }
-                    else
-                    {
-                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
+                        var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
+                        if (Settings.CheckNullDereferences)
+                        {
+                            AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
+                        }
+                        else
+                        {
+                            AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
+                        }
                     }
                 }
 
@@ -457,14 +463,18 @@ namespace TinyBCT.Translators
                 {
                     var instanceFieldAccess = instruction.Result as InstanceFieldAccess;
                     var arg_ref = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
-                    var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
-                    if (Settings.CheckNullDereferences)
+                    if (arg_ref.Type == Helpers.BoogieType.Ref)
                     {
-                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                    }
-                    else
-                    {
-                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
+                        var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
+                        if (Settings.CheckNullDereferences)
+                        {
+                            AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
+                        }
+                        else
+                        {
+                            AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
+                        }
+
                     }
                 }
 
@@ -1036,20 +1046,37 @@ namespace TinyBCT.Translators
             {
                 Instruction ins = instructions[idx];
 
+
                 if (ins is CreateArrayInstruction)
                     return true;
 
                 var load = ins as LoadInstruction;
-                if (load != null && (load.Operand is ArrayElementAccess))
-                    return true;
+                if (load != null)
+                {
+                    var operand = load.Operand;
+                    if(load.Operand is Reference && !Settings.NewAddrModelling)
+                    {
+                        operand = (operand as Reference).Value;
+                    }
+                    if (operand is ArrayElementAccess)
+                        return true;
+                    // Length Access returns an uint
+                    // we will avoid the conversion from uint to int by directly returning the length
 
-                // Length Access returns an uint
-                // we will avoid the conversion from uint to int by directly returning the length
+                    // Load/Length Convert
+                    if (operand is ArrayLengthAccess &&
+                        idx + 1 <= instructions.Count - 1 && instructions[idx + 1] is ConvertInstruction)
+                        return true;
 
-                // Load/Length Convert
-                if (load != null && (load.Operand is ArrayLengthAccess) &&
-                    idx+1 <= instructions.Count-1 && instructions[idx+1] is ConvertInstruction)
-                    return true;
+                    // no convert instruction is also acceptable.
+                    if (operand is ArrayLengthAccess)
+                    {
+                        onlyLengthNoConvert = true;
+                        return true;
+                    }
+                }
+
+
 
                 // Load/Length Convert
                 if (ins is ConvertInstruction && idx-1 >= 0 && instructions[idx-1] is LoadInstruction)
@@ -1057,13 +1084,6 @@ namespace TinyBCT.Translators
                     var op = (instructions[idx - 1] as LoadInstruction).Operand as ArrayLengthAccess;
                     if (op != null)
                         return true;
-                }
-
-                // no convert instruction is also acceptable.
-                if (load != null && (load.Operand is ArrayLengthAccess))
-                {
-                    onlyLengthNoConvert = true;
-                    return true;
                 }
 
                 var store = ins as StoreInstruction;
@@ -1104,8 +1124,19 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadInstruction instruction)
             {
-                ArrayElementAccess elementAccess = instruction.Operand as ArrayElementAccess;
-                ArrayLengthAccess lengthAccess = instruction.Operand as ArrayLengthAccess;
+                var instructionOperand = instruction.Operand;
+                // hack of old memory modelling
+                if (!Settings.NewAddrModelling && instructionOperand is Reference)
+                {
+                    // Reference loading only found when using "default" keyword.
+                    // Ignoring translation, the actual value referenced is used by accessing
+                    // instTranslator.lastInstruction [see Visit(InitializeObjectInstruction instruction)]
+                    // TODO(rcastano): check that loaded references are only used in the assumed context.
+                    instructionOperand = (instructionOperand as Reference).Value;
+                }
+
+                ArrayElementAccess elementAccess = instructionOperand as ArrayElementAccess;
+                ArrayLengthAccess lengthAccess = instructionOperand as ArrayLengthAccess;
 
                 if (elementAccess != null || lengthAccess != null)
                 {
