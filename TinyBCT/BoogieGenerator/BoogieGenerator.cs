@@ -1820,9 +1820,21 @@ namespace TinyBCT
             // Instance methods, passing 'this'
             if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
             {
-                var iVariable = instruction.Arguments.ElementAt(0);
-                copyArgs.Add((ReadAddr(iVariable), iVariable));
+                var receiver = instruction.Arguments.ElementAt(0);
+                if (!Helpers.IsBoogieRefType(receiver.Type))
+                {
+                    // TODO(rcastano): try to reuse variables.
+                    var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
+                    // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, receiver, argType)
+                    instTranslator.AddBoogie(VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(ReadAddr(receiver), instTranslator)));
+                    copyArgs.Add((tempBoogieVar, null));
+                }
+                else
+                {
+                    copyArgs.Add((ReadAddr(receiver), receiver));
+                }
             }
+
             for (int i = 0; i < instruction.Method.Parameters.Count(); ++i)
             {
                 int arg_i =
@@ -1837,7 +1849,6 @@ namespace TinyBCT
                     
                     // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
                     instTranslator.AddBoogie(VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(ReadAddr(instruction.Arguments.ElementAt(arg_i)), instTranslator)));
-
                     copyArgs.Add((tempBoogieVar, null));
                 }
                 else
