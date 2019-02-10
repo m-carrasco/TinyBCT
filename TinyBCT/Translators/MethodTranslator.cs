@@ -89,6 +89,17 @@ namespace TinyBCT
         // set in Main
         public static void IMethodDefinitionTraverse(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
         {
+
+            // TODO: Hack to for treating a method as nondet
+            var method = mD.ResolvedMethod;
+            var methodName =method.ContainingType.FullName() + "." + method.Name.Value;
+            if (methodName.Equals("SVX.ContractBase.getNondet"))
+            {
+                InstructionTranslator.AddToExternalMethods(method);
+                return;
+            }
+            // End Hack
+            
             if (!mD.IsExternal)
             {
                 try

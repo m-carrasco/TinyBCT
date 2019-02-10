@@ -1,0 +1,180 @@
+<>f__AnonymousType0.reference.get()
+local  <>f__AnonymousType0 $r0;
+local  <>f__AnonymousType0 this;
+local  <reference>j__TPar $r1;
+local  System.Int32 $defaultIntValue;
+local  System.Single $defaultRealValue;
+local  System.Boolean $defaultBoolValue;
+local  System.Object $defaultRef;
+
+           $defaultIntValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRealValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultBoolValue = false;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRef = null;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $r0.<reference>i__Field;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           return $r1;   //Backend.ThreeAddressCode.Instructions.ReturnInstruction 
+
+<>f__AnonymousType0.identity.get()
+local  <>f__AnonymousType0 $r0;
+local  <>f__AnonymousType0 this;
+local  <identity>j__TPar $r1;
+local  System.Int32 $defaultIntValue;
+local  System.Single $defaultRealValue;
+local  System.Boolean $defaultBoolValue;
+local  System.Object $defaultRef;
+
+           $defaultIntValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRealValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultBoolValue = false;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRef = null;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $r0.<identity>i__Field;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           return $r1;   //Backend.ThreeAddressCode.Instructions.ReturnInstruction 
+
+<>f__AnonymousType0..ctor(<reference>j__TPar reference, <identity>j__TPar identity)
+local  <>f__AnonymousType0 $r0;
+local  <>f__AnonymousType0 this;
+local  <>f__AnonymousType0 $r1;
+local  <reference>j__TPar $r2;
+local  <reference>j__TPar reference;
+local  <>f__AnonymousType0 $r3;
+local  <identity>j__TPar $r4;
+local  <identity>j__TPar identity;
+local  System.Int32 $defaultIntValue;
+local  System.Single $defaultRealValue;
+local  System.Boolean $defaultBoolValue;
+local  System.Object $defaultRef;
+
+           $defaultIntValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRealValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultBoolValue = false;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRef = null;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r2 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r3 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r4 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           this.<reference>i__Field = $defaultRef;   //Backend.ThreeAddressCode.Instructions.StoreInstruction 
+           this.<identity>i__Field = $defaultRef;   //Backend.ThreeAddressCode.Instructions.StoreInstruction 
+           $r0 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           System.Object::.ctor($r0);   //Backend.ThreeAddressCode.Instructions.MethodCallInstruction 
+           $r1 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r2 = reference;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1.<reference>i__Field = $r2;   //Backend.ThreeAddressCode.Instructions.StoreInstruction 
+           $r3 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r4 = identity;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r3.<identity>i__Field = $r4;   //Backend.ThreeAddressCode.Instructions.StoreInstruction 
+           return;   //Backend.ThreeAddressCode.Instructions.ReturnInstruction 
+
+<>f__AnonymousType0.Equals(System.Object value)
+local  System.Object $r0;
+local  System.Object value;
+local  <>f__AnonymousType0<<reference>j__TPar, <identity>j__TPar> $r1;
+local  <>f__AnonymousType0<<reference>j__TPar, <identity>j__TPar> local_0;
+local  <>f__AnonymousType0<<reference>j__TPar, <identity>j__TPar> $r2;
+local  System.Collections.Generic.EqualityComparer<<reference>j__TPar> $r4;
+local  <>f__AnonymousType0 $r5;
+local  <>f__AnonymousType0 this;
+local  <reference>j__TPar $r6;
+local  <>f__AnonymousType0<<reference>j__TPar, <identity>j__TPar> $r7;
+local  <reference>j__TPar $r8;
+local  System.Boolean $r9;
+local  System.Collections.Generic.EqualityComparer<<identity>j__TPar> $r10;
+local  <>f__AnonymousType0 $r11;
+local  <identity>j__TPar $r12;
+local  <>f__AnonymousType0<<reference>j__TPar, <identity>j__TPar> $r13;
+local  <identity>j__TPar $r14;
+local  System.Boolean $r15;
+local  System.Boolean $r3;
+local  System.Int32 $defaultIntValue;
+local  System.Single $defaultRealValue;
+local  System.Boolean $defaultBoolValue;
+local  System.Object $defaultRef;
+
+           $defaultIntValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRealValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultBoolValue = false;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRef = null;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           local_0 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r2 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r4 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r5 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r6 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r7 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r8 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r9 = $defaultBoolValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r10 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r11 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r12 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r13 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r14 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r15 = $defaultBoolValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r3 = $defaultBoolValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = value;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $r0 as <>f__AnonymousType0<<reference>j__TPar, <identity>j__TPar>;   //Backend.ThreeAddressCode.Instructions.ConvertInstruction 
+           local_0 = $r1;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r2 = local_0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           if $r2 == null goto L_0039;   //Backend.ThreeAddressCode.Instructions.ConditionalBranchInstruction 
+           $r4 = System.Collections.Generic.EqualityComparer<<reference>j__TPar>::get_Default();   //Backend.ThreeAddressCode.Instructions.MethodCallInstruction 
+           $r5 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r6 = $r5.<reference>i__Field;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r7 = local_0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r8 = $r7.<reference>i__Field;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r9 = System.Collections.Generic.EqualityComparer<<reference>j__TPar>::Equals($r4, $r6, $r8);   //Backend.ThreeAddressCode.Instructions.MethodCallInstruction 
+           if $r9 == false goto L_0039;   //Backend.ThreeAddressCode.Instructions.ConditionalBranchInstruction 
+           $r10 = System.Collections.Generic.EqualityComparer<<identity>j__TPar>::get_Default();   //Backend.ThreeAddressCode.Instructions.MethodCallInstruction 
+           $r11 = this;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r12 = $r11.<identity>i__Field;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r13 = local_0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r14 = $r13.<identity>i__Field;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r15 = System.Collections.Generic.EqualityComparer<<identity>j__TPar>::Equals($r10, $r12, $r14);   //Backend.ThreeAddressCode.Instructions.MethodCallInstruction 
+           return $r15;   //Backend.ThreeAddressCode.Instructions.ReturnInstruction 
+  L_0039:  $r3 = false;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           return $r3;   //Backend.ThreeAddressCode.Instructions.ReturnInstruction 
+
+<>f__AnonymousType0.GetHashCode()
+local  System.Int32 $r0;
+local  System.Int32 $r1;
+local  System.Int32 $r2;
+local  System.Collections.Generic.EqualityComparer<<reference>j__TPar> $r3;
+local  <>f__AnonymousType0 $r4;
+local  <>f__AnonymousType0 this;
+local  <reference>j__TPar $r5;
+local  System.Int32 $r6;
+local  System.Int32 $r7;
+local  System.Int32 $r8;
+local  System.Int32 $r9;
+local  System.Collections.Generic.EqualityComparer<<identity>j__TPar> $r10;
+local  <>f__AnonymousType0 $r11;
+local  <identity>j__TPar $r12;
+local  System.Int32 $r13;
+local  System.Int32 $r14;
+local  System.Int32 $defaultIntValue;
+local  System.Single $defaultRealValue;
+local  System.Boolean $defaultBoolValue;
+local  System.Object $defaultRef;
+
+           $defaultIntValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRealValue = 0;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultBoolValue = false;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $defaultRef = null;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r0 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r1 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r2 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r3 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r4 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r5 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r6 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r7 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r8 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r9 = $defaultIntValue;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r10 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r11 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstruction 
+           $r12 = $defaultRef;   //Backend.ThreeAddressCode.Instructions.LoadInstructio
