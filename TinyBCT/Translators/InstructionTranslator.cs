@@ -56,6 +56,11 @@ namespace TinyBCT.Translators
             temporalVariables = new Dictionary<string, BoogieVariable>();
         }
 
+        public static void AddToExternalMethods(IMethodReference method)
+        {
+            ExternMethodsCalled.Add(method.ResolvedMethod);
+        }
+
         public BoogieVariable GetFreshVariable(Helpers.BoogieType type, string prefix)
         {
             Contract.Assume(prefix != null);
@@ -85,6 +90,8 @@ namespace TinyBCT.Translators
 
         public void Translate(/*IList<Instruction> instructions, int idx*/)
         {
+
+
             var bg = BoogieGenerator.Instance();
 
             var instructions = methodBody.Instructions;
@@ -303,7 +310,7 @@ namespace TinyBCT.Translators
                 }
 
                 if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
-                    SimpleTranslation.AddToExternalMethods(method);
+                    InstructionTranslator.AddToExternalMethods(method);
             }
 
             public StatementList AddSubtypeInformationToExternCall(MethodCallInstruction instruction)
@@ -759,14 +766,13 @@ namespace TinyBCT.Translators
                 }
             }
 
-            public static void AddToExternalMethods(IMethodReference method)
-            {
-                ExternMethodsCalled.Add(method.ResolvedMethod);
-            }
+
 
             private StatementList CallMethod(MethodCallInstruction instruction, IMethodReference callee)
             {
+
                 var methodDefinition = callee.ResolvedMethod;
+
                 if (Helpers.IsExternal(methodDefinition))
                     AddToExternalMethods(methodDefinition);
                 // Important not to add methods to both sets.
