@@ -36,7 +36,7 @@ namespace TinyBCT
         public static void Load(string[] args)
         {
             var defaultFiles = new List<string>();
-            var pathToSelf = System.Reflection.Assembly.GetEntryAssembly().Location;
+            var pathToSelf = System.Reflection.Assembly.GetExecutingAssembly().Location;
             var pathToTest = Path.Combine(Path.GetDirectoryName(pathToSelf), "..", "..", "..", "Test", "bin", "Debug", "Test.dll");
             defaultFiles.Add(pathToTest);
             //defaultFiles.Add(@"..\..\..\Test2\bin\Debug\Test2.dll");
