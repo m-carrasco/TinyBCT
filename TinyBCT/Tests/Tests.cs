@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 public partial class TestsHelpers
 {
-    private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TestUtilsAux\");
+    private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TestUtilsAux");
 
     [Category("Call-Corral"), Test, Timeout(10000)]
     public void TestsCorralResultNoBugs()
@@ -169,8 +169,8 @@ public class TestsBase
 
         TinyBCT.ImmutableArguments.MethodToMapping = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();
     }
-    protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\RegressionsAv\");
-    private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, @"Test\TempDirForTests");
+    protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "RegressionsAv");
+    private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TempDirForTests");
 
     protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = true, string additionalTinyBCTOptions = "", bool useCSC = false)
     {

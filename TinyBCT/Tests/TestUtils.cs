@@ -11,8 +11,8 @@ namespace Test
 {
     public class TestUtils
     {
-        public static string rootTinyBCT = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\");
-        public static string corralPath = Path.Combine(rootTinyBCT, @"..\corral\bin\Debug\corral.exe");
+        public static string rootTinyBCT = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..");
+        public static string corralPath = Path.Combine(rootTinyBCT, "..", "corral", "bin", "Debug", "corral.exe");
         public class CorralResult
         {
             public class CorralOutputException : Exception { }
