@@ -111,15 +111,75 @@ namespace TinyBCT
             }
             sw.WriteLine("}");
         }
-
-        public static void Main(string[] args)
+        class TinyBCTHost : PeReader.DefaultHost
         {
-            Settings.Load(args);
+            public static PeReader.DefaultHost NewHost(){
+                if (Environment.OSVersion.Platform.Equals(PlatformID.MacOSX) ||
+                    Environment.OSVersion.Platform.Equals(PlatformID.Unix)){
+                    return new TinyBCTHost();
+                } else
+                    return new PeReader.DefaultHost();
+            }
+
+            public TinyBCTHost()
+            {
+                host = new PeReader.DefaultHost();
+                Assembly coreLib = new Assembly(host);
+
+                var pathToSelf = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                var assemblyPath = Path.Combine(pathToSelf, "..", "..","..","DLLs");
+                //var assemblyPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319";
+                var systemCoreDll = Path.Combine(assemblyPath, "System.Core.dll");
+
+                if (!File.Exists(systemCoreDll)){
+                    throw new FileNotFoundException("System.Core.dll not found: " + systemCoreDll);
+                }
+
+                coreLib.Load(systemCoreDll);
+
+                this.LoadAssembly(coreLib.Module.ContainingAssembly.AssemblyIdentity);
+            }
+
+            public override IUnit LoadUnitFrom(string location)
+            {
+                IUnit unit = base.LoadUnitFrom(location);
+                return unit;
+            }
+
+            protected  override AssemblyIdentity GetCoreAssemblySymbolicIdentity()
+            {
+                Assembly coreLib = new Assembly(host);
+
+                var pathToSelf = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                var assemblyPath = Path.Combine(pathToSelf, "..", "..","..","DLLs");
+
+                var mscorlibDll = Path.Combine(assemblyPath, "mscorlib.dll");
+                if (!File.Exists(mscorlibDll)){
+                    throw new FileNotFoundException("mscorlib.dll not found: " + mscorlibDll);
+                }
+                coreLib.Load(mscorlibDll);
+
+                return coreLib.Module.ContainingAssembly.AssemblyIdentity;
+            }
+
+            PeReader.DefaultHost host;
+        }
+ 
+        
+        public static void Main(string[] args){
+            ProgramOptions options = Settings.CreateProgramOptions(args);
+            Start(options);
+        }
+        
+        public static void Start(ProgramOptions programOptions){
+
+            Console.WriteLine(programOptions);
+            Settings.SetProgramOptions(programOptions);
             var outputPath = SetupOutputFile();
 
             Prelude.Write(); // writes prelude.bpl content into the output file
 
-            using (var host = new PeReader.DefaultHost())
+            using (var host = TinyBCTHost.NewHost())
             {
                 var CHAnalysis = CreateCHAnalysis(host);
                 Types.Initialize(host);

@@ -40,8 +40,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\rudder\analysis-net\Backend\bin\Debug\Backend.dll</HintPath>
     </Reference>
-    <Reference Include="FluentCommandLineParser, Version=1.4.3.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\FluentCommandLineParser.1.4.3\lib\net35\FluentCommandLineParser.dll</HintPath>
+    <Reference Include="FluentCommandLineParser, Version=1.5.0.20-commands, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentCommandLineParser.1.5.0.20-commands\lib\net35\FluentCommandLineParser.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Cci.ILGenerator, Version=0.0.0.2, Culture=neutral, PublicKeyToken=736440c9b414ea16, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
