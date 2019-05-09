@@ -88,7 +88,6 @@ namespace Test
             pProcess.StartInfo.RedirectStandardOutput = true;
             pProcess.StartInfo.RedirectStandardError = true;
             var cmd = corralPath + " " + pProcess.StartInfo.Arguments;
-            Console.WriteLine(cmd);
             pProcess.Start();
             string output = pProcess.StandardOutput.ReadToEnd();
             string err = pProcess.StandardError.ReadToEnd();
@@ -124,7 +123,13 @@ namespace Test
 
         public static bool CompileWithCSC(string code, string name, string prefixDir = "")
         {
-            string cscPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe";
+            string cscPath = String.Empty;
+            if (Environment.OSVersion.Platform.Equals(PlatformID.MacOSX) ||
+                Environment.OSVersion.Platform.Equals(PlatformID.Unix))
+                cscPath = "csc";
+            else
+                cscPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe";
+                
             var sourceFullPath = Path.Combine(prefixDir, Path.ChangeExtension(name, ".cs"));
             var outputFullPath = Path.ChangeExtension(sourceFullPath, "dll");
             System.Diagnostics.Contracts.Contract.Assume(!System.IO.File.Exists(outputFullPath));
@@ -162,27 +167,14 @@ namespace Test
             var metadataRefences = new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) };
 
             var assemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
-            IEnumerable<string> defaultNamespaces = new[]
-             {
-                "System",
-                "System.IO",
-                "System.Net",
-                "System.Linq",
-                "System.Text",
-                "System.Text.RegularExpressions",
-                "System.Collections.Generic"
-            };
+
             IEnumerable<MetadataReference> defaultReferences = new[]
             {
                 MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "mscorlib.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Core.dll")),
-                MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Runtime.dll")),
+                //MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Runtime.dll")),
             };
-
-            //CSharpCompilationOptions defaultCompilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
-            //            .WithOverflowChecks(true).WithOptimizationLevel(OptimizationLevel.Release)
-            //            .WithUsings(defaultNamespaces);
 
             CSharpCompilation compilation = CSharpCompilation.Create(
                 name,
@@ -190,25 +182,17 @@ namespace Test
                 references: defaultReferences,
                 options: options);
 
-            //CSharpCompilation compilation = CSharpCompilation.Create(
-            //                                name,
-            //                                new[] { syntaxTree },
-            //                                metadataRefences,
-            //                                options);
 
-            //using (var dllStream = new MemoryStream())
-            //using (var pdbStream = new MemoryStream())
-            {
                 var outputPath = Path.Combine(prefixDir, Path.ChangeExtension(name, "dll"));
                 var pdbPath = Path.Combine(prefixDir, Path.ChangeExtension(name, "pdb"));
-                var emitResult = compilation.Emit(outputPath, pdbPath);
-                //var emitResult = compilation.Emit(dllStream, pdbStream);
-                if (!emitResult.Success)
-                {
-                    return false;
-                    // emitResult.Diagnostics
+                if (Environment.OSVersion.Platform.Equals(PlatformID.MacOSX) ||
+                    Environment.OSVersion.Platform.Equals(PlatformID.Unix)){
+                    pdbPath = null; // pdb writing is only supported in Windows
                 }
-            }
+                var emitResult = compilation.Emit(outputPath, pdbPath);
+                if (!emitResult.Success)
+                    return false;
+            
             return true;
         }
     }
