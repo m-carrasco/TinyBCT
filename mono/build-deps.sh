@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+export MONO_IOMAP=all
+
 # Build the required DLLs
 (cd cci && msbuild Samples/PeToPe/PeToPe.csproj /t:Build)
 
