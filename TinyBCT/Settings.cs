@@ -23,6 +23,7 @@ namespace TinyBCT
             SilentExceptionsForMethods = false;
             NewAddrModelling = false;
             DebugLines = false;
+            Verbose = false;
         }
 
         public override string ToString(){
@@ -48,10 +49,11 @@ namespace TinyBCT
             sb.AppendLine("SilentExceptionsForMethods " + SilentExceptionsForMethods);
             sb.AppendLine("NewAddrModelling " + NewAddrModelling);
             sb.AppendLine("DebugLines " + DebugLines);
+            sb.AppendLine("Verbose " + Verbose);
             return sb.ToString();
         }
         public IList<string> GetInputFiles(){return inputFiles;}
-        public IList<string> GetBplInputFiles() {return bplInputFiles;}       
+        public IList<string> GetBplInputFiles() {return bplInputFiles;}
         public void SetInputFiles(List<String> files){
             if (files.Count == 0)
                 throw new ArgumentOutOfRangeException("At least there must be a input file");
@@ -85,6 +87,7 @@ namespace TinyBCT
         public bool SilentExceptionsForMethods;
         public bool NewAddrModelling;
         public bool DebugLines;
+        public bool Verbose;
     }
 
 
@@ -104,6 +107,7 @@ namespace TinyBCT
             SilentExceptionsForMethods = op.SilentExceptionsForMethods;
             NewAddrModelling = op.NewAddrModelling;
             DebugLines = op.DebugLines;
+            Verbose = op.Verbose;
         }
 
         public static IList<string> InputFiles;
@@ -119,6 +123,7 @@ namespace TinyBCT
         public static bool SilentExceptionsForMethods;
         public static bool NewAddrModelling;
         public static bool DebugLines;
+        public static bool Verbose;
 
         public static ProgramOptions CreateProgramOptions(string[] args)
         {
@@ -181,6 +186,10 @@ namespace TinyBCT
             p.Setup<bool>("DebugLines")
                 .Callback(b => options.DebugLines = b)
                 .WithDescription("This settings forces the line numbers to be printed even when no input file exists (TinyBCT can be called without a file).");
+
+            p.Setup<bool>('v', "Verbose")
+                .Callback(b => options.Verbose = b)
+                .WithDescription("Verbose output.");
 
             var result = p.Parse(args);
 

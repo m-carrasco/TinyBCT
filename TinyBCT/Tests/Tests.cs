@@ -182,7 +182,7 @@ public class TestsBase
         var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, options:options);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
-        Console.WriteLine(corralResult.ToString());
+        // Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
     protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null)
