@@ -172,26 +172,26 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "RegressionsAv");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TempDirForTests");
 
-    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = false, TinyBCT.ProgramOptions options = null, bool useCSC = false, TestOptions testOptions = null)
+    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, TinyBCT.ProgramOptions options = null, bool useCSC = false, TestOptions testOptions = null)
     {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
         if (!System.IO.Directory.Exists(pathTempDir))
         {
             System.IO.Directory.CreateDirectory(pathTempDir);
         }
-        var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, options:options, testOptions:testOptions);
+        var uniqueDir = DoTest(source, testName, prefixDir: pathTempDir, useCSC: useCSC, options:options, testOptions:testOptions);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         // Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
+    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound,  TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
-        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, useStubs: useStubs, options:options, testOptions: testOptions);
+        return CorralTestHelperCode(testName, mainMethod, recursionBound, source,  options:options, testOptions: testOptions);
     }
 
-    protected static string DoTest(string source, string assemblyName, bool useStubs = false, string prefixDir = "", bool useCSC = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions=null)
+    protected static string DoTest(string source, string assemblyName, string prefixDir = "", bool useCSC = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions=null)
     {
         if (testOptions == null)
             testOptions = new TestOptions();
@@ -731,7 +731,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Generics")]
@@ -759,7 +759,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics2", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test,Category("MissingTypes")]
@@ -778,7 +778,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestAsUndeclaredType1", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestAsUndeclaredType1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("Repro")]
@@ -797,7 +797,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestReturns", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestReturns", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro")]
@@ -812,7 +812,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestExternMethod1", "Test.toString", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestExternMethod1", "Test.toString", 10, source);
         Assert.IsFalse(corralResult.NameResolutionErrors());
     }
     [Test, Category("Repro")]
@@ -826,7 +826,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestCast1", "Test.Main$System.Double", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestCast1", "Test.Main$System.Double", 10, source,  useCSC: true);
         Assert.IsFalse(corralResult.SyntaxErrors());
     }
     [Test, Category("Repro")]
@@ -854,7 +854,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestDynamicDispatch1", "Test.Main$Base2", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestDynamicDispatch1", "Test.Main$Base2", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("Repro")]
@@ -886,7 +886,7 @@ class Test {
         ";
         var options = new TinyBCT.ProgramOptions();
         options.AvoidSubtypeCheckingForInterfaces = false;
-        var corralResult = CorralTestHelperCode("TestInterfaceParameterOptionTrue", "Test.Main$Base2", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestInterfaceParameterOptionTrue", "Test.Main$Base2", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -916,7 +916,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestDynamicDispatch2", "Test.Main$Base2", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestDynamicDispatch2", "Test.Main$Base2", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro"), Category("DefaultKeyword")]
@@ -936,7 +936,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DefaultNull1", "Test.Main", 10, source, useStubs: true);
+        var corralResult = CorralTestHelperCode("DefaultNull1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro"), Category("DefaultKeyword")]
@@ -956,7 +956,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DefaultNull2", "Test.Main", 10, source, useStubs: true);
+        var corralResult = CorralTestHelperCode("DefaultNull2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -980,7 +980,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DefaultDouble1", "Test.Main", 10, source, useStubs: true);
+        var corralResult = CorralTestHelperCode("DefaultDouble1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro"), Category("DefaultKeyword")]
@@ -1003,7 +1003,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DefaultDouble2", "Test.Main", 10, source, useStubs: true);
+        var corralResult = CorralTestHelperCode("DefaultDouble2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1023,7 +1023,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DefaultInt1", "Test.Main", 10, source, useStubs: true);
+        var corralResult = CorralTestHelperCode("DefaultInt1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro"), Category("DefaultKeyword")]
@@ -1042,7 +1042,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DefaultInt2", "Test.Main", 10, source, useStubs: true);
+        var corralResult = CorralTestHelperCode("DefaultInt2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1067,7 +1067,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation1", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1091,7 +1091,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation2", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1113,7 +1113,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation3", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation3", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1138,7 +1138,7 @@ class Test {
         ";
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.CheckNullDereferences = true;
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation4", "Test.Main", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation4", "Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1161,7 +1161,7 @@ class Test {
         ";
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.CheckNullDereferences = true;
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation5", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation5", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1184,7 +1184,7 @@ class Test {
         ";
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.CheckNullDereferences = true;
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation6", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation6", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1202,7 +1202,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1220,7 +1220,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1238,7 +1238,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1257,7 +1257,7 @@ class Test {
         ";
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.CheckNullDereferences = true;
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1276,7 +1276,7 @@ class Test {
         ";
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.CheckNullDereferences = true;
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1295,7 +1295,7 @@ class Test {
         ";
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.CheckNullDereferences = true;
-        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source, useStubs: false, options: options);
+        var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1317,7 +1317,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestCast2", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestCast2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("VariableAssignment")]
@@ -1333,7 +1333,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestLargeIntegers1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestLargeIntegers1", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("VariableAssignment")]
@@ -1352,7 +1352,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestLargeIntegers2", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestLargeIntegers2", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1372,7 +1372,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestLargeIntegers3", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestLargeIntegers3", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("Repro")]
@@ -1394,7 +1394,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestStringNull1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestStringNull1", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("Repro")]
@@ -1413,7 +1413,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestArray1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestArray1", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro")]
@@ -1437,7 +1437,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestAssumeTypeArguments1", "Test.Main$Base", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestAssumeTypeArguments1", "Test.Main$Base", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro")]
@@ -1467,7 +1467,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestAxiomsGenerics1", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestAxiomsGenerics1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro")]
@@ -1492,7 +1492,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestAxiomsGenerics2", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestAxiomsGenerics2", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1512,7 +1512,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestArrays1", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestArrays1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     // Remove when issue #63 is fixed.
@@ -1532,7 +1532,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestBidimensionalArrays1", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("TestBidimensionalArrays1", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Fernan")]
@@ -1557,7 +1557,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestConstructors1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestConstructors1", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("Fernan")]
@@ -1582,7 +1582,7 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("TestConstructors2", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestConstructors2", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Fernan")]
@@ -1598,7 +1598,7 @@ class Test {
     }
 }
             ";
-        var corralResult = CorralTestHelperCode("TestSizeof1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestSizeof1", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Fernan")]
@@ -1626,7 +1626,7 @@ class Test {
     }
 }
             ";
-        var corralResult = CorralTestHelperCode("TestBase1", "Test.Main", 10, source, useStubs: false, useCSC: true);
+        var corralResult = CorralTestHelperCode("TestBase1", "Test.Main", 10, source,  useCSC: true);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1656,7 +1656,7 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics3", "Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("DynamicDispatchGenerics3", "Test.Main", 10, source);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -1971,7 +1971,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest1", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest1", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1980,7 +1980,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest4", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest4", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1989,7 +1989,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest3$Test.AddressesSimple", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest3$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1998,14 +1998,14 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test1", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test1", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Addresses")]
     public void Test2()
     {
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test2$Test.AddressesSimple", 10, useStubs: false /*, additionalTinyBCTOptions: "/NewAddrModelling=true"*/);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test2$Test.AddressesSimple", 10 /*, additionalTinyBCTOptions: "/NewAddrModelling=true"*/);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2014,7 +2014,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test3$Test.AddressesSimple", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test3$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2023,7 +2023,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test4$Test.AddressesSimple", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test4$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2032,7 +2032,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test5$Test.AddressesSimple", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test5$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Addresses")]
@@ -2040,7 +2040,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test6$Test.AddressesSimple", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test6$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2049,7 +2049,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test7$Test.AddressesSimple", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test7$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2087,7 +2087,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2096,7 +2096,7 @@ public class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2147,7 +2147,9 @@ class Test {
   }
 }
         ";
-        var corralResult = CorralTestHelperCode("Boxing4", "Test.Main", 10, source, useStubs: true);
+        TestOptions t = new TestOptions();
+        t.UseCollectionStubsDll = true;
+        var corralResult = CorralTestHelperCode("Boxing4", "Test.Main", 10, source, testOptions:t);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2177,7 +2179,7 @@ class Test {
   }
 }
         ";
-            var corralResult = CorralTestHelperCode("ArrayAtomicInitThrowsException1", "Test.Main", 10, source, useStubs: false);
+            var corralResult = CorralTestHelperCode("ArrayAtomicInitThrowsException1", "Test.Main", 10, source);
             Assert.Fail();
         };
 
@@ -2343,7 +2345,7 @@ class Test {
     [Test, Category("Manu")]
     public void DynamicDispatch1_NoBugs()
     {
-        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test1_NoBugs", 10, useStubs: false);
+        var corralResult = CorralTestHelper("DynamicDispatch", @"DynamicDispatch.DynamicDispatch.test1_NoBugs", 10);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -2763,7 +2765,7 @@ class Test {
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.AtomicInitArray = true;
         options.NewAddrModelling = true;
-        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, useStubs: false, options:options);
+        var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10,  options:options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
@@ -2888,7 +2890,7 @@ internal class Async
     }
 }
             ";
-        var corralResult = CorralTestHelperCode("Async1", "Async.Async1", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("Async1", "Async.Async1", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Ignore(""), Test, Category("Async"), Category("NotImplemented")]
@@ -2920,7 +2922,7 @@ internal class Async
     }
 }
             ";
-        var corralResult = CorralTestHelperCode("Await1", "Async.Await1", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("Await1", "Async.Await1", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -3059,14 +3061,14 @@ class Test {
     }
 }
         ";
-        var corralResult = CorralTestHelperCode("Delegates1", "$Main_Wrapper_Test.Main", 10, source, useStubs: false);
+        var corralResult = CorralTestHelperCode("Delegates1", "$Main_Wrapper_Test.Main", 10, source);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
+    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test");
-        return base.CorralTestHelper(testName, mainMethod, recusionBound, useStubs: useStubs, options: options, testOptions: testOptions);
+        return base.CorralTestHelper(testName, mainMethod, recusionBound, options: options, testOptions: testOptions);
     }
 }
 
@@ -3098,4 +3100,5 @@ public class TestStringHelpers
     public class TestOptions{
         public bool UseCollectionStubsDll = false;
         public bool AppendPoirotBPL = false;
+        public int RecursionBound = 10;
     }
