@@ -172,27 +172,30 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "RegressionsAv");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TempDirForTests");
 
-    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = false, TinyBCT.ProgramOptions options = null, bool useCSC = false)
+    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, bool useStubs = false, TinyBCT.ProgramOptions options = null, bool useCSC = false, TestOptions testOptions = null)
     {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
         if (!System.IO.Directory.Exists(pathTempDir))
         {
             System.IO.Directory.CreateDirectory(pathTempDir);
         }
-        var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, options:options);
+        var uniqueDir = DoTest(source, testName, useStubs: useStubs, prefixDir: pathTempDir, useCSC: useCSC, options:options, testOptions:testOptions);
         Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(uniqueDir, testBpl)));
         var corralResult = Test.TestUtils.CallCorral(10, System.IO.Path.Combine(uniqueDir, testBpl), additionalArguments: "/main:" + mainMethod);
         // Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null)
+    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
-        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, useStubs: useStubs, options:options);
+        return CorralTestHelperCode(testName, mainMethod, recursionBound, source, useStubs: useStubs, options:options, testOptions: testOptions);
     }
 
-    protected static string DoTest(string source, string assemblyName, bool useStubs = false, string prefixDir = "", bool useCSC = false, TinyBCT.ProgramOptions options = null)
+    protected static string DoTest(string source, string assemblyName, bool useStubs = false, string prefixDir = "", bool useCSC = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions=null)
     {
+        if (testOptions == null)
+            testOptions = new TestOptions();
+
         System.Diagnostics.Contracts.Contract.Assume(
             prefixDir.Equals("") ||
             System.IO.Directory.Exists(prefixDir));
@@ -221,7 +224,8 @@ public class TestsBase
             List<string> argsList = new List<string>();
             argsList.Add("/i:" + dll);
             var inputFiles = new List<string>(){dll};
-            if (useStubs){
+            //if (useStubs){
+            if (testOptions.UseCollectionStubsDll){
                 inputFiles.Add(stubs);
                 argsList.Add(stubs);
             }
@@ -229,7 +233,8 @@ public class TestsBase
             options.SetInputFiles(inputFiles);
             argsList.Add("/l:true");
             options.EmitLineNumbers = true;
-            if (useStubs)
+            //if (useStubs)
+            if (testOptions.AppendPoirotBPL)
             {
                 argsList.Add("/b:" + System.IO.Path.Combine(pathToSelf, "..", "..", "Dependencies", "poirot_stubs.bpl"));
                 var bplFile = System.IO.Path.Combine(pathToSelf, "..", "..", "Dependencies", "poirot_stubs.bpl");
@@ -1847,13 +1852,17 @@ class Test {
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestSet1()
     {
-        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass1", 10);
+        TestOptions t = new TestOptions();
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass1", 10, testOptions:t);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestSet2()
     {
-        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass2", 10);
+        TestOptions t = new TestOptions();
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass2", 10, testOptions:t);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Av-Regressions"), Timeout(30000)]
@@ -1871,7 +1880,9 @@ class Test {
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestSet5()
     {
-        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass5", 10);
+        TestOptions t = new TestOptions();
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass5", 10, testOptions:t);
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Av-Regressions"), Timeout(30000)]
@@ -2095,7 +2106,9 @@ public class TestsManu : TestsBase
     [Test, Category("Manu")]
     public void Boxing1()
     {
-        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test1", 10);
+        TestOptions t = new TestOptions();
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test1", 10, testOptions:t);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -3050,10 +3063,10 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
-    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null)
+    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, bool useStubs = false, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test");
-        return base.CorralTestHelper(testName, mainMethod, recusionBound, useStubs: useStubs, options: options);
+        return base.CorralTestHelper(testName, mainMethod, recusionBound, useStubs: useStubs, options: options, testOptions: testOptions);
     }
 }
 
@@ -3081,3 +3094,8 @@ public class TestStringHelpers
         Assert.AreEqual("Hello##World", TinyBCT.Helpers.Strings.ReplaceIllegalChars(@"Hello#World"));
     }
 }
+
+    public class TestOptions{
+        public bool UseCollectionStubsDll = false;
+        public bool AppendPoirotBPL = false;
+    }
