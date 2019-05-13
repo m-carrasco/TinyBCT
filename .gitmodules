@@ -1,3 +1,6 @@
 [submodule "cci"]
 	path = cci
 	url = https://github.com/michael-emmi/cci.git
+[submodule "analysis-net"]
+	path = analysis-net
+	url = https://github.com/m7nu3l/analysis-net
