@@ -13,3 +13,10 @@ do
 	dir=$(cd $(dirname $(find cci/Samples/PeToPe -name $name)) && pwd)
 	ln -fs $dir/$name TinyBCT/Dependencies/$name
 done
+
+for d in analysis-net/Dependencies/Microsoft.Cci.*.dll
+do
+	name=$(basename $d)
+	dir=$(cd $(dirname $(find cci/Samples/PeToPe -name $name)) && pwd)
+	ln -fs $dir/$name analysis-net/Dependencies/$name
+done

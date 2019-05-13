@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2010
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.202
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyBCT", "TinyBCT\TinyBCT.csproj", "{7779BD4A-7E4E-4B4C-80F3-16AD306A78CE}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinyBCT", "TinyBCT\TinyBCT.
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "analysis-net\Backend\Backend.csproj", "{45C7B613-E32D-43E8-8030-932D509602EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +26,10 @@ Global
 		{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7EFFB71-0EE7-413C-85C8-5C74C8D4CDB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45C7B613-E32D-43E8-8030-932D509602EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45C7B613-E32D-43E8-8030-932D509602EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45C7B613-E32D-43E8-8030-932D509602EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45C7B613-E32D-43E8-8030-932D509602EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

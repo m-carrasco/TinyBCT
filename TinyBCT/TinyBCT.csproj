@@ -37,10 +37,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Backend, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\rudder\analysis-net\Backend\bin\Debug\Backend.dll</HintPath>
-    </Reference>
     <Reference Include="FluentCommandLineParser, Version=1.5.0.20-commands, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentCommandLineParser.1.5.0.20-commands\lib\net35\FluentCommandLineParser.dll</HintPath>
     </Reference>
@@ -243,13 +239,6 @@
       <Generator>TextTemplatingFilePreprocessor</Generator>
       <LastGenOutput>BoogieProcedureTemplate.cs</LastGenOutput>
     </Content>
-    <Content Include="Dependencies\Backend.dll" />
-    <Content Include="Dependencies\Backend.pdb" />
-    <Content Include="Dependencies\Microsoft.Cci.MetadataHelper.dll" />
-    <Content Include="Dependencies\Microsoft.Cci.MetadataModel.dll" />
-    <Content Include="Dependencies\Microsoft.Cci.PdbReader.dll" />
-    <Content Include="Dependencies\Microsoft.Cci.PeReader.dll" />
-    <Content Include="Dependencies\Microsoft.Cci.SourceModel.dll" />
     <Content Include="info.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -259,6 +248,12 @@
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.2-beta2\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.2-beta2\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\analysis-net\Backend\Backend.csproj">
+      <Project>{45c7b613-e32d-43e8-8030-932d509602eb}</Project>
+      <Name>Backend</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
