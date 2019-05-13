@@ -2053,6 +2053,24 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [Test, Category("Addresses")]
+    public void Test8_NoBugs()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test8_NoBugs", 10,  options:options);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test, Category("Addresses")]
+    public void Test8_Bugged()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test8_Bugged", 10,  options:options);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     [Test, Category("Manu")]
     public void ModOperator1()
     {

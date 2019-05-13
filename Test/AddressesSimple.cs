@@ -139,8 +139,39 @@ namespace Test
             a = 10;
         }
 
+        // this was generating a type inference bug
+        // leading to a crash
+        public static void Test8_NoBugs() {
+            int a = 10;
+
+            // illegal, cannot initialize a ref with a value
+            //ref int b = a;
+            //ref int c = b;
+
+            // can we do & of a ref? I expect c getting 'a' address
+            ref int b = ref a;
+            ref int c = ref b;
+            c = 20;
+            Contract.Assert(c == a);
+        }
+    
+        public static void Test8_Bugged() {
+            int a = 10;
+
+            // illegal, cannot initialize a ref with a value
+            //ref int b = a;
+            //ref int c = b;
+
+            // can we do & of a ref? I expect c getting 'a' address
+            ref int b = ref a;
+            ref int c = ref b;
+            c = 20;
+            Contract.Assert(c != a);
+        }
+
         static int z;
 
         public int i;
     }
+
 }
