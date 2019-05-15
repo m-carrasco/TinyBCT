@@ -3118,6 +3118,78 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs1_NoBugs()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test1_NoBugs", 10, options: options);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs2_NoBugs()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test2_NoBugs", 10, options: options);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs3_NoBugs()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test3_NoBugs", 10, options: options);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs4_NoBugs()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test4_NoBugs", 10, options: options);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs1_Bugged()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test1_Bugged", 10, options: options);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs2_Bugged()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test2_Bugged", 10, options: options);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs3_Bugged()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test3_Bugged", 10, options: options);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test, Category("Struct"), Timeout(0)]
+    public void TestStructs4_Bugged()
+    {
+        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.NewAddrModelling = true;
+        var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test4_Bugged", 10, options: options);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
     protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test");

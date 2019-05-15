@@ -175,6 +175,7 @@
     <Compile Include="Static.cs" />
     <Compile Include="Switch.cs" />
     <Compile Include="UnaryOperations.cs" />
+    <Compile Include="Struct.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
