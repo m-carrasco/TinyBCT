@@ -681,6 +681,11 @@ namespace TinyBCT.Translators
             {
                 var instructionOperand = instruction.Operand;
 
+                // We are assuming you can only have operands of type pointer when: they are a IVariable or a Reference
+                // we add this exception so we can notice if the opposite ocurrs
+                if (instruction.Operand.Type is IManagedPointerType && !(instruction.Operand is IVariable) && !(instruction.Operand is Reference)) // if this ever happens we just need to extend our support
+                    throw new NotImplementedException("We are assuming that there can only be local variables of pointer type");
+
                 // hack of old memory modelling
                 if (!Settings.NewAddrModelling && instructionOperand is Reference)
                 {
@@ -904,6 +909,11 @@ namespace TinyBCT.Translators
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
                 var staticFieldAccess = instruction.Result as StaticFieldAccess;
                 var dereference = instruction.Result as Dereference;
+
+                // We are assuming you can only have local variables of pointer type (and the assignment is handled in LoadInstruction)
+                // we add this exception so we can notice if the opposite ocurrs
+                if (instruction.Result.Type is IManagedPointerType) // if this ever happens we just need to extend our support
+                    throw new NotImplementedException("We are assuming that there can only be local variables of pointer type");
 
                 if (instanceFieldAccess != null)
                 {
