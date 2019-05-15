@@ -693,7 +693,17 @@ namespace TinyBCT
                 Key = key;
             }
             public string Expr { get { return $"{ReadFunction}({MemoryMap}, {Key.Expr.Expr})"; } }
-            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Type); } }
+            public Helpers.BoogieType Type 
+            { get {
+                // we want to access the map of the target type not an address -> address map
+                if (Key.Type is IManagedPointerType){
+                    IManagedPointerType ptrType = Key.Type as IManagedPointerType;
+                    return Helpers.GetBoogieType(ptrType.TargetType);
+                }
+
+                    return Helpers.GetBoogieType(Key.Type);
+              }
+            }
             private AddressExpression Key { get; }
             private string MemoryMap { get { return $"$memory{Type.FirstUppercase()}"; } }
             private string ReadFunction { get { return $"Read{Type.FirstUppercase()}"; } }
@@ -1090,7 +1100,20 @@ namespace TinyBCT
                 Value = value;
             }
             public string Stmt { get { return $"{MemoryMap} := {WriteFunction}({MemoryMap}, {Key.Expr.Expr}, {Value});"; } }
-            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Type); } }
+            public Helpers.BoogieType Type
+            {
+                get
+                {
+                    // we want to access the map of the target type not an address -> address map
+                    if (Key.Type is IManagedPointerType)
+                    {
+                        IManagedPointerType ptrType = Key.Type as IManagedPointerType;
+                        return Helpers.GetBoogieType(ptrType.TargetType);
+                    }
+
+                    return Helpers.GetBoogieType(Key.Type);
+                }
+            }
             private AddressExpression Key { get; }
             // TODO(rcastano): This should be "Expression Value"
             private string Value { get; }
@@ -1304,7 +1327,6 @@ namespace TinyBCT
             if (addr is AddressExpression)
             {
                 var addrExpr = addr as AddressExpression;
-                var boogieType = Helpers.GetBoogieType(addrExpr.Type);
                 return TypedMemoryMapUpdate.ForKeyValue(addrExpr, expr);
             }
             else
@@ -1339,23 +1361,30 @@ namespace TinyBCT
                     throw new NotImplementedException();
                     // return WriteAddr(variableA, value.ToString());
                 }
-                
-            } else if (value is IVariable)
-            {
+
+            } else if (value is IVariable && !(value.Type is IManagedPointerType))
+            { // right operand is not a pointer (therefore left operand is not a pointer)
+
                 return WriteAddr(AddressOf(variableA), ValueOfVariable(value as IVariable));
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
-                // read addr of the reference
-                // index that addr into the corresponding 'heap'
-                var addr = new AddressExpression(variableA.Type, ReadAddr(dereference.Reference));
-                return WriteAddr(AddressOf(variableA), ReadAddr(addr));
-            } else if (value is Reference)
+                var content = ValueOfVariable(dereference.Reference);
+                return WriteAddr(AddressOf(variableA), content);
+            } else if (value.Type is IManagedPointerType)
             {
-                var reference = value as Reference;
-                var addr = AddressOf(reference.Value) as AddressExpression;
+
+                // if the right operand is a pointer also the left one is a pointer
+                // there are two cases for value:
+                // 1) value has the form &<something> (in analysis-net this is a Reference object)
+                // 2) value is just a variable (static, instance, local, array element) with pointer type
+                // for 1) we want to take the allocated address of something and assign it to the boogie variable of the left operand
+                // for 2) we just want to make a boogie assignment between the boogie variables of the left and right operands
+
+                // AddressOf will do the work to separate case 1) and 2)
+                var addr = AddressOf(value) as AddressExpression;
                 Contract.Assume(addr != null);
-                return WriteAddr(AddressOf(variableA), addr.Expr);
+                return BoogieStatement.VariableAssignment(BoogieVariable.AddressVar(variableA), addr.Expr);
             }
 
             Contract.Assert(false);
@@ -1367,8 +1396,11 @@ namespace TinyBCT
         {
             StatementList stmts = new StatementList();
 
+            // we allocate an address for all local variables
+            // except they are a pointer, we are assuming that you can't take the address of a pointer
             foreach (var v in variables)
-                stmts.Add(AllocAddr(v));
+                if (!(v.Type is IManagedPointerType))
+                    stmts.Add(AllocAddr(v));
 
             // load values into stack space
             foreach (var paramVariable in variables.Where(v => v.IsParameter))
@@ -1389,6 +1421,13 @@ namespace TinyBCT
                  }
                 */
                 var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
+
+                if (paramVariable.Type is IManagedPointerType)
+                {
+                    stmts.Add(BoogieStatement.VariableAssignment(BoogieVariable.AddressVar(paramVariable), boogieParamVariable));
+                    continue;
+                }
+
                 Addressable paramAddress = AddressOf(paramVariable);
 
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
@@ -1751,7 +1790,23 @@ namespace TinyBCT
 
         public abstract StatementList AllocLocalVariables(IList<IVariable> variables);
 
+
         public Addressable AddressOf(IValue value)
+        {
+            if (value is IReferenceable)
+                return AddressOf(value as IReferenceable);
+            else if (value is Reference)
+                return AddressOf(value as Reference);
+            else if (value is Dereference)
+                return AddressOf(value as Dereference);
+            else
+                throw new NotImplementedException();
+
+            // we are covering AddressOf for the following types
+            // Reference, Dereference, IVariable, InstanceFieldAccess, StaticFieldAccess and ArrayElementAccess
+        }
+
+        public Addressable AddressOf(IReferenceable value)
         {
             if (value is InstanceFieldAccess)
             {
@@ -1765,10 +1820,17 @@ namespace TinyBCT
             {
                 return AddressOf(value as IVariable);
             }
-            else
-                // arrays?
+            else if (value is ArrayElementAccess)
+            {
                 throw new NotImplementedException();
+            }
+
+            // I should have covered all possible cases
+            throw new NotImplementedException();
         }
+
+        public Addressable AddressOf(Reference reference) { return AddressOf(reference.Value); }
+        public Addressable AddressOf(Dereference dereference) { return AddressOf(dereference.Reference); }
 
         public abstract Addressable AddressOf(InstanceFieldAccess instanceFieldAccess);
         public abstract Addressable AddressOf(StaticFieldAccess staticFieldAccess);
@@ -1854,7 +1916,11 @@ namespace TinyBCT
                 else
                 {
                     var iVariable = instruction.Arguments.ElementAt(arg_i);
-                    copyArgs.Add((ReadAddr(iVariable), iVariable));
+                    if (iVariable.Type is IManagedPointerType)
+                    {
+                        copyArgs.Add((BoogieVariable.AddressVar(iVariable), iVariable));
+                    } else
+                        copyArgs.Add((ReadAddr(iVariable), iVariable));
                 }
             }
             return copyArgs;

@@ -748,10 +748,7 @@ namespace TinyBCT.Translators
                     } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
-                    } else if (instructionOperand is Reference && Settings.NewAddrModelling)
-                    {
-                        throw new NotImplementedException();
-                    } else
+                    }else
                     {
                         Contract.Assert(false);
                     }
@@ -925,7 +922,9 @@ namespace TinyBCT.Translators
                 }
                 else if (dereference != null && Settings.NewAddrModelling)
                 {
-                    var address = new AddressExpression(dereference.Type, boogieGenerator.ReadAddr(dereference.Reference));
+                    var reference = BoogieVariable.AddressVar(dereference.Reference);
+
+                    var address = new AddressExpression(dereference.Type, reference);
                     AddBoogie(boogieGenerator.WriteAddr(address, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
                 else

@@ -2068,7 +2068,7 @@ public class TestsManu : TestsBase
         TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
         options.NewAddrModelling = true;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test8_Bugged", 10,  options:options);
-        Assert.IsTrue(corralResult.NoBugs());
+        Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [Test, Category("Manu")]
