@@ -96,7 +96,7 @@ namespace Test
             // C# compiler does not values initialization if they were not explict. Otherwise, they are hanlded by the runtime.
             // For classes we workaround this but we did not for structs
             // we are adding this as a workaround
-            structX.x = 42;
+            structX.x = 0;
         }
 
         public StructX structX;
