@@ -76,6 +76,96 @@ namespace TinyBCT
         }
 
         public class BoogieType {
+
+            public abstract class BoogieTypeTranslator
+            {
+                public virtual BoogieType GetBoogieType(ITypeReference type)
+                {
+                    INamedTypeDefinition namedType = type as INamedTypeDefinition;
+                    if (namedType != null && type.IsEnum)
+                        return GetBoogieType(namedType.UnderlyingType);
+
+                    if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
+                        return BoogieType.Int;
+
+                    // hack for Enums
+                    if (type.IsEnum)
+                        return BoogieType.Int;
+
+                    // not sure about this
+                    // appeared when accessing anArray.Length
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
+                        return BoogieType.Int;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
+                        return BoogieType.Bool;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.Float32))
+                        return BoogieType.Real;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.Float64))
+                        return BoogieType.Real;
+                        
+                    // void type will return null
+                    if (Types.Instance.PlatformType.SystemVoid.Equals(type))
+                        return BoogieType.Void;
+
+                    Contract.Assert(false);
+                    throw new Exception("Invalid program state reached");
+                }
+            }
+
+            public class BoogieTypeTranslatorAddr : BoogieTypeTranslator
+            {
+                public override BoogieType GetBoogieType(ITypeReference type)
+                {
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
+                        return BoogieType.Object;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
+                        return BoogieType.Object;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+                        return BoogieType.Addr;
+                        
+                    return base.GetBoogieType(type);
+                }
+            }
+
+            public class BoogieTypeTranslatorALaBCT : BoogieTypeTranslator
+            {
+                public override BoogieType GetBoogieType(ITypeReference type)
+                {
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
+                        return BoogieType.Ref;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
+                        return BoogieType.Ref;
+                        
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+                    {
+                        // manuel: we type a reference accordingly to its target type
+                        // we just support reference writes/reads for arguments
+                        // void foo (ref int x) -> writes/reads to x are supported
+                        // {
+                        // ....
+                        // ref int y = ...; -> writes/reads to y are not supported
+                        // ...
+                        // }
+                        // this is how bct works.
+                        // x is considered as a variable with the target type and then is returned and assigned after the invokation
+                        // call arg1 := foo(arg1);
+
+                        IManagedPointerType t = type as IManagedPointerType;
+                        Contract.Assume(t != null);
+                        return GetBoogieType(t.TargetType);
+                    }
+
+                    return base.GetBoogieType(type);
+                }
+            }
+
             private BoogieType(ConstValue c)
             {
                 Const = c;
@@ -114,65 +204,10 @@ namespace TinyBCT
         }
         public static BoogieType GetBoogieType(ITypeReference type)
         {
-            INamedTypeDefinition namedType = type as INamedTypeDefinition;
-            if (namedType != null && type.IsEnum)
-                return GetBoogieType(namedType.UnderlyingType);
+            if (Settings.NewAddrModelling)
+                return (new BoogieType.BoogieTypeTranslatorAddr()).GetBoogieType(type);
 
-            if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
-                return BoogieType.Int;
-
-            // hack for Enums
-            if (type.IsEnum)
-                return BoogieType.Int;
-
-            // not sure about this
-            // appeared when accessing anArray.Length
-            if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
-                return BoogieType.Int;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Boolean))
-                return BoogieType.Bool;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Float32))
-                return BoogieType.Real;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Float64))
-                return BoogieType.Real;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.String))
-                return Settings.NewAddrModelling ? BoogieType.Object : BoogieType.Ref;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
-                return Settings.NewAddrModelling ? BoogieType.Object : BoogieType.Ref;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && Settings.NewAddrModelling)
-                return BoogieType.Addr;
-
-            if (type.TypeCode.Equals(PrimitiveTypeCode.Reference) && !Settings.NewAddrModelling)
-            {
-                // manuel: we type a reference accordingly to its target type
-                // we just support reference writes/reads for arguments
-                // void foo (ref int x) -> writes/reads to x are supported
-                // {
-                // ....
-                // ref int y = ...; -> writes/reads to y are not supported
-                // ...
-                // }
-                // this is how bct works.
-                // x is considered as a variable with the target type and then is returned and assigned after the invokation
-                // call arg1 := foo(arg1);
-
-                IManagedPointerType t = type as IManagedPointerType;
-                Contract.Assume(t != null);
-                return GetBoogieType(t.TargetType);
-            }
-
-            // void type will return null
-            if (Types.Instance.PlatformType.SystemVoid.Equals(type))
-                return BoogieType.Void;
-
-            Contract.Assert(false);
-            throw new Exception("Invalid program state reached");
+            return (new BoogieType.BoogieTypeTranslatorALaBCT()).GetBoogieType(type);
         }
         public static IMethodReference GetUnspecializedVersion(IMethodReference method)
         {

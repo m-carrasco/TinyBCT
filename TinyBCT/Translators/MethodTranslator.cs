@@ -174,18 +174,27 @@ namespace TinyBCT
 
         String TranslateReturnTypeIfAny()
         {
-            if (Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void) &&  (!methodDefinition.Parameters.Any(p => p.IsByReference || p.IsOut) && !Settings.NewAddrModelling))
-            {
-                return String.Empty;
-            }
-            else
+            if (Settings.NewAddrModelling)
             {
                 var returnVariables = new List<String>();
-                returnVariables = methodDefinition.Parameters.Where(p => p.IsByReference && !Settings.NewAddrModelling).Select(p => String.Format("{0}$out : {1}", p.Name.Value, Helpers.GetBoogieType(p.Type))).ToList();
                 if (!Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void))
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodDefinition)));
 
                 return String.Format("returns ({0})", String.Join(",", returnVariables));
+            } else
+            {
+                if (Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void) &&
+                     (!methodDefinition.Parameters.Any(p => p.IsByReference || p.IsOut)))
+                    return String.Empty;
+                else
+                {
+                    var returnVariables = new List<String>();
+                    returnVariables = methodDefinition.Parameters.Where(p => p.IsByReference).Select(p => String.Format("{0}$out : {1}", p.Name.Value, Helpers.GetBoogieType(p.Type))).ToList();
+                    if (!Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void))
+                        returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodDefinition)));
+
+                    return String.Format("returns ({0})", String.Join(",", returnVariables));
+                }
             }
         }
 
