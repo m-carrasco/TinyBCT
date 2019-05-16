@@ -1305,10 +1305,6 @@ namespace TinyBCT
 
             return ProcedureCall(BoogieMethod.From(procedure), argumentList.Select(v => v.Item1).ToList(), resultVariable);
         }
-        public override Expression ReadAddr(IVariable addr)
-        {
-            return ReadAddr(AddressOf(addr));
-        }
 
         public override Expression ReadAddr(Addressable addr)
         {
@@ -1335,10 +1331,6 @@ namespace TinyBCT
             }
         }
 
-        public override StatementList VariableAssignment(IVariable variableA, Expression expr)
-        {
-            return WriteAddr(AddressOf(variableA), expr);
-        }
         public override StatementList VariableAssignment(IVariable variableA, IValue value)
         {
             Constant cons = value as Constant;
@@ -1365,11 +1357,11 @@ namespace TinyBCT
             } else if (value is IVariable && !(value.Type is IManagedPointerType))
             { // right operand is not a pointer (therefore left operand is not a pointer)
 
-                return WriteAddr(AddressOf(variableA), ValueOfVariable(value as IVariable));
+                return WriteAddr(AddressOf(variableA), ReadAddr(value as IVariable));
             } else if (value is Dereference)
             {
                 var dereference = value as Dereference;
-                var content = ValueOfVariable(dereference.Reference);
+                var content = ReadAddr(dereference.Reference);
                 return WriteAddr(AddressOf(variableA), content);
             } else if (value.Type is IManagedPointerType)
             {
@@ -1445,20 +1437,9 @@ namespace TinyBCT
             return stmts;
         }
 
-        protected override Expression ValueOfVariable(IVariable var)
-        {
-            return ReadAddr(var);
-        }
-
-        // the variable that represents var's address is $_var.name
-        /*public override AddressExpression VarAddress(IVariable var)
-        {
-            return new AddressExpression(var.Type, String.Format("_{0}", var.Name));
-        }*/
-
         public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
-            var expr = Expression.LoadInstanceFieldAddr(instanceFieldAccess.Field, ValueOfVariable(instanceFieldAccess.Instance));
+            var expr = Expression.LoadInstanceFieldAddr(instanceFieldAccess.Field, ReadAddr(instanceFieldAccess.Instance));
             return new AddressExpression(instanceFieldAccess.Field.Type, expr);
         }
 
@@ -1536,11 +1517,6 @@ namespace TinyBCT
             return VariableAssignment(variableA, ReadAddr(AddressOf(value)));
         }
 
-        public override StatementList VariableAssignment(IVariable variableA, Expression expr)
-        {
-            return BoogieStatement.VariableAssignment(BoogieVariable.FromDotNetVariable(variableA), expr);
-        }
-
         public override StatementList AllocLocalVariables(IList<IVariable> variables)
         {
             return BoogieStatement.Nop;
@@ -1586,11 +1562,6 @@ namespace TinyBCT
             return BoogieStatement.ProcedureCall(boogieProcedure, argumentList.Select(v => v.Item1).ToList(), resultArguments, resultVariable);
         }
 
-        public override Expression ReadAddr(IVariable var)
-        {
-            return BoogieVariable.FromDotNetVariable(var);
-        }
-
         public override StatementList AllocAddr(IVariable var)
         {
             return BoogieStatement.Nop;
@@ -1602,12 +1573,6 @@ namespace TinyBCT
         public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
         {
             return this.AllocObject(BoogieVariable.FromDotNetVariable(var));
-        }
-
-        // in this memory addressing the value of a variable is the variable itself 
-        protected override Expression ValueOfVariable(IVariable var)
-        {
-            return BoogieVariable.FromDotNetVariable(var);
         }
 
         public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr, InstructionTranslator instTranslator)
@@ -1756,7 +1721,7 @@ namespace TinyBCT
             }
             else if (addr is DotNetVariable v)
             {
-                return VariableAssignment(v.Var, expr);
+                return BoogieStatement.VariableAssignment(BoogieVariable.FromDotNetVariable(v.Var), expr);
             }
             else
             {
@@ -1782,7 +1747,10 @@ namespace TinyBCT
             return singleton;
         }
 
-        public abstract Expression ReadAddr(IVariable var);
+        public Expression ReadAddr(IVariable addr)
+        {
+            return ReadAddr(AddressOf(addr));
+        }
 
         public abstract Expression ReadAddr(Addressable addr);
         
@@ -1841,8 +1809,6 @@ namespace TinyBCT
         public abstract StatementList AllocAddr(IVariable var);
         public abstract StatementList AllocObject(BoogieVariable var);
         public abstract StatementList AllocObject(IVariable var, InstructionTranslator instTranslator);
-
-        protected abstract Expression ValueOfVariable(IVariable var);
 
         public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
         {
@@ -1972,7 +1938,11 @@ namespace TinyBCT
             }
         }
 
-        public abstract StatementList VariableAssignment(IVariable variableA, Expression expr);
+        public StatementList VariableAssignment(IVariable variableA, Expression expr)
+        {
+            return WriteAddr(AddressOf(variableA), expr);
+        }
+
         public abstract StatementList VariableAssignment(IVariable variableA, IValue value);
 
         public StatementList VariableAssignment(BoogieVariable variableA, Expression expr)
