@@ -1524,6 +1524,295 @@ namespace TinyBCT
         }
     }
 
+    public class BoogieGeneratorMixed : BoogieGenerator
+    {
+        private readonly BoogieGeneratorAddr BoogieAddr = new BoogieGeneratorAddr();
+        private readonly BoogieGeneratorALaBCT BoogieBCT = new BoogieGeneratorALaBCT();
+
+        private bool RequiresAllocation(IValue value)
+        {
+            if (value is IReferenceable referenceable)
+                RequiresAllocation(referenceable);
+
+            return false;
+        }
+
+        private bool RequiresAllocation(IReferenceable referenceable)
+        {
+            // we are assuming that a IManagedPointerType can not be a pointer of a pointer
+            Contract.Assume(referenceable is IManagedPointerType && !ReferenceFinder.IsReferenced(referenceable));
+
+            return ReferenceFinder.IsReferenced(referenceable);
+        }
+
+        private bool RequiresAllocation(IFieldReference field)
+        {
+            // we are assuming that a IManagedPointerType can not be a pointer of a pointer
+            Contract.Assume(field.Type is IManagedPointerType && !ReferenceFinder.IsReferenced(field));
+
+            return ReferenceFinder.IsReferenced(field);
+        }
+
+        public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
+        {
+            if (RequiresAllocation(instanceFieldAccess))
+                return BoogieAddr.AddressOf(instanceFieldAccess);
+            else
+                return BoogieBCT.AddressOf(instanceFieldAccess);
+        }
+
+        public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
+        {
+            if (RequiresAllocation(staticFieldAccess))
+                return BoogieAddr.AddressOf(staticFieldAccess);
+            else
+                return BoogieBCT.AddressOf(staticFieldAccess);
+        }
+
+        public override Addressable AddressOf(IVariable var)
+        {
+            if (RequiresAllocation(var))
+                return BoogieAddr.AddressOf(var);
+            else
+                return BoogieBCT.AddressOf(var);
+        }
+
+        public override StatementList AllocAddr(IVariable var)
+        {
+            if (RequiresAllocation(var))
+                return BoogieAddr.AllocAddr(var);
+            else
+                return BoogieBCT.AllocAddr(var);
+        }
+
+        public override StatementList AllocLocalVariables(IList<IVariable> variables)
+        {
+            StatementList stmts = new StatementList();
+
+            // only allocate an address for variables that are referenced 
+            foreach (var v in variables)
+                if (RequiresAllocation(v))
+                    stmts.Add(AllocAddr(v));
+
+            foreach (var paramVariable in variables.Where(v => v.IsParameter))
+            {
+                var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
+
+                if (!RequiresAllocation(paramVariable))
+                {
+                    stmts.Add(BoogieStatement.VariableAssignment(BoogieVariable.AddressVar(paramVariable), boogieParamVariable));
+                    continue;
+                }
+
+                Addressable paramAddress = AddressOf(paramVariable);
+
+                // boogie generator knows that must fetch paramVariable's address (_x and not x)
+                stmts.Add(WriteAddr(paramAddress, boogieParamVariable));
+
+                if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
+                {
+                    stmts.Add(BoogieStatement.AllocObjectAxiom(paramVariable));
+                }
+                else if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr))
+                {
+                    stmts.Add(BoogieStatement.AllocAddrAxiom(paramVariable));
+                }
+            }
+
+            return stmts;
+        }
+
+        public override StatementList AllocObject(BoogieVariable var)
+        {
+            // actually should be the same in both models
+            return BoogieAddr.AllocObject(var);
+        }
+
+        public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
+        {
+            if (RequiresAllocation(var))
+                return BoogieAddr.AllocObject(var, instTranslator);
+            else
+                return BoogieBCT.AllocObject(var, instTranslator);
+        }
+
+        public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
+        {
+            var stmts = new StatementList();
+            foreach (var v in variables)
+            {
+                if (RequiresAllocation(v))
+                    stmts.Add(BoogieStatement.VariableDeclaration(BoogieVariable.AddressVar(v)));
+                else
+                    stmts.Add(BoogieStatement.VariableDeclaration(v));
+            }
+
+            foreach (var kv in temporalVariables)
+            {
+                stmts.Add(BoogieStatement.VariableDeclaration(kv.Value));
+            }
+
+            return stmts;
+        }
+
+        public override Helpers.BoogieType GetBoogieTypeForProcedureParameter(IParameterTypeInformation parameter)
+        {
+            return BoogieAddr.GetBoogieTypeForProcedureParameter(parameter);
+        }
+
+        public override string GetFieldDefinition(IFieldReference fieldReference, string fieldName)
+        {
+            if (RequiresAllocation(fieldReference))
+                return BoogieAddr.GetFieldDefinition(fieldReference, fieldName);
+            return BoogieBCT.GetFieldDefinition(fieldReference, fieldName);
+        }
+
+        public override StatementList SetProcedureResultVariable(BoogieVariable procedureResult, IVariable finalVariable)
+        {
+            Contract.Assume((procedureResult != null && finalVariable != null) ||
+                 (procedureResult == null && finalVariable == null));
+
+            if (procedureResult == null)
+                return StatementList.Empty;
+
+            return WriteAddr(AddressOf(finalVariable), procedureResult);
+        }
+
+        public override BoogieVariable GetProcedureResultVariable(MethodCallInstruction methodCallInstruction, InstructionTranslator instructionTranslator)
+        {
+            return BoogieAddr.GetProcedureResultVariable(methodCallInstruction, instructionTranslator);
+        }
+
+        public override StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null)
+        {
+            return BoogieAddr.ProcedureCall(procedure, methodCallInstruction, instTranslator, resultVariable);
+        }
+
+        public override Expression NullObject()
+        {
+            return BoogieAddr.NullObject();
+        }
+
+        public override Expression ReadAddr(Addressable addr)
+        {
+            if (addr is AddressExpression)
+            {
+                return BoogieAddr.ReadAddr(addr);
+            }
+            else if (addr is InstanceField)
+            {
+                return BoogieBCT.ReadAddr(addr);
+            }
+            else if (addr is StaticField)
+            {
+                return BoogieBCT.ReadAddr(addr);
+            }
+            else if (addr is DotNetVariable)
+            {
+                return BoogieBCT.ReadAddr(addr);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
+        {
+            if (RequiresAllocation(instanceFieldAccess))
+                return BoogieAddr.ReadInstanceField(instanceFieldAccess);
+            else
+                return BoogieBCT.ReadInstanceField(instanceFieldAccess);
+        }
+
+        public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
+        {
+            // with split fields false, i guess we should cast to union always
+            Contract.Assert(Settings.SplitFields);
+
+            Expression readExpr = ReadInstanceField(instanceFieldAccess);
+
+            if (Helpers.IsGenericField(instanceFieldAccess.Field))
+            {
+                if (!Helpers.IsBoogieRefType(result.Type))
+                {
+                    var boogieType = Helpers.GetBoogieType(result.Type);
+                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readExpr));
+                }
+            }
+
+            return VariableAssignment(result, readExpr);  
+        }
+
+        public override StatementList VariableAssignment(IVariable variableA, IValue value)
+        {
+            bool lhsAlloc = RequiresAllocation(variableA);
+
+            Expression expression = GetExpressionFromIValue(value);
+
+            if (lhsAlloc)
+                return BoogieAddr.VariableAssignment(variableA, expression);
+
+            if (!lhsAlloc)
+                return BoogieBCT.VariableAssignment(variableA, expression);
+
+            return null;
+        }
+
+        private Expression GetExpressionFromIValue(IValue value)
+        {
+            if (RequiresAllocation(value)) // if true, value is in a subset of IReferenceable stuff
+            {
+                // something requires an allocation because it has been reference (it is referenceable)
+                IReferenceable referenceable = value as IReferenceable;
+                return BoogieAddr.ReadAddr(BoogieAddr.AddressOf(referenceable));
+            }
+
+            if (value.Type is IManagedPointerType)
+            {
+                AddressExpression addr = BoogieAddr.AddressOf(value) as AddressExpression;
+                return addr.Expr;
+            }
+
+            if (value is Constant constant)
+                return BoogieLiteral.FromDotNetConstant(constant);
+
+            // we use old memory model here because they were not referenced
+            if (value is IReferenceable || value is Reference)
+            {
+                Addressable addressable = BoogieBCT.AddressOf(value);
+                return BoogieBCT.ReadAddr(addressable);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        public override StatementList WriteAddr(Addressable addr, Expression value)
+        {
+            if (addr is AddressExpression addrExpr)
+            {
+                return BoogieAddr.WriteAddr(addr, value);
+            } else if (addr is InstanceField instanceField)
+            {
+                return BoogieBCT.WriteAddr(addr, value);
+            } else if (addr is StaticField staticField)
+            {
+                return BoogieBCT.WriteAddr(addr, value);
+            } else if (addr is DotNetVariable dotNetVariable)
+            {
+                return BoogieBCT.WriteAddr(addr, value);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value, InstructionTranslator instTranslator)
+        {
+            if (RequiresAllocation(instanceFieldAccess))
+                return BoogieAddr.WriteInstanceField(instanceFieldAccess, value, instTranslator);
+            else
+                return BoogieBCT.WriteInstanceField(instanceFieldAccess, value, instTranslator);
+        }
+    }
+
     public class BoogieGeneratorALaBCT : BoogieGenerator
     {
         public override Expression NullObject()
