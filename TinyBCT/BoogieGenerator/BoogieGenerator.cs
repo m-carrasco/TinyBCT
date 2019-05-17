@@ -1843,8 +1843,6 @@ namespace TinyBCT
                 return AddressOf(value as IReferenceable);
             else if (value is Reference)
                 return AddressOf(value as Reference);
-            else if (value is Dereference)
-                return AddressOf(value as Dereference);
             else
                 throw new NotImplementedException();
 
@@ -1869,14 +1867,14 @@ namespace TinyBCT
             else if (value is ArrayElementAccess)
             {
                 throw new NotImplementedException();
-            }
+            } else if (value is Dereference dereference)
+                return AddressOf(dereference);
 
             // I should have covered all possible cases
             throw new NotImplementedException();
         }
 
         public Addressable AddressOf(Reference reference) { return AddressOf(reference.Value); }
-        public Addressable AddressOf(Dereference dereference) { return AddressOf(dereference.Reference); }
 
         public abstract Addressable AddressOf(InstanceFieldAccess instanceFieldAccess);
         public abstract Addressable AddressOf(StaticFieldAccess staticFieldAccess);
