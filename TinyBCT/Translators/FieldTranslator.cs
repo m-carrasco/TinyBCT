@@ -67,7 +67,7 @@ namespace TinyBCT.Translators
 
             FieldTranslator ft = new FieldTranslator(fieldRef);
 
-            return ft.Translate();
+            return ft.BoogieNameForField();
         }
 
         public FieldTranslator(IFieldReference f)
@@ -75,7 +75,7 @@ namespace TinyBCT.Translators
             fieldRef = f;
         }
 
-        public String Translate()
+        public String BoogieNameForField()
         {
             var typeName = Helpers.GetNormalizedType(fieldRef.ContainingType);
             var fieldName = typeName + "." + fieldRef.Name.Value;

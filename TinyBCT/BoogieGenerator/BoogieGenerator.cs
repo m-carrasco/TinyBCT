@@ -1285,6 +1285,14 @@ namespace TinyBCT
             return stmts;
         }
 
+        public override String GetFieldDefinition(IFieldReference fieldReference, String fieldName)
+        {
+            if (fieldReference.IsStatic)
+                return String.Format("var {0}: {1};", fieldName, "Addr");
+            else
+                return String.Format("var {0} : InstanceFieldAddr;", fieldName);
+        }
+
         public override BoogieVariable GetProcedureResultVariable(MethodCallInstruction methodCallInstruction, InstructionTranslator instructionTranslator)
         {
             if (methodCallInstruction.HasResult)
@@ -1553,6 +1561,31 @@ namespace TinyBCT
             return stmts;
         }
 
+        public override String GetFieldDefinition(IFieldReference fieldReference, String fieldName)
+        {
+            if (fieldReference.IsStatic)
+            {
+                return String.Format("var {0}: {1};", fieldName, Helpers.GetBoogieType(fieldReference.Type));
+            }
+            else
+            {
+                if (!Settings.SplitFields)
+                    return String.Format("const unique {0} : Field;", fieldName);
+                else
+                {
+                    if (Helpers.IsGenericField(fieldReference))
+                    {
+                        return String.Format("var {0} : [Ref]Union;", fieldName);
+                    }
+                    else
+                    {
+                        var boogieType = Helpers.GetBoogieType(fieldReference.Type);
+                        return String.Format("var {0} : [Ref]{1};", fieldName, boogieType);
+                    }
+                }
+            }
+        }
+
         public override BoogieVariable GetProcedureResultVariable(MethodCallInstruction methodCallInstruction, InstructionTranslator instructionTranslator)
         {
             if (methodCallInstruction.HasResult)
@@ -1794,6 +1827,7 @@ namespace TinyBCT
 
         public abstract StatementList AllocLocalVariables(IList<IVariable> variables);
 
+        public abstract String GetFieldDefinition(IFieldReference fieldReference, String fieldName);
 
         public Addressable AddressOf(IValue value)
         {
