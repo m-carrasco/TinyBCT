@@ -741,7 +741,7 @@ namespace TinyBCT
 
         public static Boolean IsBoogieRefType(Helpers.BoogieType type)
         {
-            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object) || type.Equals(Helpers.BoogieType.Union) || type.Equals(Helpers.BoogieType.Addr);
+            return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object) || type.Equals(Helpers.BoogieType.Union) ;
         }
         public static Boolean IsBoogieRefType(ITypeReference r)
         {
