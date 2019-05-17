@@ -226,6 +226,7 @@
     <Compile Include="Traverser\Traverser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReferenceFinder.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
