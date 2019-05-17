@@ -1477,11 +1477,17 @@ namespace TinyBCT
             return new AddressExpression(var.Type, BoogieVariable.AddressVar(var));
         }
 
-
-        public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
+        public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
         {
             var fieldAddr = AddressOf(instanceFieldAccess);
             var readValue = ReadAddr(fieldAddr);
+
+            return readValue;
+        }
+
+        public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
+        {
+            var readValue = ReadInstanceField(instanceFieldAccess);
 
             // dependiendo del type (del result?) indexo en el $memoryInt
             if (Helpers.IsGenericField(instanceFieldAccess.Field))
@@ -1686,41 +1692,43 @@ namespace TinyBCT
             return stmts;
         }
 
+        public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
+        {
+            if (!Settings.SplitFields)
+                return ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
+            else
+                return this.ReadAddr(AddressOf(instanceFieldAccess));
+        }
+
         public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
         {
             StatementList stmts = new StatementList();
-
-            String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-
             var boogieType = Helpers.GetBoogieType(result.Type);
+
+            var readFieldExpr = ReadInstanceField(instanceFieldAccess);
 
             if (!Settings.SplitFields)
             {
-
                 if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
                 {
-                    // example: Union2Int(Read(...))
-                    var readFieldExpr = ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
                     var expr = Expression.Union2PrimitiveType(boogieType, readFieldExpr);
                     stmts.Add(VariableAssignment(result, expr));
                 }
                 else
                 {
-                    var expr = ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
-                    stmts.Add(VariableAssignment(result, expr));
+                    stmts.Add(VariableAssignment(result, readFieldExpr));
                 }
             }
             else
             {
-                var heapAccess = new InstanceField(instanceFieldAccess);
-
                 //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
+                if (Helpers.IsGenericField(instanceFieldAccess.Field) &&
+                     !boogieType.Equals(Helpers.BoogieType.Ref))
                 {
-                    stmts.Add(VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, this.ReadAddr(heapAccess))));
+                    stmts.Add(VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readFieldExpr)));
                 }
                 else
-                    stmts.Add(VariableAssignment(result, this.ReadAddr(heapAccess)));
+                    stmts.Add(VariableAssignment(result, readFieldExpr));
             }
 
             return stmts;
@@ -1907,6 +1915,7 @@ namespace TinyBCT
         public abstract StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value, InstructionTranslator instTranslator);
 
         public abstract StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
+        public abstract Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess);
 
         protected List<(Expression, IVariable)> ComputeArguments(MethodCallInstruction instruction, InstructionTranslator instTranslator)
         {
