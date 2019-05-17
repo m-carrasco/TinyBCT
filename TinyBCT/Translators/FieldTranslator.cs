@@ -20,41 +20,8 @@ namespace TinyBCT.Translators
 
             foreach (var item in fieldNames)
             {
-                if (!Settings.NewAddrModelling)
-                {
-                    if (item.Key.IsStatic)
-                    {
-                        values.Add(String.Format("var {0}: {1};", item.Value, Helpers.GetBoogieType(item.Key.Type)));
-                    }
-                    else
-                    {
-                        if (!Settings.SplitFields)
-                            values.Add(String.Format("const unique {0} : Field;", item.Value));
-                        else
-                        {
-                            if (Helpers.IsGenericField(item.Key))
-                            {
-                                values.Add(String.Format("var {0} : [Ref]Union;", item.Value));
-                            }
-                            else
-                            {
-                                var boogieType = Helpers.GetBoogieType(item.Key.Type);
-                                values.Add(String.Format("var {0} : [Ref]{1};", item.Value, boogieType));
-                            }
-                        }
-                    }
-                } else
-                {
-                    if (item.Key.IsStatic)
-                    {
-                        values.Add(String.Format("var {0}: {1};", item.Value, "Addr"));
-                    }
-                    else
-                    {
-                        values.Add(String.Format("var {0} : InstanceFieldAddr;", item.Value));
-                    }
-                }
-
+                var def = BoogieGenerator.Instance().GetFieldDefinition(item.Key, item.Value);
+                values.Add(def);
             }
 
             return values;
