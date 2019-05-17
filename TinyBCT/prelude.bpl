@@ -130,13 +130,11 @@ var $Alloc: [Ref]bool;
 
 procedure {:allocator} AuxAlloc() returns (x: Ref);
 procedure {:inline 1} Alloc() returns (x: Ref);
-  modifies $Alloc;
+  modifies $AllocObject;
 
 implementation {:inline 1} Alloc() returns (x: Ref)
 {
-    call x := AuxAlloc();
-    assume $Alloc[x] == false && x != null;
-    $Alloc[x] := true;
+    call x := AllocObject();
 }
 
 var $Heap: HeapType;
