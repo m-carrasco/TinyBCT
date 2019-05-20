@@ -120,7 +120,7 @@ namespace TinyBCT.Translators
 
             foreach (var p in methodBody.MethodDefinition.Parameters)
             {
-                if (Helpers.IsBoogieRefType(p.Type) && !p.IsByReference && !p.IsOut)
+                if (Helpers.IsBoogieRefType(p) && !p.IsByReference && !p.IsOut)
                 {
                     // BUG BUG BUG BUG - by ref 
                     var paramVariable = methodBody.Parameters.Single(v => v.Name.Equals(p.Name.Value));
@@ -547,7 +547,7 @@ namespace TinyBCT.Translators
                 {
                     BoogieMethod methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
                     
-                    var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result.Type));
+                    var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result));
                     var arguments = new List<Expression>();
                     arguments.Add(Helpers.Strings.FixStringLiteral(left, boogieGenerator));
                     arguments.Add(Helpers.Strings.FixStringLiteral(right, boogieGenerator));
@@ -559,11 +559,11 @@ namespace TinyBCT.Translators
                     // each making slightly different translations, for example, bitvector representation
                     // of integers as opposed to Boogie int.
                     // When that happens, this should most likely be encapsulated within BoogieGenerator.
-                    if (Expression.IsSupportedBinaryOperation(instruction.Operation, Helpers.GetBoogieType(left.Type), Helpers.GetBoogieType(right.Type)))
+                    if (Expression.IsSupportedBinaryOperation(instruction.Operation, Helpers.GetBoogieType(left), Helpers.GetBoogieType(right)))
                     {
                         // mod keyword in boogie returns integer
-                        if (BinaryOperation.Rem == instruction.Operation && 
-                            Helpers.GetBoogieType(instruction.Result.Type) != Helpers.BoogieType.Int)
+                        if (BinaryOperation.Rem == instruction.Operation &&
+                            Helpers.GetBoogieType(instruction.Result) != Helpers.BoogieType.Int)
                             Contract.Assert(false);
 
                         var exp = Expression.BinaryOperationExpression(boogieGenerator.ReadAddr(left), boogieGenerator.ReadAddr(right), instruction.Operation);
@@ -670,7 +670,7 @@ namespace TinyBCT.Translators
 
                 if (instruction.HasOperand)
                 {
-                    var boogieResVar = BoogieVariable.ResultVar(Helpers.GetBoogieType(instruction.Operand.Type));
+                    var boogieResVar = BoogieVariable.ResultVar(Helpers.GetBoogieType(instruction.Operand));
                     AddBoogie(boogieGenerator.VariableAssignment(boogieResVar, boogieGenerator.ReadAddr(instruction.Operand)));
                 }
 
@@ -701,7 +701,7 @@ namespace TinyBCT.Translators
                     InstanceFieldAccess instanceFieldOp = instructionOperand as InstanceFieldAccess;
                     AddBoogie(boogieGenerator.ReadInstanceField(instanceFieldOp, instruction.Result));
 
-                    if (Helpers.IsBoogieRefType(instanceFieldOp.Type))
+                    if (Helpers.IsBoogieRefType(instanceFieldOp.Field))
                         AddBoogie(BoogieStatement.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), instanceFieldOp.Type)));
                 }
                 else if (instructionOperand is StaticFieldAccess) // memory access handling
@@ -795,9 +795,9 @@ namespace TinyBCT.Translators
                 {
                     //         call $tmp0 := DynamicDispatch.Mammal.Breathe(a);
                     // the union depends on the type of the arguments
-                    var resType = Helpers.GetBoogieType(instruction.Result.Type);
+                    var resType = Helpers.GetBoogieType(instruction.Result);
                     var methodType = Helpers.GetMethodBoogieReturnType(Helpers.GetUnspecializedVersion(callee));
-                    if (methodType.Equals(resType) || Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
+                    if (methodType.Equals(resType) || Helpers.IsBoogieRefType(resType)) // Ref and Union are alias
                     {
                         stmts.Add(boogieGenerator.ProcedureCall(callee, instTranslator, instruction));
                     }
@@ -1193,7 +1193,7 @@ namespace TinyBCT.Translators
 
                     var argType = Helpers.GetBoogieType(elementAccess.Type);
                     ReadArrayContent(instruction.Result, boogieGenerator.ReadAddr(elementAccess.Array), elementAccess.Indices, argType);
-                    if (Helpers.IsBoogieRefType(instruction.Result.Type))
+                    if (Helpers.IsBoogieRefType(instruction.Result))
                         AddBoogie(BoogieStatement.Assume(Expression.Subtype(boogieGenerator.DynamicType(instruction.Result), elementAccess.Type)));
                     return;
                 }
@@ -1592,7 +1592,7 @@ namespace TinyBCT.Translators
                     arguments.Add(boogieGenerator.ReadAddr(receiverObject));
                     arguments.Add(Expression.Type0);
 
-                    var freshVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(createObjIns.Result.Type));
+                    var freshVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(createObjIns.Result));
                     stmts.Add(boogieGenerator.ProcedureCall(BoogieMethod.CreateDelegate(instruction), arguments, freshVar));
                     // This is a hack.
                     // The first parameter below <createObjIns.Result> (which is an IVariable), when using the new address model, will be used as the address
@@ -1631,7 +1631,7 @@ namespace TinyBCT.Translators
 
                 foreach (var argument in instruction.Arguments.Skip(1)) // first argument is the delegate object
                 {
-                    if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
+                    if (Helpers.IsBoogieRefType(argument)) // Ref and Union are alias
                         continue;
 
                     AddBoogie(Expression.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(argument)));
@@ -1656,7 +1656,7 @@ namespace TinyBCT.Translators
                 invokeDelegateArguments.Add(boogieGenerator.ReadAddr(instruction.Arguments[0]));
                 foreach (var argument in instruction.Arguments.Skip(1))
                 {
-                    if (Helpers.IsBoogieRefType(argument.Type)) // Ref and Union are alias
+                    if (Helpers.IsBoogieRefType(argument)) // Ref and Union are alias
                         invokeDelegateArguments.Add(boogieGenerator.ReadAddr(argument));
                     else
                         invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument), instTranslator));
@@ -1674,8 +1674,8 @@ namespace TinyBCT.Translators
                 if (instruction.HasResult)
                 {
                     // the union depends on the type of the arguments
-                    var argType = Helpers.GetBoogieType(instruction.Result.Type);
-                    if (Helpers.IsBoogieRefType(instruction.Result.Type)) // Ref and Union are alias
+                    var argType = Helpers.GetBoogieType(instruction.Result);
+                    if (Helpers.IsBoogieRefType(argType)) // Ref and Union are alias
                     {
                         // we handle delegate invokations as extern for simplicity
                         // they may point to an extern method
@@ -1841,12 +1841,12 @@ namespace TinyBCT.Translators
                 // we need the unspecialized version because that's how generics are handled
                 foreach (var v in method.Parameters)
                 {
-                    var argType = Helpers.GetBoogieType(v.Type);
+                    var argType = Helpers.GetBoogieType(v);
                     //if (argType.Equals("Ref")) // Ref and Union are alias
                     //    AddBoogie(String.Format("\t\tlocal{0} := arg{0}$in;", v.Index));
 
                     var paramBoogieParam = DelegateHandlingParameter.From(v);
-                    if (!Helpers.IsBoogieRefType(v.Type))
+                    if (!Helpers.IsBoogieRefType(v))
                     {
                         var paramBoogieVar = DelegateHandlingVariable.From(v);
                         ifStmts.Add(BoogieStatement.VariableAssignment(paramBoogieVar, Expression.Union2PrimitiveType(argType, paramBoogieParam)));

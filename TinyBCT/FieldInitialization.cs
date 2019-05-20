@@ -57,7 +57,7 @@ namespace TinyBCT
                     lv.Type is Microsoft.Cci.Immutable.FunctionPointerType) 
                     continue;
 
-                var varBoogieType = Helpers.GetBoogieType(lv.Type);
+                var varBoogieType = Helpers.GetBoogieType(lv);
                 IVariable initialValue = boogieTypeToLocalVariable[varBoogieType];
                 var storeInstruction = new LoadInstruction(0, lv, initialValue);
                 storeInstruction.Label = String.Empty;
@@ -70,7 +70,7 @@ namespace TinyBCT
             {
                 foreach (IFieldDefinition field in fields.Where(f => f.IsStatic))
                 {
-                    var fieldBoogieType = Helpers.GetBoogieType(field.Type);
+                    var fieldBoogieType = Helpers.GetBoogieType(field);
                     IVariable initialValue = boogieTypeToLocalVariable[fieldBoogieType];
                     var staticAccess = new StaticFieldAccess(field);
                     var storeInstruction = new StoreInstruction(0, staticAccess, initialValue);
@@ -83,7 +83,7 @@ namespace TinyBCT
 
                 foreach (IFieldDefinition field in fields.Where(f => !f.IsStatic))
                 {
-                    var fieldBoogieType = Helpers.GetBoogieType(field.Type);
+                    var fieldBoogieType = Helpers.GetBoogieType(field);
                     IVariable initialValue = boogieTypeToLocalVariable[fieldBoogieType];
                     var instanceAccess = new InstanceFieldAccess(thisVariable, field);
                     var storeInstruction = new StoreInstruction(0, instanceAccess, initialValue);
@@ -107,7 +107,7 @@ namespace TinyBCT
 
             var defaultInt = new LocalVariable("$defaultIntValue", false, methodBody.MethodDefinition);
             defaultInt.Type = Types.Instance.PlatformType.SystemInt32;
-            Contract.Assert(Helpers.GetBoogieType(defaultInt.Type).Equals(Helpers.BoogieType.Int));
+            Contract.Assert(Helpers.GetBoogieType(defaultInt).Equals(Helpers.BoogieType.Int));
 
             var intAssign = new LoadInstruction(0, defaultInt, new Constant(0) { Type = defaultInt.Type });
             intAssign.Label = String.Empty;
@@ -121,7 +121,7 @@ namespace TinyBCT
 
             var defaultReal = new LocalVariable("$defaultRealValue", false, methodBody.MethodDefinition);
             defaultReal.Type = Types.Instance.PlatformType.SystemFloat32;
-            Contract.Assert(Helpers.GetBoogieType(defaultReal.Type).Equals(Helpers.BoogieType.Real));
+            Contract.Assert(Helpers.GetBoogieType(defaultReal).Equals(Helpers.BoogieType.Real));
 
             var realAssing = new LoadInstruction(0, defaultReal, new Constant(0F) { Type = defaultReal.Type });
             realAssing.Label = String.Empty;
@@ -135,7 +135,7 @@ namespace TinyBCT
 
             var defaultBool = new LocalVariable("$defaultBoolValue", false, methodBody.MethodDefinition);
             defaultBool.Type = Types.Instance.PlatformType.SystemBoolean;
-            Contract.Assert(Helpers.GetBoogieType(defaultBool.Type).Equals(Helpers.BoogieType.Bool));
+            Contract.Assert(Helpers.GetBoogieType(defaultBool).Equals(Helpers.BoogieType.Bool));
 
             var boolAssign = new LoadInstruction(0, defaultBool, new Constant(false) { Type = defaultBool.Type });
             boolAssign.Label = String.Empty;
@@ -149,7 +149,7 @@ namespace TinyBCT
 
             var defaultRef = new LocalVariable("$defaultRef", false, methodBody.MethodDefinition);
             defaultRef.Type = Types.Instance.PlatformType.SystemObject;
-            Contract.Assert(Helpers.GetBoogieType(defaultRef.Type).Equals(Helpers.BoogieType.Ref));
+            Contract.Assert(Helpers.GetBoogieType(defaultRef).Equals(Helpers.BoogieType.Ref));
 
             var refAssign  = new LoadInstruction(0, defaultRef, new Constant(null) { Type = defaultRef.Type });
             refAssign.Label = String.Empty;

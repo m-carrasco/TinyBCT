@@ -296,7 +296,7 @@ namespace TinyBCT
         {
             Contract.Assume(IsSupportedUnaryOperation(unaryOperation));
             // currently just neg is supported, equivalent to * -1
-            return new Expression(Helpers.GetBoogieType(var.Type), $"-{var.Name}");
+            return new Expression(Helpers.GetBoogieType(var), $"-{var.Name}");
         }
         public static Expression ExprEquals(Expression op1, Expression op2)
         {
@@ -418,7 +418,7 @@ namespace TinyBCT
         {
             return
                 constant != null &&
-                Helpers.IsBoogieRefType(constant.Type) &&
+                Helpers.IsBoogieRefType(constant) &&
                 (constant.ToString().Equals("null") ||
                  // TODO: This should be removed once the underlying framework
                  // correctly translates null constants.
@@ -589,7 +589,7 @@ namespace TinyBCT
         public static BoogieVariable From(StaticField staticField)
         {
             var fieldName = FieldTranslator.GetFieldName(staticField.Field);
-            return new BoogieVariable(Helpers.GetBoogieType(staticField.Type), fieldName);
+            return new BoogieVariable(Helpers.GetBoogieType(staticField.Field), fieldName);
         }
         // This method should be used with extreme care. In general an incorrect usage should lead to a
         // name resolution error at the Boogie level.
@@ -602,7 +602,7 @@ namespace TinyBCT
         static public BoogieVariable FromDotNetVariable(IVariable variable)
         {
             Contract.Requires(!Settings.NewAddrModelling);
-            return new BoogieVariable(Helpers.GetBoogieType(variable.Type), BoogieVariable.AdaptNameToBoogie(variable.Name));
+            return new BoogieVariable(Helpers.GetBoogieType(variable), BoogieVariable.AdaptNameToBoogie(variable.Name));
         }
 
         private static readonly BoogieVariable _ExceptionVar = ExceptionVar();
@@ -625,11 +625,11 @@ namespace TinyBCT
         protected DelegateHandlingVariable(Helpers.BoogieType type, string name) : base(type, name) { }
         public static DelegateHandlingVariable From(IParameterTypeInformation paramInfo)
         {
-            return new DelegateHandlingVariable(Helpers.GetBoogieType(paramInfo.Type), $"local{paramInfo.Index}");
+            return new DelegateHandlingVariable(Helpers.GetBoogieType(paramInfo), $"local{paramInfo.Index}");
         }
         public static DelegateHandlingVariable From(IParameterDefinition paramInfo)
         {
-            return new DelegateHandlingVariable(Helpers.GetBoogieType(paramInfo.Type), $"local{paramInfo.Index}");
+            return new DelegateHandlingVariable(Helpers.GetBoogieType(paramInfo), $"local{paramInfo.Index}");
         }
         public static DelegateHandlingVariable ResultVar(IMethodDefinition methodDefinition)
         {
@@ -655,12 +655,12 @@ namespace TinyBCT
         static new public BoogieVariable FromDotNetVariable(IVariable variable)
         {
             Contract.Requires(variable.IsParameter);
-            return new BoogieParameter(Helpers.GetBoogieType(variable.Type), AdaptNameToBoogie(variable.Name));
+            return new BoogieParameter(Helpers.GetBoogieType(variable), AdaptNameToBoogie(variable.Name));
         }
         static public BoogieVariable OutVariable(IParameterDefinition param)
         {
             Contract.Requires(param.IsOut && param.IsByReference);
-            return new BoogieParameter(Helpers.GetBoogieType(param.Type), $"{AdaptNameToBoogie(param.Name.Value)}$out");
+            return new BoogieParameter(Helpers.GetBoogieType(param), $"{AdaptNameToBoogie(param.Name.Value)}$out");
         }
     }
     public class QuantifiedVariable : BoogieVariable
@@ -745,7 +745,7 @@ namespace TinyBCT
                 return $"{MemoryMap}[{Key.Instance.Name}]";
             }
             public override Helpers.BoogieType Type() {
-                return Helpers.GetBoogieType(Key.Field.Type);
+                return Helpers.GetBoogieType(Key.Field);
             }
             private InstanceField Key { get; }
             private string MemoryMap { get { return $"{FieldTranslator.GetFieldName(Key.Field)}"; } }
@@ -796,7 +796,7 @@ namespace TinyBCT
                 Key = instanceField;
             }
             public string Expr { get { return $"Read($Heap, {Key.Instance.Name}, {Key.Field.Name})"; } }
-            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Field.Type); } }
+            public Helpers.BoogieType Type { get { return Helpers.GetBoogieType(Key.Field); } }
             private InstanceField Key { get; }
         }
         public static ReadHeapExpression From(InstanceField expr)
@@ -936,13 +936,13 @@ namespace TinyBCT
         }
         public static BoogieStatement AllocObjectAxiom(IVariable paramVariable)
         {
-            Contract.Assume(Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object));
+            Contract.Assume(Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Object));
             return new BoogieStatement(String.Format("assume $AllocObject[{0}] == true || {0} != null_object;", paramVariable));
         }
 
         public static BoogieStatement AllocAddrAxiom(IVariable paramVariable)
         {
-            Contract.Assume(Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr));
+            Contract.Assume(Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Addr));
             return new BoogieStatement(String.Format("assume $AllocAddr[{0}] == true || {0} != null_addr;", paramVariable));
         }
         
@@ -1054,9 +1054,9 @@ namespace TinyBCT
         {
             Contract.Assume(!Settings.SplitFields);
             var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Ref, Helpers.BoogieType.Real };
-            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field.Type)));
-            Contract.Assume(Helpers.GetBoogieType(key.Field.Type).Equals(value.Type));
-            var Type = Helpers.GetBoogieType(key.Field.Type);
+            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field)));
+            Contract.Assume(Helpers.GetBoogieType(key.Field).Equals(value.Type));
+            var Type = Helpers.GetBoogieType(key.Field);
             var Stmt = $"$Heap := Write($Heap, {key.Instance}, {key.Field}, {value.Expr});";
             return new HeapUpdate(Stmt);
         }
@@ -1069,9 +1069,9 @@ namespace TinyBCT
         {
             Contract.Assume(Settings.SplitFields);
             var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Ref, Helpers.BoogieType.Real };
-            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field.Type)));
-            Contract.Assume(Helpers.GetBoogieType(key.Field.Type).Equals(value.Type) || value.Type.Equals(Helpers.BoogieType.Union));
-            var Type = Helpers.GetBoogieType(key.Field.Type);
+            Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field)));
+            Contract.Assume(Helpers.GetBoogieType(key.Field).Equals(value.Type) || value.Type.Equals(Helpers.BoogieType.Union));
+            var Type = Helpers.GetBoogieType(key.Field);
             var fieldName = FieldTranslator.GetFieldName(key.Field);
             var Stmt = $"{fieldName}[{key.Instance}] := {value.Expr};";
             return new SplitFieldUpdate(Stmt);
@@ -1256,7 +1256,7 @@ namespace TinyBCT
         }
         public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
         {
-            var freshVariable = instTranslator.GetFreshVariable(Helpers.GetBoogieType(var.Type));
+            var freshVariable = instTranslator.GetFreshVariable(Helpers.GetBoogieType(var));
             var stmts = new StatementList();
             stmts.Add(this.AllocObject(freshVariable));
             stmts.Add(this.VariableAssignment(var, freshVariable));
@@ -1298,7 +1298,7 @@ namespace TinyBCT
             if (methodCallInstruction.HasResult)
             {
                 var resultVariable = methodCallInstruction.Result;
-                return instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
+                return instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable));
             }
             else
                 return null;
@@ -1317,10 +1317,10 @@ namespace TinyBCT
 
         public override Helpers.BoogieType GetBoogieTypeForProcedureParameter(IParameterTypeInformation parameter)
         {
-            if (parameter.IsByReference)
-                return Helpers.BoogieType.Addr;
-            else
-                return Helpers.GetBoogieType(parameter.Type);
+            //if (parameter.IsByReference)
+            //    return Helpers.BoogieType.Addr;
+            //else
+                return Helpers.GetBoogieType(parameter);
         }
 
         public override StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null)
@@ -1364,7 +1364,7 @@ namespace TinyBCT
             }
 
 
-            var boogieType = Helpers.GetBoogieType(variableA.Type);
+            var boogieType = Helpers.GetBoogieType(variableA);
 
             if (value is Constant)
             {
@@ -1448,10 +1448,10 @@ namespace TinyBCT
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
                 stmts.Add(WriteAddr(paramAddress, boogieParamVariable));
 
-                if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
+                if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Object))
                 {
                     stmts.Add(BoogieStatement.AllocObjectAxiom(paramVariable));
-                } else if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr))
+                } else if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Addr))
                 {
                     stmts.Add(BoogieStatement.AllocAddrAxiom(paramVariable));
                 }
@@ -1492,7 +1492,7 @@ namespace TinyBCT
             // dependiendo del type (del result?) indexo en el $memoryInt
             if (Helpers.IsGenericField(instanceFieldAccess.Field))
             {
-                var boogieType = Helpers.GetBoogieType(result.Type);
+                var boogieType = Helpers.GetBoogieType(result);
                 if (!boogieType.Equals(Helpers.BoogieType.Object))
                 {
                     return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue));
@@ -1530,7 +1530,7 @@ namespace TinyBCT
             BoogieVariable boogieResVar = null;
             if (resultVariable != null)
             {
-                boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
+                boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable));
             }
             stmts.Add(CallReadArrayElement(boogieResVar, array, index));
             if (resultVariable != null)
@@ -1627,11 +1627,11 @@ namespace TinyBCT
                 // boogie generator knows that must fetch paramVariable's address (_x and not x)
                 stmts.Add(WriteAddr(paramAddress, boogieParamVariable));
 
-                if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Object))
+                if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Object))
                 {
                     stmts.Add(BoogieStatement.AllocObjectAxiom(paramVariable));
                 }
-                else if (Helpers.GetBoogieType(paramVariable.Type).Equals(Helpers.BoogieType.Addr))
+                else if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Addr))
                 {
                     stmts.Add(BoogieStatement.AllocAddrAxiom(paramVariable));
                 }
@@ -1750,9 +1750,9 @@ namespace TinyBCT
 
             if (Helpers.IsGenericField(instanceFieldAccess.Field))
             {
-                if (!Helpers.IsBoogieRefType(result.Type))
+                if (!Helpers.IsBoogieRefType(result))
                 {
-                    var boogieType = Helpers.GetBoogieType(result.Type);
+                    var boogieType = Helpers.GetBoogieType(result);
                     return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readExpr));
                 }
             }
@@ -1883,7 +1883,7 @@ namespace TinyBCT
         {
             if (fieldReference.IsStatic)
             {
-                return String.Format("var {0}: {1};", fieldName, Helpers.GetBoogieType(fieldReference.Type));
+                return String.Format("var {0}: {1};", fieldName, Helpers.GetBoogieType(fieldReference));
             }
             else
             {
@@ -1897,7 +1897,7 @@ namespace TinyBCT
                     }
                     else
                     {
-                        var boogieType = Helpers.GetBoogieType(fieldReference.Type);
+                        var boogieType = Helpers.GetBoogieType(fieldReference);
                         return String.Format("var {0} : [Ref]{1};", fieldName, boogieType);
                     }
                 }
@@ -1921,7 +1921,7 @@ namespace TinyBCT
 
         public override Helpers.BoogieType GetBoogieTypeForProcedureParameter(IParameterTypeInformation parameter)
         {
-            return Helpers.GetBoogieType(parameter.Type);
+            return Helpers.GetBoogieType(parameter);
         }
 
         public override StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null)
@@ -2015,13 +2015,13 @@ namespace TinyBCT
         public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
         {
             StatementList stmts = new StatementList();
-            var boogieType = Helpers.GetBoogieType(result.Type);
+            var boogieType = Helpers.GetBoogieType(result);
 
             var readFieldExpr = ReadInstanceField(instanceFieldAccess);
 
             if (!Settings.SplitFields)
             {
-                if (!Helpers.IsBoogieRefType(result.Type)) // int, bool, real
+                if (!Helpers.IsBoogieRefType(Helpers.GetBoogieType(result))) // int, bool, real
                 {
                     var expr = Expression.Union2PrimitiveType(boogieType, readFieldExpr);
                     stmts.Add(VariableAssignment(result, expr));
@@ -2251,7 +2251,7 @@ namespace TinyBCT
             if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
             {
                 var receiver = instruction.Arguments.ElementAt(0);
-                if (!Helpers.IsBoogieRefType(receiver.Type)) // not sure when this happens
+                if (!Helpers.IsBoogieRefType(receiver)) // not sure when this happens
                 {
                     // TODO(rcastano): try to reuse variables.
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
@@ -2278,7 +2278,7 @@ namespace TinyBCT
                     i : i + 1; // +1 depends if there is a this parameter or not
 
                 var paramType = GetBoogieTypeForProcedureParameter(unspecializedMethod.Parameters.ElementAt(i));
-                var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i).Type);
+                var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i));
 
                 if (!paramType.Equals(argType))
                 {
@@ -2387,7 +2387,7 @@ namespace TinyBCT
 
         public StatementList Assert(IVariable cond)
         {
-            Contract.Assume(Helpers.GetBoogieType(cond.Type).Equals(Helpers.BoogieType.Bool));
+            Contract.Assume(Helpers.GetBoogieType(cond).Equals(Helpers.BoogieType.Bool));
             return BoogieStatement.Assert(ReadAddr(cond));
         }
 
@@ -2435,7 +2435,7 @@ namespace TinyBCT
 
         public StatementList BoxFrom(IVariable op1, ConvertInstruction convertInstruction, InstructionTranslator instructionTranslator)
         {
-            var boogieType = Helpers.GetBoogieType(op1.Type);
+            var boogieType = Helpers.GetBoogieType(op1);
             if (Helpers.IsBoogieRefType(boogieType))
                 boogieType = Helpers.BoogieType.Union;
 
@@ -2445,7 +2445,7 @@ namespace TinyBCT
 
             if (Settings.NewAddrModelling)
             {
-                var tempBoogieVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(result.Type));
+                var tempBoogieVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(result));
                 var resultArguments = new List<BoogieVariable> { tempBoogieVar};
                 return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, tempBoogieVar);
             }

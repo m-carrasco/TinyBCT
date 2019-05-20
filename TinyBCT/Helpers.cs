@@ -77,8 +77,24 @@ namespace TinyBCT
 
         public class BoogieType {
 
+            public static BoogieTypeTranslator GetBoogieTypeTranslator()
+            {
+                if (Settings.NewAddrModelling)
+                    return (new BoogieType.BoogieTypeTranslatorAddr());
+
+                return (new BoogieType.BoogieTypeTranslatorALaBCT());
+            }
+
             public abstract class BoogieTypeTranslator
             {
+                // if you ask the boogie type in this way, the resolution can be made considering if the variable has been referenced
+                // this would only happen in the mix address modeling
+
+                public abstract BoogieType GetBoogieType(IVariable var);
+                public abstract BoogieType GetBoogieType(Constant var);
+                public abstract BoogieType GetBoogieType(IFieldReference var);
+                public abstract BoogieType GetBoogieType(IParameterTypeInformation var);
+
                 public virtual BoogieType GetBoogieType(ITypeReference type)
                 {
                     INamedTypeDefinition namedType = type as INamedTypeDefinition;
@@ -117,6 +133,29 @@ namespace TinyBCT
 
             public class BoogieTypeTranslatorAddr : BoogieTypeTranslator
             {
+                public override BoogieType GetBoogieType(IVariable var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(Constant var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(IFieldReference var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(IParameterTypeInformation var)
+                {
+                    if (var.IsByReference)
+                        return BoogieType.Addr;
+
+                    return GetBoogieType(var.Type);
+                }
+
                 public override BoogieType GetBoogieType(ITypeReference type)
                 {
                     if (type.TypeCode.Equals(PrimitiveTypeCode.String))
@@ -127,6 +166,53 @@ namespace TinyBCT
 
                     if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                         return BoogieType.Addr;
+
+                    return base.GetBoogieType(type);
+                }
+            }
+
+            public class BoogieTypeTranslatorMixed : BoogieTypeTranslator
+            {
+                public override BoogieType GetBoogieType(IVariable var)
+                {
+                    if (ReferenceFinder.IsReferenced(var))
+                        return BoogieType.Addr;
+
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(Constant var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(IFieldReference var)
+                {
+                    if (ReferenceFinder.IsReferenced(var))
+                        return BoogieType.Addr;
+
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(IParameterTypeInformation var)
+                {
+                    if (var.IsByReference)
+                        return BoogieType.Addr;
+
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(ITypeReference type)
+                {
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
+                        return BoogieType.Object;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
+                        return BoogieType.Object;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
+                        return BoogieType.Object;
                         
                     return base.GetBoogieType(type);
                 }
@@ -134,6 +220,26 @@ namespace TinyBCT
 
             public class BoogieTypeTranslatorALaBCT : BoogieTypeTranslator
             {
+                public override BoogieType GetBoogieType(IVariable var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(Constant var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(IFieldReference var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
+                public override BoogieType GetBoogieType(IParameterTypeInformation var)
+                {
+                    return GetBoogieType(var.Type);
+                }
+
                 public override BoogieType GetBoogieType(ITypeReference type)
                 {
                     if (type.TypeCode.Equals(PrimitiveTypeCode.String))
@@ -202,13 +308,35 @@ namespace TinyBCT
         {
             return Helpers.GetBoogieType(Backend.Types.Instance.PlatformType.SystemObject);
         }
+
+        // if needed we will check if the variable has been referenced
+        public static BoogieType GetBoogieType(IVariable var)
+        {
+            return BoogieType.GetBoogieTypeTranslator().GetBoogieType(var);
+        }
+
+        public static BoogieType GetBoogieType(Constant var)
+        {
+            return BoogieType.GetBoogieTypeTranslator().GetBoogieType(var);
+        }
+
+        // if needed we will check if the variable has been referenced
+        public static BoogieType GetBoogieType(IFieldReference var)
+        {
+            return BoogieType.GetBoogieTypeTranslator().GetBoogieType(var);
+        }
+
+        // if needed we will check if the variable has been referenced
+        public static BoogieType GetBoogieType(IParameterTypeInformation var)
+        {
+            return BoogieType.GetBoogieTypeTranslator().GetBoogieType(var);
+        }
+
         public static BoogieType GetBoogieType(ITypeReference type)
         {
-            if (Settings.NewAddrModelling)
-                return (new BoogieType.BoogieTypeTranslatorAddr()).GetBoogieType(type);
-
-            return (new BoogieType.BoogieTypeTranslatorALaBCT()).GetBoogieType(type);
+            return BoogieType.GetBoogieTypeTranslator().GetBoogieType(type);
         }
+
         public static IMethodReference GetUnspecializedVersion(IMethodReference method)
         {
             return MemberHelper.UninstantiateAndUnspecialize(method);
@@ -259,7 +387,7 @@ namespace TinyBCT
                     if (methodRef.Parameters.Any(p => p.IsByReference))
                     {
                         var returnVariables = new List<String>();
-                        returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                        returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p))).ToList();
                         returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
                     }
 
@@ -267,7 +395,7 @@ namespace TinyBCT
                 else
                 {
                     var returnVariables = new List<String>();
-                    returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                    returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p))).ToList();
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
                     returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
                 }
@@ -552,9 +680,9 @@ namespace TinyBCT
             IMethodDefinition methodDef = methodRef as IMethodDefinition;
             // hack for handling type as variable
             if (methodDef != null)
-                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v.Type))));
+                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
             else
-                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v.Type))));
+                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
 
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);
@@ -762,13 +890,33 @@ namespace TinyBCT
             return method.Name.Value == ".ctor";
         }
 
-        public static Boolean IsBoogieRefType(Helpers.BoogieType type)
+        public static bool IsBoogieRefType(Helpers.BoogieType type)
         {
             return type.Equals(Helpers.BoogieType.Ref) || type.Equals(Helpers.BoogieType.Object) || type.Equals(Helpers.BoogieType.Union) ;
         }
-        public static Boolean IsBoogieRefType(ITypeReference r)
+        public static bool IsBoogieRefType(ITypeReference r)
         {
             return IsBoogieRefType(Helpers.GetBoogieType(r));
+        }
+
+        public static bool IsBoogieRefType(IVariable var)
+        {
+            return IsBoogieRefType(Helpers.GetBoogieType(var));
+        }
+
+        public static bool IsBoogieRefType(Constant var)
+        {
+            return IsBoogieRefType(Helpers.GetBoogieType(var));
+        }
+
+        public static bool IsBoogieRefType(IFieldReference var)
+        {
+            return IsBoogieRefType(Helpers.GetBoogieType(var));
+        }
+
+        public static bool IsBoogieRefType(IParameterTypeInformation var)
+        {
+            return IsBoogieRefType(Helpers.GetBoogieType(var));
         }
 
         public static class Strings
