@@ -236,19 +236,42 @@ namespace TinyBCT
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
             var returnType = String.Empty;
 
-            // manuel: i can't check for p.IsOut with a method reference, i need a method definition
-            // i think that is not possible if it is extern.
-            if (Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void) && !Settings.NewAddrModelling && !methodRef.Parameters.Any(p => p.IsByReference))
+            if (Settings.NewAddrModelling)
             {
-                returnType = String.Empty;
-            } else
-            {
-                var returnVariables = new List<String>();
-                returnVariables = methodRef.Parameters.Where(p => p.IsByReference && !Settings.NewAddrModelling).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
-                if (!Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void))
+                #region Return variables in NewAddrModelling. We should only add the return variable type from CCI
+                if (Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void))
+                {
+                    returnType = "returns ()";
+                }
+                else
+                {
+                    var returnVariables = new List<String>();
                     returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
+                    returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
+                }
+                #endregion
+            }
+            else
+            {
+                #region Return variables in old memory model. We need to add 'ref' parameters as return variables (in addition to the return variable from CCI).
+                if (Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void))
+                {
+                    if (methodRef.Parameters.Any(p => p.IsByReference))
+                    {
+                        var returnVariables = new List<String>();
+                        returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                        returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
+                    }
 
-                returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
+                }
+                else
+                {
+                    var returnVariables = new List<String>();
+                    returnVariables = methodRef.Parameters.Where(p => p.IsByReference).Select(p => String.Format("v{0}$out : {1}", p.Index, Helpers.GetBoogieType(p.Type))).ToList();
+                    returnVariables.Add(String.Format("$result : {0}", Helpers.GetMethodBoogieReturnType(methodRef)));
+                    returnType = String.Format("returns ({0})", String.Join(",", returnVariables));
+                }
+                #endregion
             }
 
             var t = new BoogieProcedureTemplate(methodName, " {:extern} ", StatementList.Empty, StatementList.Empty, parameters, returnType, true);
