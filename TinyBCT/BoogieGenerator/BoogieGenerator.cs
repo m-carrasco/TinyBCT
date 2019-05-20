@@ -1522,6 +1522,24 @@ namespace TinyBCT
 
             return stmts;
         }
+
+        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        {
+            StatementList stmts = new StatementList();
+
+            BoogieVariable boogieResVar = null;
+            if (resultVariable != null)
+            {
+                boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
+            }
+            stmts.Add(CallReadArrayElement(boogieResVar, array, index));
+            if (resultVariable != null)
+            {
+                stmts.Add(WriteAddr(AddressOf(resultVariable), boogieResVar));
+            }
+            return stmts;
+
+        }
     }
 
     public class BoogieGeneratorMixed : BoogieGenerator
@@ -1811,6 +1829,11 @@ namespace TinyBCT
             else
                 return BoogieBCT.WriteInstanceField(instanceFieldAccess, value, instTranslator);
         }
+
+        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class BoogieGeneratorALaBCT : BoogieGenerator
@@ -2094,7 +2117,15 @@ namespace TinyBCT
                 throw new NotImplementedException();
             }
         }
+
+        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        {
+            StatementList stmts = new StatementList();
+            return CallReadArrayElement(BoogieVariable.FromDotNetVariable(resultVariable), array, index);
+        }
     }
+
+
 
     public abstract class BoogieGenerator
     {
@@ -2383,28 +2414,8 @@ namespace TinyBCT
             return BoogieStatement.Assume(eqLength);
         }
 
-        public StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
-        {
-            StatementList stmts = new StatementList();
-            if (Settings.NewAddrModelling)
-            {
-                BoogieVariable boogieResVar = null;
-                if (resultVariable != null) 
-                {
-                    boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable.Type));
-                }
-                stmts.Add(CallReadArrayElement(boogieResVar, array, index));
-                if (resultVariable != null)
-                {
-                    stmts.Add(WriteAddr(AddressOf(resultVariable), boogieResVar));
-                }
-                return stmts;
-            }
-            else
-            {
-                return CallReadArrayElement(BoogieVariable.FromDotNetVariable(resultVariable), array, index);
-            }
-        }
+        public abstract StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator);
+
         public StatementList CallReadArrayElement(BoogieVariable result, Expression array, Expression index)
         {
             var l = new List<Expression>();
