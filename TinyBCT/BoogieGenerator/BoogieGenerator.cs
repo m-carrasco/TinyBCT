@@ -1612,13 +1612,17 @@ namespace TinyBCT
                 if (RequiresAllocation(v))
                     stmts.Add(AllocAddr(v));
 
-            foreach (var paramVariable in variables.Where(v => v.IsParameter))
+            foreach (var paramVariable in variables.Where(v => v.IsParameter && (RequiresAllocation(v) || (v.Type is IManagedPointerType))))
             {
                 var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
 
                 if (!RequiresAllocation(paramVariable))
                 {
-                    stmts.Add(BoogieStatement.VariableAssignment(BoogieVariable.AddressVar(paramVariable), boogieParamVariable));
+                    //BoogieVariable target = RequiresAllocation(paramVariable) || (paramVariable.Type is IManagedPointerType) ? 
+                    //    BoogieVariable.AddressVar(paramVariable) : BoogieVariable.FromDotNetVariable(paramVariable);
+
+                    BoogieVariable target = BoogieVariable.AddressVar(paramVariable);
+                    stmts.Add(BoogieStatement.VariableAssignment(target, boogieParamVariable));
                     continue;
                 }
 
