@@ -2137,8 +2137,10 @@ namespace TinyBCT
             {
                 if (!Settings.NewAddrModelling)
                     singleton = new BoogieGeneratorALaBCT();
-                else
+                else if (!Settings.FastAddrModelling)
                     singleton = new BoogieGeneratorAddr();
+                else
+                    singleton = new BoogieGeneratorMixed();
             }
 
             return singleton;

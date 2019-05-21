@@ -22,6 +22,7 @@ namespace TinyBCT
             DebugLargeDLL = false;
             SilentExceptionsForMethods = false;
             NewAddrModelling = false;
+            FastAddrModelling = false;
             DebugLines = false;
             Verbose = false;
         }
@@ -48,6 +49,7 @@ namespace TinyBCT
             sb.AppendLine("DebugLargeDLL " + DebugLargeDLL);
             sb.AppendLine("SilentExceptionsForMethods " + SilentExceptionsForMethods);
             sb.AppendLine("NewAddrModelling " + NewAddrModelling);
+            sb.AppendLine("FastAddrModelling " + FastAddrModelling);
             sb.AppendLine("DebugLines " + DebugLines);
             sb.AppendLine("Verbose " + Verbose);
             return sb.ToString();
@@ -86,6 +88,7 @@ namespace TinyBCT
         public bool DebugLargeDLL;
         public bool SilentExceptionsForMethods;
         public bool NewAddrModelling;
+        public bool FastAddrModelling;
         public bool DebugLines;
         public bool Verbose;
     }
@@ -106,6 +109,7 @@ namespace TinyBCT
             DebugLargeDLL = op.DebugLargeDLL;
             SilentExceptionsForMethods = op.SilentExceptionsForMethods;
             NewAddrModelling = op.NewAddrModelling;
+            FastAddrModelling = op.FastAddrModelling;
             DebugLines = op.DebugLines;
             Verbose = op.Verbose;
         }
@@ -122,6 +126,7 @@ namespace TinyBCT
         public static bool DebugLargeDLL;
         public static bool SilentExceptionsForMethods;
         public static bool NewAddrModelling;
+        public static bool FastAddrModelling;
         public static bool DebugLines;
         public static bool Verbose;
 
@@ -183,6 +188,10 @@ namespace TinyBCT
                 .Callback(b => options.NewAddrModelling = b)
                 .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
 
+            p.Setup<bool>('f', "FastAddrModelling")
+                .Callback(b => options.FastAddrModelling = b)
+                .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
+                
             p.Setup<bool>("DebugLines")
                 .Callback(b => options.DebugLines = b)
                 .WithDescription("This settings forces the line numbers to be printed even when no input file exists (TinyBCT can be called without a file).");

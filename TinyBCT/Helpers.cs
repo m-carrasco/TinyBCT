@@ -80,7 +80,13 @@ namespace TinyBCT
             public static BoogieTypeTranslator GetBoogieTypeTranslator()
             {
                 if (Settings.NewAddrModelling)
-                    return (new BoogieType.BoogieTypeTranslatorAddr());
+                {
+                    if (!Settings.FastAddrModelling)
+                        return (new BoogieType.BoogieTypeTranslatorAddr());
+                    else
+                        return (new BoogieType.BoogieTypeTranslatorMixed());
+                }
+                    
 
                 return (new BoogieType.BoogieTypeTranslatorALaBCT());
             }
