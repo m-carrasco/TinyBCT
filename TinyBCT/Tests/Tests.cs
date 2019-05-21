@@ -168,6 +168,8 @@ public class TestsBase
         TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
 
         TinyBCT.ImmutableArguments.MethodToMapping = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();
+
+        TinyBCT.ReferenceFinder.ResetFieldReferences();
     }
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "RegressionsAv");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TempDirForTests");
