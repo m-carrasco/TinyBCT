@@ -1558,7 +1558,7 @@ namespace TinyBCT
         private bool RequiresAllocation(IReferenceable referenceable)
         {
             // we are assuming that a IManagedPointerType can not be a pointer of a pointer
-            Contract.Assume(referenceable is IManagedPointerType && !ReferenceFinder.IsReferenced(referenceable));
+            Contract.Assume( !(referenceable is IManagedPointerType) || !ReferenceFinder.IsReferenced(referenceable));
 
             return ReferenceFinder.IsReferenced(referenceable);
         }
@@ -1566,14 +1566,14 @@ namespace TinyBCT
         private bool RequiresAllocation(IFieldReference field)
         {
             // we are assuming that a IManagedPointerType can not be a pointer of a pointer
-            Contract.Assume(field.Type is IManagedPointerType && !ReferenceFinder.IsReferenced(field));
+            Contract.Assume(!(field.Type is IManagedPointerType) || !ReferenceFinder.IsReferenced(field));
 
             return ReferenceFinder.IsReferenced(field);
         }
 
         public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
         {
-            if (RequiresAllocation(instanceFieldAccess))
+            if (RequiresAllocation(instanceFieldAccess) || instanceFieldAccess.Type is IManagedPointerType)
                 return BoogieAddr.AddressOf(instanceFieldAccess);
             else
                 return BoogieBCT.AddressOf(instanceFieldAccess);
@@ -1581,7 +1581,7 @@ namespace TinyBCT
 
         public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
         {
-            if (RequiresAllocation(staticFieldAccess))
+            if (RequiresAllocation(staticFieldAccess) || staticFieldAccess.Type is IManagedPointerType)
                 return BoogieAddr.AddressOf(staticFieldAccess);
             else
                 return BoogieBCT.AddressOf(staticFieldAccess);
@@ -1589,7 +1589,7 @@ namespace TinyBCT
 
         public override Addressable AddressOf(IVariable var)
         {
-            if (RequiresAllocation(var))
+            if (RequiresAllocation(var) || var.Type is IManagedPointerType)
                 return BoogieAddr.AddressOf(var);
             else
                 return BoogieBCT.AddressOf(var);
@@ -1659,9 +1659,9 @@ namespace TinyBCT
             var stmts = new StatementList();
             foreach (var v in variables)
             {
-                if (RequiresAllocation(v))
+                if (RequiresAllocation(v) || v.Type is IManagedPointerType)
                     stmts.Add(BoogieStatement.VariableDeclaration(BoogieVariable.AddressVar(v)));
-                else
+                else if (!v.IsParameter)
                     stmts.Add(BoogieStatement.VariableDeclaration(v));
             }
 
@@ -1762,7 +1762,7 @@ namespace TinyBCT
 
         public override StatementList VariableAssignment(IVariable variableA, IValue value)
         {
-            bool lhsAlloc = RequiresAllocation(variableA);
+            bool lhsAlloc = RequiresAllocation(variableA) || variableA.Type is IManagedPointerType;
 
             Expression expression = GetExpressionFromIValue(value);
 
@@ -1777,7 +1777,7 @@ namespace TinyBCT
 
         private Expression GetExpressionFromIValue(IValue value)
         {
-            if (RequiresAllocation(value)) // if true, value is in a subset of IReferenceable stuff
+            if (RequiresAllocation(value) || value is Dereference) // if true, value is in a subset of IReferenceable stuff
             {
                 // something requires an allocation because it has been reference (it is referenceable)
                 IReferenceable referenceable = value as IReferenceable;
