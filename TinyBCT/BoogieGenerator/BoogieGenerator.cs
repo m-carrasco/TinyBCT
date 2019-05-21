@@ -1550,7 +1550,7 @@ namespace TinyBCT
         private bool RequiresAllocation(IValue value)
         {
             if (value is IReferenceable referenceable)
-                RequiresAllocation(referenceable);
+                return RequiresAllocation(referenceable);
 
             return false;
         }
@@ -2190,7 +2190,7 @@ namespace TinyBCT
             {
                 throw new NotImplementedException();
             } else if (value is Dereference dereference)
-                return AddressOf(dereference);
+                return AddressOf(dereference.Reference);
 
             // I should have covered all possible cases
             throw new NotImplementedException();
