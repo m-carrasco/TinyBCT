@@ -7,6 +7,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TinyBCT.Memory;
 using TinyBCT.Translators;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
@@ -546,7 +547,7 @@ namespace TinyBCT
     }
     public class BoogieVariable : Expression
     {
-        protected BoogieVariable(Helpers.BoogieType type, string name) : base(type, name)
+        public BoogieVariable(Helpers.BoogieType type, string name) : base(type, name)
         {
             Contract.Requires(IsValidVariableName(name));
         }
@@ -1235,56 +1236,8 @@ namespace TinyBCT
         }
     }
 
-    // TODO: improve inheritance
-    // BoogieGenerator class should not have memory specific methods
     public class BoogieGeneratorAddr : BoogieGenerator
     {
-        public override Expression NullObject()
-        {
-            return BoogieLiteral.NullObject;
-        }
-
-        // hides implementation in super class
-        public override StatementList AllocAddr(IVariable var)
-        {
-            var resultBoogieVar = BoogieVariable.AddressVar(var);
-            return this.ProcedureCall(BoogieMethod.AllocAddr, new List<Expression> { }, resultBoogieVar);
-        }
-        public override StatementList AllocObject(BoogieVariable boogieVar)
-        {
-            return this.ProcedureCall(BoogieMethod.AllocObject, new List<Expression> { }, boogieVar);
-        }
-        public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
-        {
-            var freshVariable = instTranslator.GetFreshVariable(Helpers.GetBoogieType(var));
-            var stmts = new StatementList();
-            stmts.Add(this.AllocObject(freshVariable));
-            stmts.Add(this.VariableAssignment(var, freshVariable));
-            return stmts;
-        }
-
-        // hides implementation in super class
-        //public new string VariableAssignment(string variableA, string expr)
-        //{
-        //    return string.Format("{0} := {1};", variableA, expr);
-        //}
-
-        public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
-        {
-            var stmts = new StatementList();
-            foreach (var v in variables)
-            {
-                stmts.Add(BoogieStatement.VariableDeclaration(BoogieVariable.AddressVar(v)));
-            }
-
-            foreach (var kv in temporalVariables)
-            {
-                stmts.Add(BoogieStatement.VariableDeclaration(kv.Value));
-            }
-
-            return stmts;
-        }
-
         public override String GetFieldDefinition(IFieldReference fieldReference, String fieldName)
         {
             if (fieldReference.IsStatic)
@@ -1317,10 +1270,7 @@ namespace TinyBCT
 
         public override Helpers.BoogieType GetBoogieTypeForProcedureParameter(IParameterTypeInformation parameter)
         {
-            //if (parameter.IsByReference)
-            //    return Helpers.BoogieType.Addr;
-            //else
-                return Helpers.GetBoogieType(parameter);
+            return Helpers.GetBoogieType(parameter);
         }
 
         public override StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null)
@@ -1329,217 +1279,6 @@ namespace TinyBCT
             return ProcedureCall(BoogieMethod.From(procedure), argumentList.Select(v => v.Item1).ToList(), resultVariable);
         }
 
-        public override Expression ReadAddr(Addressable addr)
-        {
-            if (addr is AddressExpression addrExpr)
-            {
-                var readExpr = ReadTypedMemory.From(addrExpr);
-                return readExpr;
-            } else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public override StatementList WriteAddr(Addressable addr, Expression expr)
-        {
-            if (addr is AddressExpression)
-            {
-                var addrExpr = addr as AddressExpression;
-                return TypedMemoryMapUpdate.ForKeyValue(addrExpr, expr);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public override StatementList VariableAssignment(IVariable variableA, IValue value)
-        {
-            Constant cons = value as Constant;
-            BoogieLiteral boogieConstant = null;
-            if (cons != null)
-            {
-                boogieConstant = BoogieLiteral.FromDotNetConstant(cons);
-            }
-
-
-            var boogieType = Helpers.GetBoogieType(variableA);
-
-            if (value is Constant)
-            {
-                if (boogieConstant != null)
-                {
-                    return VariableAssignment(variableA, boogieConstant);
-                } else
-                {
-                    throw new NotImplementedException();
-                    // return WriteAddr(variableA, value.ToString());
-                }
-
-            } else if (value is IVariable && !(value.Type is IManagedPointerType))
-            { // right operand is not a pointer (therefore left operand is not a pointer)
-
-                return WriteAddr(AddressOf(variableA), ReadAddr(value as IVariable));
-            } else if (value is Dereference)
-            {
-                var dereference = value as Dereference;
-                var content = ReadAddr(dereference.Reference);
-                return WriteAddr(AddressOf(variableA), content);
-            } else if (value.Type is IManagedPointerType)
-            {
-
-                // if the right operand is a pointer also the left one is a pointer
-                // there are two cases for value:
-                // 1) value has the form &<something> (in analysis-net this is a Reference object)
-                // 2) value is just a variable (static, instance, local, array element) with pointer type
-                // for 1) we want to take the allocated address of something and assign it to the boogie variable of the left operand
-                // for 2) we just want to make a boogie assignment between the boogie variables of the left and right operands
-
-                // AddressOf will do the work to separate case 1) and 2)
-                var addr = AddressOf(value) as AddressExpression;
-                Contract.Assume(addr != null);
-                return BoogieStatement.VariableAssignment(BoogieVariable.AddressVar(variableA), addr.Expr);
-            }
-
-            Contract.Assert(false);
-            // This shouldn't be reachable.
-            throw new NotImplementedException();
-        }
-
-        public override StatementList AllocLocalVariables(IList<IVariable> variables)
-        {
-            StatementList stmts = new StatementList();
-
-            // we allocate an address for all local variables
-            // except they are a pointer, we are assuming that you can't take the address of a pointer
-            foreach (var v in variables)
-                if (!(v.Type is IManagedPointerType))
-                    stmts.Add(AllocAddr(v));
-
-            // load values into stack space
-            foreach (var paramVariable in variables.Where(v => v.IsParameter))
-            {
-                // paramValue are variables in the three address code
-                // however in boogie they are treated as values
-                // those values are loaded into the stack memory space
-
-                /*
-                 void foo(int x){
-                 }
-
-                 procedure foo(x : int){
-                    var _x : Addr; // stack space (done in previous loop)
-                    x_ := AllocAddr();
-
-                    data(_x) := x; // we are doing this conceptually
-                 }
-                */
-                var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
-
-                if (paramVariable.Type is IManagedPointerType)
-                {
-                    stmts.Add(BoogieStatement.VariableAssignment(BoogieVariable.AddressVar(paramVariable), boogieParamVariable));
-                    continue;
-                }
-
-                Addressable paramAddress = AddressOf(paramVariable);
-
-                // boogie generator knows that must fetch paramVariable's address (_x and not x)
-                stmts.Add(WriteAddr(paramAddress, boogieParamVariable));
-
-                if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Object))
-                {
-                    stmts.Add(BoogieStatement.AllocObjectAxiom(paramVariable));
-                } else if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Addr))
-                {
-                    stmts.Add(BoogieStatement.AllocAddrAxiom(paramVariable));
-                }
-            }
-
-            return stmts;
-        }
-
-        public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
-        {
-            var expr = Expression.LoadInstanceFieldAddr(instanceFieldAccess.Field, ReadAddr(instanceFieldAccess.Instance));
-            return new AddressExpression(instanceFieldAccess.Field.Type, expr);
-        }
-
-        public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
-        {
-            var address = new AddressExpression(staticFieldAccess.Field.Type, BoogieVariable.From(new StaticField(staticFieldAccess)));
-            return address;
-        }
-
-        public override Addressable AddressOf(IVariable var)
-        {
-            return new AddressExpression(var.Type, BoogieVariable.AddressVar(var));
-        }
-
-        public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
-        {
-            var fieldAddr = AddressOf(instanceFieldAccess);
-            var readValue = ReadAddr(fieldAddr);
-
-            return readValue;
-        }
-
-        public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
-        {
-            var readValue = ReadInstanceField(instanceFieldAccess);
-
-            // dependiendo del type (del result?) indexo en el $memoryInt
-            if (Helpers.IsGenericField(instanceFieldAccess.Field))
-            {
-                var boogieType = Helpers.GetBoogieType(result);
-                if (!boogieType.Equals(Helpers.BoogieType.Object))
-                {
-                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readValue));
-                } else
-                {
-                    return VariableAssignment(result, readValue);
-                }
-            }
-            else
-            {
-                return VariableAssignment(result, readValue);
-            }
-        }
-        
-        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr, InstructionTranslator instTranslator)
-        {
-            StatementList stmts = new StatementList();
-
-            var boogieType = expr.Type;
-            if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
-            {
-                stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
-                stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
-            }
-            else
-                stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), expr));
-
-            return stmts;
-        }
-
-        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
-        {
-            StatementList stmts = new StatementList();
-
-            BoogieVariable boogieResVar = null;
-            if (resultVariable != null)
-            {
-                boogieResVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(resultVariable));
-            }
-            stmts.Add(CallReadArrayElement(boogieResVar, array, index));
-            if (resultVariable != null)
-            {
-                stmts.Add(WriteAddr(AddressOf(resultVariable), boogieResVar));
-            }
-            return stmts;
-
-        }
     }
 
     public class BoogieGeneratorMixed : BoogieGenerator
@@ -1571,112 +1310,6 @@ namespace TinyBCT
             return ReferenceFinder.IsReferenced(field);
         }
 
-        public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
-        {
-            if (RequiresAllocation(instanceFieldAccess) || instanceFieldAccess.Type is IManagedPointerType)
-                return BoogieAddr.AddressOf(instanceFieldAccess);
-            else
-                return BoogieBCT.AddressOf(instanceFieldAccess);
-        }
-
-        public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
-        {
-            if (RequiresAllocation(staticFieldAccess) || staticFieldAccess.Type is IManagedPointerType)
-                return BoogieAddr.AddressOf(staticFieldAccess);
-            else
-                return BoogieBCT.AddressOf(staticFieldAccess);
-        }
-
-        public override Addressable AddressOf(IVariable var)
-        {
-            if (RequiresAllocation(var) || var.Type is IManagedPointerType)
-                return BoogieAddr.AddressOf(var);
-            else
-                return BoogieBCT.AddressOf(var);
-        }
-
-        public override StatementList AllocAddr(IVariable var)
-        {
-            if (RequiresAllocation(var))
-                return BoogieAddr.AllocAddr(var);
-            else
-                return BoogieBCT.AllocAddr(var);
-        }
-
-        public override StatementList AllocLocalVariables(IList<IVariable> variables)
-        {
-            StatementList stmts = new StatementList();
-
-            // only allocate an address for variables that are referenced 
-            foreach (var v in variables)
-                if (RequiresAllocation(v))
-                    stmts.Add(AllocAddr(v));
-
-            foreach (var paramVariable in variables.Where(v => v.IsParameter && (RequiresAllocation(v) || (v.Type is IManagedPointerType))))
-            {
-                var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
-
-                if (!RequiresAllocation(paramVariable))
-                {
-                    //BoogieVariable target = RequiresAllocation(paramVariable) || (paramVariable.Type is IManagedPointerType) ? 
-                    //    BoogieVariable.AddressVar(paramVariable) : BoogieVariable.FromDotNetVariable(paramVariable);
-
-                    BoogieVariable target = BoogieVariable.AddressVar(paramVariable);
-                    stmts.Add(BoogieStatement.VariableAssignment(target, boogieParamVariable));
-                    continue;
-                }
-
-                Addressable paramAddress = AddressOf(paramVariable);
-
-                // boogie generator knows that must fetch paramVariable's address (_x and not x)
-                stmts.Add(WriteAddr(paramAddress, boogieParamVariable));
-
-                if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Object))
-                {
-                    stmts.Add(BoogieStatement.AllocObjectAxiom(paramVariable));
-                }
-                else if (Helpers.GetBoogieType(paramVariable).Equals(Helpers.BoogieType.Addr))
-                {
-                    stmts.Add(BoogieStatement.AllocAddrAxiom(paramVariable));
-                }
-            }
-
-            return stmts;
-        }
-
-        public override StatementList AllocObject(BoogieVariable var)
-        {
-            // actually should be the same in both models
-            return BoogieAddr.AllocObject(var);
-        }
-
-        public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
-        {
-            if (RequiresAllocation(var))
-                return BoogieAddr.AllocObject(var, instTranslator);
-            else
-                return BoogieBCT.AllocObject(var, instTranslator);
-        }
-
-        public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
-        {
-            var stmts = new StatementList();
-            foreach (var v in variables)
-            {
-                if (RequiresAllocation(v) || v.Type is IManagedPointerType)
-                    stmts.Add(BoogieStatement.VariableDeclaration(BoogieVariable.AddressVar(v)));
-                else if (!v.IsParameter)
-                    stmts.Add(BoogieStatement.VariableDeclaration(v));
-            }
-
-            foreach (var kv in temporalVariables)
-            {
-                stmts.Add(BoogieStatement.VariableDeclaration(kv.Value));
-            }
-
-            return stmts;
-        }
-
         public override Helpers.BoogieType GetBoogieTypeForProcedureParameter(IParameterTypeInformation parameter)
         {
             return BoogieAddr.GetBoogieTypeForProcedureParameter(parameter);
@@ -1697,7 +1330,7 @@ namespace TinyBCT
             if (procedureResult == null)
                 return StatementList.Empty;
 
-            return WriteAddr(AddressOf(finalVariable), procedureResult);
+            return Mem().WriteAddr(Mem().AddressOf(finalVariable), procedureResult);
         }
 
         public override BoogieVariable GetProcedureResultVariable(MethodCallInstruction methodCallInstruction, InstructionTranslator instructionTranslator)
@@ -1709,180 +1342,10 @@ namespace TinyBCT
         {
             return BoogieAddr.ProcedureCall(procedure, methodCallInstruction, instTranslator, resultVariable);
         }
-
-        public override Expression NullObject()
-        {
-            return BoogieAddr.NullObject();
-        }
-
-        public override Expression ReadAddr(Addressable addr)
-        {
-            if (addr is AddressExpression)
-            {
-                return BoogieAddr.ReadAddr(addr);
-            }
-            else if (addr is InstanceField)
-            {
-                return BoogieBCT.ReadAddr(addr);
-            }
-            else if (addr is StaticField)
-            {
-                return BoogieBCT.ReadAddr(addr);
-            }
-            else if (addr is DotNetVariable)
-            {
-                return BoogieBCT.ReadAddr(addr);
-            }
-
-            throw new NotImplementedException();
-        }
-
-        public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
-        {
-            if (RequiresAllocation(instanceFieldAccess))
-                return BoogieAddr.ReadInstanceField(instanceFieldAccess);
-            else
-                return BoogieBCT.ReadInstanceField(instanceFieldAccess);
-        }
-
-        public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
-        {
-            // with split fields false, i guess we should cast to union always
-            Contract.Assert(Settings.SplitFields);
-
-            Expression readExpr = ReadInstanceField(instanceFieldAccess);
-
-            if (Helpers.IsGenericField(instanceFieldAccess.Field))
-            {
-                if (!Helpers.IsBoogieRefType(result))
-                {
-                    var boogieType = Helpers.GetBoogieType(result);
-                    return VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readExpr));
-                }
-            }
-
-            return VariableAssignment(result, readExpr);  
-        }
-
-        public override StatementList VariableAssignment(IVariable variableA, IValue value)
-        {
-            bool lhsAlloc = RequiresAllocation(variableA) || variableA.Type is IManagedPointerType;
-
-            Expression expression = GetExpressionFromIValue(value);
-
-            if (lhsAlloc)
-                return BoogieAddr.VariableAssignment(variableA, expression);
-
-            if (!lhsAlloc)
-                return BoogieBCT.VariableAssignment(variableA, expression);
-
-            return null;
-        }
-
-        private Expression GetExpressionFromIValue(IValue value)
-        {
-            if (RequiresAllocation(value) || value is Dereference) // if true, value is in a subset of IReferenceable stuff
-            {
-                // something requires an allocation because it has been reference (it is referenceable)
-                IReferenceable referenceable = value as IReferenceable;
-                return BoogieAddr.ReadAddr(BoogieAddr.AddressOf(referenceable));
-            }
-
-            if (value.Type is IManagedPointerType)
-            {
-                AddressExpression addr = BoogieAddr.AddressOf(value) as AddressExpression;
-                return addr.Expr;
-            }
-
-            if (value is Constant constant)
-                return BoogieLiteral.FromDotNetConstant(constant);
-
-            // we use old memory model here because they were not referenced
-            if (value is IReferenceable || value is Reference)
-            {
-                Addressable addressable = BoogieBCT.AddressOf(value);
-                return BoogieBCT.ReadAddr(addressable);
-            }
-
-            throw new NotImplementedException();
-        }
-
-        public override StatementList WriteAddr(Addressable addr, Expression value)
-        {
-            if (addr is AddressExpression addrExpr)
-            {
-                return BoogieAddr.WriteAddr(addr, value);
-            } else if (addr is InstanceField instanceField)
-            {
-                return BoogieBCT.WriteAddr(addr, value);
-            } else if (addr is StaticField staticField)
-            {
-                return BoogieBCT.WriteAddr(addr, value);
-            } else if (addr is DotNetVariable dotNetVariable)
-            {
-                return BoogieBCT.WriteAddr(addr, value);
-            }
-
-            throw new NotImplementedException();
-        }
-
-        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value, InstructionTranslator instTranslator)
-        {
-            if (RequiresAllocation(instanceFieldAccess))
-                return BoogieAddr.WriteInstanceField(instanceFieldAccess, value, instTranslator);
-            else
-                return BoogieBCT.WriteInstanceField(instanceFieldAccess, value, instTranslator);
-        }
-
-        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     public class BoogieGeneratorALaBCT : BoogieGenerator
     {
-        public override Expression NullObject()
-        {
-            return BoogieLiteral.NullRef;
-        }
-
-        public override StatementList VariableAssignment(IVariable variableA, IValue value)
-        {
-            Constant cons = value as Constant;
-            if (cons != null)
-            {   
-                return VariableAssignment(variableA, BoogieLiteral.FromDotNetConstant(cons));
-            } else if (value is Dereference)
-            {
-                var dereference = value as Dereference;
-                return VariableAssignment(variableA, dereference.Reference);
-            }
-
-            return VariableAssignment(variableA, ReadAddr(AddressOf(value)));
-        }
-
-        public override StatementList AllocLocalVariables(IList<IVariable> variables)
-        {
-            return BoogieStatement.Nop;
-        }
-        public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
-        {
-            StatementList stmts = new StatementList();
-            
-            foreach (var v in variables.Where(v => !v.IsParameter))
-            {
-                stmts.Add(BoogieStatement.VariableDeclaration(v));
-            }
-
-            foreach (var kv in temporalVariables)
-            {
-                stmts.Add(BoogieStatement.VariableDeclaration(kv.Value));
-            }
-
-            return stmts;
-        }
-
         public override String GetFieldDefinition(IFieldReference fieldReference, String fieldName)
         {
             if (fieldReference.IsStatic)
@@ -1953,185 +1416,9 @@ namespace TinyBCT
             return BoogieStatement.ProcedureCall(boogieProcedure, argumentList.Select(v => v.Item1).ToList(), resultArguments, resultVariable);
         }
 
-        public override StatementList AllocAddr(IVariable var)
-        {
-            return BoogieStatement.Nop;
-        }
-        public override StatementList AllocObject(BoogieVariable boogieVar)
-        {
-            return this.ProcedureCall(BoogieMethod.Alloc, new List<Expression> { }, boogieVar);
-        }
-        public override StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
-        {
-            return this.AllocObject(BoogieVariable.FromDotNetVariable(var));
-        }
-
-        public override StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression expr, InstructionTranslator instTranslator)
-        {
-            StatementList stmts = new StatementList();
-
-            String fieldName = FieldTranslator.GetFieldName(instanceFieldAccess.Field);
-
-            //var addr = AddressOf(instanceFieldAccess);
-            //var writeAddr = WriteAddr(addr, value);
-
-            if (!Settings.SplitFields)
-            {
-                if (!Helpers.IsBoogieRefType(expr.Type)) // int, bool, real
-                {
-                    stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
-                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
-                    //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
-                }
-                else
-                {
-                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), expr));
-                    //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, value.Name));
-                }
-            }
-            else
-            {
-                var boogieType = expr.Type;
-               // var heapAccess = String.Format("{0}[{1}]", fieldName, instanceFieldAccess.Instance);
-                //F$ConsoleApplication3.Foo.p[f_Ref] := $ArrayContents[args][0];
-
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Ref))
-                {
-                    stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
-                    //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
-                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
-                }
-                else
-                    stmts.Add(WriteAddr(AddressOf(instanceFieldAccess), expr));
-            }
-
-            return stmts;
-        }
-
-        public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
-        {
-            if (!Settings.SplitFields)
-                return ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
-            else
-                return this.ReadAddr(AddressOf(instanceFieldAccess));
-        }
-
-        public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
-        {
-            StatementList stmts = new StatementList();
-            var boogieType = Helpers.GetBoogieType(result);
-
-            var readFieldExpr = ReadInstanceField(instanceFieldAccess);
-
-            if (!Settings.SplitFields)
-            {
-                if (!Helpers.IsBoogieRefType(Helpers.GetBoogieType(result))) // int, bool, real
-                {
-                    var expr = Expression.Union2PrimitiveType(boogieType, readFieldExpr);
-                    stmts.Add(VariableAssignment(result, expr));
-                }
-                else
-                {
-                    stmts.Add(VariableAssignment(result, readFieldExpr));
-                }
-            }
-            else
-            {
-                //p_int:= F$ConsoleApplication3.Holds`1.x[$tmp2];
-                if (Helpers.IsGenericField(instanceFieldAccess.Field) &&
-                     !boogieType.Equals(Helpers.BoogieType.Ref))
-                {
-                    stmts.Add(VariableAssignment(result, Expression.Union2PrimitiveType(boogieType, readFieldExpr)));
-                }
-                else
-                    stmts.Add(VariableAssignment(result, readFieldExpr));
-            }
-
-            return stmts;
-        }
-
-        public override Expression ReadAddr(Addressable addr)
-        {
-            if (addr is InstanceField instanceField)
-            {
-                var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
-                var instanceName = instanceField.Instance.Name;
-                if (Settings.SplitFields)
-                {
-                    return ReadFieldExpression.From(instanceField);
-                } else
-                {
-                    return ReadHeapExpression.From(instanceField);
-                }
-            } else if (addr is StaticField staticField)
-            {
-                return ReadFieldExpression.From(staticField);
-            } else if (addr is DotNetVariable v)
-            {
-                return BoogieVariable.FromDotNetVariable(v.Var);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public override Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
-        {
-            return new InstanceField(instanceFieldAccess);
-        }
-
-        public override Addressable AddressOf(StaticFieldAccess staticFieldAccess)
-        {
-            return new StaticField(staticFieldAccess);
-        }
-
-        public override Addressable AddressOf(IVariable var)
-        {
-            return new DotNetVariable(var);
-        }
-
-        public override StatementList WriteAddr(Addressable addr, Expression expr)
-        {
-            if (addr is InstanceField instanceField)
-            {
-                var instanceName = instanceField.Instance;
-                var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
-                if (Settings.SplitFields)
-                {
-                    return SplitFieldUpdate.ForKeyValue(instanceField, expr);
-                }
-                else
-                {
-                    return HeapUpdate.ForKeyValue(instanceField, expr);
-                }
-
-            }
-            else if (addr is StaticField staticField)
-            {
-                var boogieVar = BoogieVariable.From(staticField);
-                return VariableAssignment(boogieVar, expr);
-            }
-            else if (addr is DotNetVariable v)
-            {
-                return BoogieStatement.VariableAssignment(BoogieVariable.FromDotNetVariable(v.Var), expr);
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
-        {
-            StatementList stmts = new StatementList();
-            return CallReadArrayElement(BoogieVariable.FromDotNetVariable(resultVariable), array, index);
-        }
     }
 
-
-
-    public abstract class BoogieGenerator
+    public abstract class BoogieGenerator : IMemory
     {
         public static BoogieGenerator singleton;
 
@@ -2150,99 +1437,14 @@ namespace TinyBCT
             return singleton;
         }
 
-        public Expression ReadAddr(IVariable addr)
-        {
-            return ReadAddr(AddressOf(addr));
-        }
-
-        public abstract Expression ReadAddr(Addressable addr);
-        
-        public abstract StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables);
-
-        public abstract StatementList AllocLocalVariables(IList<IVariable> variables);
+        public static IMemory Mem() { return BaseMemory.Instance(); }
 
         public abstract String GetFieldDefinition(IFieldReference fieldReference, String fieldName);
 
-        public Addressable AddressOf(IValue value)
-        {
-            if (value is IReferenceable)
-                return AddressOf(value as IReferenceable);
-            else if (value is Reference)
-                return AddressOf(value as Reference);
-            else
-                throw new NotImplementedException();
-
-            // we are covering AddressOf for the following types
-            // Reference, Dereference, IVariable, InstanceFieldAccess, StaticFieldAccess and ArrayElementAccess
-        }
-
-        public Addressable AddressOf(IReferenceable value)
-        {
-            if (value is InstanceFieldAccess)
-            {
-                return AddressOf(value as InstanceFieldAccess);
-            }
-            else if (value is StaticFieldAccess)
-            {
-                return AddressOf(value as StaticFieldAccess);
-            }
-            else if (value is IVariable)
-            {
-                return AddressOf(value as IVariable);
-            }
-            else if (value is ArrayElementAccess)
-            {
-                throw new NotImplementedException();
-            } else if (value is Dereference dereference)
-                return AddressOf(dereference.Reference);
-
-            // I should have covered all possible cases
-            throw new NotImplementedException();
-        }
-
-        public Addressable AddressOf(Reference reference) { return AddressOf(reference.Value); }
-
-        public abstract Addressable AddressOf(InstanceFieldAccess instanceFieldAccess);
-        public abstract Addressable AddressOf(StaticFieldAccess staticFieldAccess);
-        public abstract Addressable AddressOf(IVariable var);
-        
-        public abstract StatementList WriteAddr(Addressable addr, Expression value);
-
-        public abstract StatementList AllocAddr(IVariable var);
-        public abstract StatementList AllocObject(BoogieVariable var);
-        public abstract StatementList AllocObject(IVariable var, InstructionTranslator instTranslator);
-
-        public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
-        {
-            return WriteAddr(AddressOf(staticFieldAccess), expr);
-        }
-        public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
-        {
-            return WriteStaticField(staticFieldAccess, ReadAddr(value));
-        }
-
-        public StatementList ReadStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
-        {
-            StatementList stmts = new StatementList();
-
-            var address = AddressOf(staticFieldAccess);
-
-            stmts.Add(VariableAssignment(value, ReadAddr(address)));
-            //sb.Append(VariableAssignment(value, fieldName));
-
-            return stmts;
-        }
-        public StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value, InstructionTranslator instTranslator)
-        {
-            return WriteInstanceField(instanceFieldAccess, ReadAddr(value), instTranslator);
-        }
-        public abstract StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value, InstructionTranslator instTranslator);
-
-        public abstract StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result);
-        public abstract Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess);
-
         protected List<(Expression, IVariable)> ComputeArguments(MethodCallInstruction instruction, InstructionTranslator instTranslator)
         {
+            BoogieGenerator bg = BoogieGenerator.singleton;
+
             var copyArgs = new List<(Expression, IVariable)>();
 
             #region Unespecialize the method
@@ -2262,12 +1464,12 @@ namespace TinyBCT
                     // TODO(rcastano): try to reuse variables.
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
                     // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, receiver, argType)
-                    instTranslator.AddBoogie(VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(ReadAddr(receiver), instTranslator)));
+                    instTranslator.AddBoogie(bg.VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(Mem().ReadAddr(receiver), instTranslator)));
                     copyArgs.Add((tempBoogieVar, null));
                 }
                 else
                 {
-                    copyArgs.Add((ReadAddr(receiver), receiver));
+                    copyArgs.Add((Mem().ReadAddr(receiver), receiver));
                 }
             }
             #endregion
@@ -2283,7 +1485,7 @@ namespace TinyBCT
                     unspecializedMethod.Parameters.Count() == instruction.Arguments.Count() ?
                     i : i + 1; // +1 depends if there is a this parameter or not
 
-                var paramType = GetBoogieTypeForProcedureParameter(unspecializedMethod.Parameters.ElementAt(i));
+                var paramType = bg.GetBoogieTypeForProcedureParameter(unspecializedMethod.Parameters.ElementAt(i));
                 var argType = Helpers.GetBoogieType(instruction.Arguments.ElementAt(arg_i));
 
                 if (!paramType.Equals(argType))
@@ -2293,7 +1495,7 @@ namespace TinyBCT
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
 
                     // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
-                    instTranslator.AddBoogie(VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(ReadAddr(instruction.Arguments.ElementAt(arg_i)), instTranslator)));
+                    instTranslator.AddBoogie(bg.VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(Mem().ReadAddr(instruction.Arguments.ElementAt(arg_i)), instTranslator)));
                     copyArgs.Add((tempBoogieVar, null));
                     #endregion
                 }
@@ -2308,7 +1510,7 @@ namespace TinyBCT
                     }
                     else
                         #region The signature does not expects a pointer, so if there is one we dereference it. 
-                        copyArgs.Add((ReadAddr(iVariable), iVariable));
+                        copyArgs.Add((Mem().ReadAddr(iVariable), iVariable));
                         #endregion
                 }
             }
@@ -2353,10 +1555,9 @@ namespace TinyBCT
 
         public StatementList VariableAssignment(IVariable variableA, Expression expr)
         {
-            return WriteAddr(AddressOf(variableA), expr);
-        }
+            return Mem().VariableAssignment(variableA, expr);
 
-        public abstract StatementList VariableAssignment(IVariable variableA, IValue value);
+        }
 
         public StatementList VariableAssignment(BoogieVariable variableA, Expression expr)
         {
@@ -2370,43 +1571,41 @@ namespace TinyBCT
             {
                 ifConst = BoogieLiteral.FromDotNetConstant(cons);
             }
-            var op2Expr = op2 is Constant ? ifConst : ReadAddr(AddressOf(op2));
-            return Expression.BranchOperationExpression(ReadAddr(op1), op2Expr, branchOperation);
+            var op2Expr = op2 is Constant ? ifConst : Mem().ReadAddr(Mem().AddressOf(op2));
+            return Expression.BranchOperationExpression(Mem().ReadAddr(op1), op2Expr, branchOperation);
         }
 
         public Expression DynamicType(IVariable reference)
         {
-            return Expression.DynamicType(ReadAddr(reference));
+            return Expression.DynamicType(Mem().ReadAddr(reference));
         }
 
         public StatementList AssumeDynamicType(IVariable reference, ITypeReference type)
         {
             var typeExpr = Expression.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses);
-            var eqExpr = Expression.ExprEquals(Expression.DynamicType(ReadAddr(reference)), typeExpr);
+            var eqExpr = Expression.ExprEquals(Expression.DynamicType(Mem().ReadAddr(reference)), typeExpr);
             return BoogieStatement.Assume(eqExpr);
         }
 
         public StatementList AssumeTypeConstructor(IVariable arg, ITypeReference type)
         {
-            return BoogieStatement.AssumeTypeConstructor(ReadAddr(arg), type.ToString());
+            return BoogieStatement.AssumeTypeConstructor(Mem().ReadAddr(arg), type.ToString());
         }
 
         public StatementList Assert(IVariable cond)
         {
             Contract.Assume(Helpers.GetBoogieType(cond).Equals(Helpers.BoogieType.Bool));
-            return BoogieStatement.Assert(ReadAddr(cond));
+            return BoogieStatement.Assert(Mem().ReadAddr(cond));
         }
 
         public BoogieStatement Assume(IVariable cond)
         {
-            return BoogieStatement.Assume(ReadAddr(cond));
+            return BoogieStatement.Assume(Mem().ReadAddr(cond));
         }
-
-        public abstract Expression NullObject();
 
         public Expression Subtype(IVariable var, ITypeReference type)
         {
-            return Expression.Subtype(ReadAddr(var), type);
+            return Expression.Subtype(Mem().ReadAddr(var), type);
         }
         public Expression Subtype(BoogieVariable var, ITypeReference type)
         {
@@ -2418,25 +1617,6 @@ namespace TinyBCT
             Contract.Assume(length.Type.Equals(Helpers.BoogieType.Int));
             var eqLength = Expression.ExprEquals(Expression.ArrayLength(array), length);
             return BoogieStatement.Assume(eqLength);
-        }
-
-        public abstract StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator);
-
-        public StatementList CallReadArrayElement(BoogieVariable result, Expression array, Expression index)
-        {
-            var l = new List<Expression>();
-            l.Add(array);
-            l.Add(index);
-            return ProcedureCall(BoogieMethod.ReadArrayElement, l, result);
-        }
-
-        public StatementList CallWriteArrayElement(Expression array, Expression index, Expression value)
-        {
-            var l = new List<Expression>();
-            l.Add(array);
-            l.Add(index);
-            l.Add(value);
-            return ProcedureCall(BoogieMethod.WriteArrayElement, l);
         }
 
         public StatementList BoxFrom(IVariable op1, ConvertInstruction convertInstruction, InstructionTranslator instructionTranslator)
@@ -2453,14 +1633,139 @@ namespace TinyBCT
             {
                 var tempBoogieVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(result));
                 var resultArguments = new List<BoogieVariable> { tempBoogieVar};
-                return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, tempBoogieVar);
+                return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => Mem().ReadAddr(v)).ToList(), resultArguments, tempBoogieVar);
             }
             else
             {
                 var resultBoogieVar = BoogieVariable.FromDotNetVariable(convertInstruction.Result);
                 var resultArguments = new List<BoogieVariable> { resultBoogieVar };
-                return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => ReadAddr(v)).ToList(), resultArguments, resultBoogieVar);
+                return BoogieStatement.ProcedureCall(boxFromProcedure, args.Select(v => Mem().ReadAddr(v)).ToList(), resultArguments, resultBoogieVar);
             }
+        }
+
+        public Addressable AddressOf(IReferenceable value)
+        {
+            return Mem().AddressOf(value);
+        }
+
+        public Addressable AddressOf(IValue value)
+        {
+            return Mem().AddressOf(value);
+        }
+
+        public Addressable AddressOf(InstanceFieldAccess instanceFieldAccess)
+        {
+            return Mem().AddressOf(instanceFieldAccess);
+        }
+
+        public Addressable AddressOf(StaticFieldAccess staticFieldAccess)
+        {
+            return Mem().AddressOf(staticFieldAccess);
+        }
+
+        public Addressable AddressOf(IVariable var)
+        {
+            return Mem().AddressOf(var);
+        }
+
+        public StatementList AllocAddr(IVariable var)
+        {
+            return Mem().AllocAddr(var);
+        }
+
+        public StatementList AllocObject(BoogieVariable var)
+        {
+            return Mem().AllocObject(var);
+        }
+
+        public StatementList AllocObject(IVariable var, InstructionTranslator instTranslator)
+        {
+            return Mem().AllocObject(var, instTranslator);
+        }
+
+        public StatementList AllocLocalVariables(IList<IVariable> variables)
+        {
+            return Mem().AllocLocalVariables(variables);
+        }
+
+        public StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
+        {
+            return Mem().DeclareLocalVariables(variables, temporalVariables);
+        }
+
+        public StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        {
+            return Mem().CallReadArrayElement(resultVariable, array, index, instructionTranslator);
+        }
+
+        public StatementList CallReadArrayElement(BoogieVariable result, Expression array, Expression index)
+        {
+            return Mem().CallReadArrayElement(result, array, index);
+        }
+
+        public StatementList CallWriteArrayElement(Expression array, Expression index, Expression value)
+        {
+            return Mem().CallWriteArrayElement(array, index, value);
+        }
+
+        public Expression NullObject()
+        {
+            return Mem().NullObject();
+        }
+
+        public Expression ReadAddr(IVariable addr)
+        {
+            return Mem().ReadAddr(addr);
+        }
+
+        public Expression ReadAddr(Addressable addr)
+        {
+            return Mem().ReadAddr(addr);
+        }
+
+        public StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
+        {
+            return Mem().ReadInstanceField(instanceFieldAccess, result);
+        }
+
+        public Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
+        {
+            return Mem().ReadInstanceField(instanceFieldAccess);
+        }
+
+        public StatementList ReadStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
+        {
+            return Mem().ReadStaticField(staticFieldAccess, value);
+        }
+
+        public StatementList WriteAddr(Addressable addr, Expression value)
+        {
+            return Mem().WriteAddr(addr, value);
+        }
+
+        public StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, Expression value, InstructionTranslator instTranslator)
+        {
+            return Mem().WriteInstanceField(instanceFieldAccess, value, instTranslator);
+        }
+
+        public StatementList WriteInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable value, InstructionTranslator instTranslator)
+        {
+            return Mem().WriteInstanceField(instanceFieldAccess, value, instTranslator);
+        }
+
+        public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, Expression expr)
+        {
+            return Mem().WriteStaticField(staticFieldAccess, expr);
+        }
+
+        public StatementList WriteStaticField(StaticFieldAccess staticFieldAccess, IVariable value)
+        {
+            return Mem().WriteStaticField(staticFieldAccess, value);
+        }
+
+        public StatementList VariableAssignment(IVariable variableA, IValue value)
+        {
+            return Mem().VariableAssignment(variableA, value);
         }
     }
 }

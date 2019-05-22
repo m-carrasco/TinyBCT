@@ -23,9 +23,6 @@ namespace Test
             b = 3;
         }
 
-        //static void OutFunc(out int a, out int b) { a = b = 0; }
-        //public delegate void OutAction<T1, T2>(out T1 a, out T2 b);
-
         public void test(int j, bool i, Object o)
         {
             var a = i ? o : null;

@@ -218,7 +218,7 @@ namespace TinyBCT
                         return BoogieType.Object;
 
                     if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
-                        return BoogieType.Object;
+                        return BoogieType.Addr;
                         
                     return base.GetBoogieType(type);
                 }
