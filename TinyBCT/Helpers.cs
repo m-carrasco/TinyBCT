@@ -103,6 +103,12 @@ namespace TinyBCT
 
                 public virtual BoogieType GetBoogieType(ITypeReference type)
                 {
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
+                        return BoogieType.Object;
+
+                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
+                        return BoogieType.Object;
+
                     INamedTypeDefinition namedType = type as INamedTypeDefinition;
                     if (namedType != null && type.IsEnum)
                         return GetBoogieType(namedType.UnderlyingType);
@@ -164,12 +170,6 @@ namespace TinyBCT
 
                 public override BoogieType GetBoogieType(ITypeReference type)
                 {
-                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
-                        return BoogieType.Object;
-
-                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
-                        return BoogieType.Object;
-
                     if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                         return BoogieType.Addr;
 
@@ -210,13 +210,6 @@ namespace TinyBCT
 
                 public override BoogieType GetBoogieType(ITypeReference type)
                 {
-
-                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
-                        return BoogieType.Object;
-
-                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
-                        return BoogieType.Object;
-
                     if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                         return BoogieType.Addr;
                         
@@ -248,13 +241,6 @@ namespace TinyBCT
 
                 public override BoogieType GetBoogieType(ITypeReference type)
                 {
-                    if (type.TypeCode.Equals(PrimitiveTypeCode.String))
-                        return BoogieType.Ref;
-
-                    if (type.TypeCode.Equals(PrimitiveTypeCode.NotPrimitive))
-                        return BoogieType.Ref;
-                        
-
                     if (type.TypeCode.Equals(PrimitiveTypeCode.Reference))
                     {
                         // manuel: we type a reference accordingly to its target type
@@ -286,12 +272,12 @@ namespace TinyBCT
             public static readonly BoogieType Bool = new BoogieType(ConstValue.Bool);
             public static readonly BoogieType Real = new BoogieType(ConstValue.Real);
             public static readonly BoogieType Object = new BoogieType(ConstValue.Object);
-            public static readonly BoogieType Ref = new BoogieType(ConstValue.Ref);
+            public static readonly BoogieType Ref = Object;
             public static readonly BoogieType Addr = new BoogieType(ConstValue.Addr);
-            public static readonly BoogieType Union = new BoogieType(ConstValue.Union);
+            public static readonly BoogieType Union = Object;
             public static readonly BoogieType Void = new BoogieType(ConstValue.Void);
             private ConstValue Const { get; }
-            private enum ConstValue { Int, Bool, Real, Object, Ref, Addr, Union, Void };
+            private enum ConstValue { Int, Bool, Real, Object, Addr, Void };
             public string FirstUppercase()
             {
                 return Const.ToString();
