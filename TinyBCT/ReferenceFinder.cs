@@ -4,47 +4,30 @@ using Backend.Visitors;
 using Backend.ThreeAddressCode.Values;
 using System.Collections.Generic;
 using Microsoft.Cci;
+using Backend.Transformations;
+using Backend;
+using Backend.Analyses;
+using System.Diagnostics.Contracts;
 
 namespace TinyBCT
 {
-    public class ReferenceFinder : InstructionVisitor
+    public class ReferenceFinder
     {
         // this set has the result of the last analysis
-        static ISet<IReferenceable> ReferencedSet;
-        static ISet<IFieldReference> FieldReferencedSet =  new HashSet<IFieldReference>();
+        static ISet<IReferenceable> ReferencedSet = new HashSet<IReferenceable>();
+        static ISet<IFieldReference> FieldReferencedSet = new HashSet<IFieldReference>();
 
-        ISet<IReferenceable> referencedSet;
-        //ISet<IFieldReference> fieldReferencedSet;
-
-        public override void Visit(LoadInstruction instruction) {
-            if (instruction.Operand is Reference reference)
-            {
-                // Reference object is an expression of the form &<...>
-                // <...> is the pointedObj
-                IReferenceable pointedObj = reference.Value;
-
-
-                // redundancy just to have faster lookups
-                if (pointedObj is StaticFieldAccess staticFieldAccess)
-                    FieldReferencedSet.Add(staticFieldAccess.Field);
-                else if (pointedObj is InstanceFieldAccess instanceFieldAccess)
-                    FieldReferencedSet.Add(instanceFieldAccess.Field);
-                else
-                {
-                    referencedSet.Add(pointedObj);
-                }
-            }
+        public static void AddReference(IReferenceable referenceable)
+        {
+            Contract.Assert(!(referenceable is StaticFieldAccess) && !(referenceable is InstanceFieldAccess));
+            // this is just to be aware when this happens, we should support arrays!
+            Contract.Assert(!(referenceable is ArrayElementAccess));
+            ReferencedSet.Add(referenceable);
         }
 
-        public override void Visit(IInstructionContainer container)
+        public static void AddReference(IFieldReference field)
         {
-            referencedSet = new HashSet<IReferenceable>();
-            //fieldReferencedSet = new HashSet<IFieldReference>();
-
-            base.Visit(container);
-
-            ReferencedSet = referencedSet;
-            //FieldReferencedSet = fieldReferencedSet;
+            FieldReferencedSet.Add(field);
         }
 
         static public bool IsReferenced(IReferenceable referenceable)
@@ -68,5 +51,78 @@ namespace TinyBCT
         {
             FieldReferencedSet.Clear();
         }
+
+        public void CollectFields(MethodBody methodBody)
+        {
+            FieldsCollector f = new FieldsCollector();
+            f.Visit(methodBody);
+        }
+
+        public void CollectLocalVariables(MethodBody methodBody)
+        {
+            ReferencedSet = new HashSet<IReferenceable>();
+            (new VariablesCollector()).Visit(methodBody);
+        }
+
+        public static void TraverseForFields(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+        {
+            var disassembler = new Disassembler(host, mD, sourceLocationProvider);
+            MethodBody methodBody = disassembler.Execute();
+
+            var cfAnalysis = new ControlFlowAnalysis(methodBody);
+            Traverser.CFG = cfAnalysis.GenerateExceptionalControlFlow();
+
+            var splitter = new WebAnalysis(Traverser.CFG, methodBody.MethodDefinition);
+            splitter.Analyze();
+            splitter.Transform();
+
+            methodBody.UpdateVariables();
+
+            var typeAnalysis = new TypeInferenceAnalysis(Traverser.CFG, methodBody.MethodDefinition.Type);
+            typeAnalysis.Analyze();
+
+            ReferenceFinder reference = new ReferenceFinder();
+            reference.CollectFields(methodBody);
+        }
+
+        public class VariablesCollector : InstructionVisitor
+        {
+            public override void Visit(LoadInstruction instruction)
+            {
+                if (instruction.Operand is Reference reference)
+                {
+                    // Reference object is an expression of the form &<...>
+                    // <...> is the pointedObj
+                    IReferenceable pointedObj = reference.Value;
+
+                    if (pointedObj is InstanceFieldAccess ||
+                        pointedObj is StaticFieldAccess)
+                        return;
+
+                    ReferenceFinder.AddReference(pointedObj);
+                }
+            }
+
+        }
+
+        public class FieldsCollector : InstructionVisitor
+        {
+            public override void Visit(LoadInstruction instruction)
+            {
+                if (instruction.Operand is Reference reference)
+                {
+                    // Reference object is an expression of the form &<...>
+                    // <...> is the pointedObj
+                    IReferenceable pointedObj = reference.Value;
+
+                    if (pointedObj is StaticFieldAccess staticFieldAccess)
+                        FieldReferencedSet.Add(staticFieldAccess.Field);
+                    else if (pointedObj is InstanceFieldAccess instanceFieldAccess)
+                        FieldReferencedSet.Add(instanceFieldAccess.Field);
+
+                }
+            }
+        }
     }
 }
+

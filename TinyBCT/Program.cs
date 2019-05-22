@@ -204,8 +204,24 @@ namespace TinyBCT
                     }
                 };
 
-
                 ProcessFiles(writeTAC);
+
+                Action<string> referenceFinder = (String inputFile) =>
+                {
+                    using (var assembly = new Assembly(host))
+                    {
+                        // analysis-net setup
+                        assembly.Load(inputFile);
+                        Types.Initialize(host);
+
+                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
+                        visitor.AddMethodDefinitionAction(ReferenceFinder.TraverseForFields);
+                        visitor.Traverse(assembly.Module);
+                    }
+                };
+
+                if (Settings.NewAddrModelling && Settings.FastAddrModelling)
+                    ProcessFiles(referenceFinder);
 
                 Action<string> translateTypeDefinitions = (String inputFile) =>
                 {

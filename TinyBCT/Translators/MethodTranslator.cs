@@ -57,6 +57,15 @@ namespace TinyBCT
                 var fieldInitialization = new FieldInitialization(methodBody);
                 fieldInitialization.Transform();
             }
+
+            // it would be faster to do this while we do 
+            // the global search for field references
+            if (Settings.FastAddrModelling)
+            {
+                ReferenceFinder reference = new ReferenceFinder();
+                reference.CollectLocalVariables(methodBody);
+            }
+
             methodBody.RemoveUnusedLabels();
         }
 
