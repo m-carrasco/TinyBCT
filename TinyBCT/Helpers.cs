@@ -79,16 +79,14 @@ namespace TinyBCT
 
             public static BoogieTypeTranslator GetBoogieTypeTranslator()
             {
-                if (Settings.NewAddrModelling)
-                {
-                    if (!Settings.FastAddrModelling)
-                        return (new BoogieType.BoogieTypeTranslatorAddr());
-                    else
-                        return (new BoogieType.BoogieTypeTranslatorMixed());
-                }
-                    
+                if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Addresses)
+                    return (new BoogieType.BoogieTypeTranslatorAddr());
+                else if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
+                    return (new BoogieType.BoogieTypeTranslatorMixed());
+                else if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.SplitFields)
+                    return (new BoogieType.BoogieTypeTranslatorALaBCT());
 
-                return (new BoogieType.BoogieTypeTranslatorALaBCT());
+                throw new NotImplementedException();
             }
 
             public abstract class BoogieTypeTranslator
@@ -356,7 +354,7 @@ namespace TinyBCT
             var parameters = Helpers.GetParametersWithBoogieType(methodRef);
             var returnType = String.Empty;
 
-            if (Settings.NewAddrModelling)
+            if (Settings.AddressesEnabled())
             {
                 #region Return variables in NewAddrModelling. We should only add the return variable type from CCI
                 if (Helpers.GetMethodBoogieReturnType(methodRef).Equals(Helpers.BoogieType.Void))
@@ -672,9 +670,9 @@ namespace TinyBCT
             IMethodDefinition methodDef = methodRef as IMethodDefinition;
             // hack for handling type as variable
             if (methodDef != null)
-                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
+                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
             else
-                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.NewAddrModelling && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
+                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
 
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);

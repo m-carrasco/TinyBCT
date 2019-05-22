@@ -161,7 +161,7 @@ namespace TinyBCT.Translators
                 translation = new ArrayTranslation(this);
             else
             {
-                if (Settings.NewAddrModelling)
+                if (Settings.AddressesEnabled())
                     translation = new SimpleTranslation(this);
                 else
                     // for now this is disable for new memory modeling
@@ -648,7 +648,7 @@ namespace TinyBCT.Translators
                 IDictionary<IVariable, IVariable> argToNewVariable = null;
                 ImmutableArguments.MethodToMapping.TryGetValue(instTranslator.methodBody, out argToNewVariable);
 
-                if (!Settings.NewAddrModelling)
+                if (!Settings.AddressesEnabled())
                 {
                     foreach (var p in instTranslator.method.Parameters.Where(p => p.IsOut || p.IsByReference))
                     {
@@ -687,7 +687,7 @@ namespace TinyBCT.Translators
                     throw new NotImplementedException("We are assuming that there can only be local variables of pointer type");
 
                 // hack of old memory modelling
-                if (!Settings.NewAddrModelling && instructionOperand is Reference)
+                if (!Settings.AddressesEnabled() && instructionOperand is Reference)
                 {
                     // Reference loading only found when using "default" keyword.
                     // Ignoring translation, the actual value referenced is used by accessing
@@ -736,7 +736,7 @@ namespace TinyBCT.Translators
                 }
                 else
                 {
-                    if (Settings.NewAddrModelling && instructionOperand is Reference)
+                    if (Settings.AddressesEnabled() && instructionOperand is Reference)
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
                     } else if (instructionOperand is Dereference)
@@ -750,7 +750,7 @@ namespace TinyBCT.Translators
                         Expression expr = Helpers.Strings.FixStringLiteral(instructionOperand, boogieGenerator);
 
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, expr));
-                    } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.NewAddrModelling))
+                    } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.AddressesEnabled()))
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
                     }else
@@ -926,11 +926,11 @@ namespace TinyBCT.Translators
                     AddBoogie(p);
 
                 }
-                else if (dereference != null && !Settings.NewAddrModelling)
+                else if (dereference != null && !Settings.AddressesEnabled())
                 {
                     AddBoogie(boogieGenerator.VariableAssignment(dereference.Reference, instruction.Operand));
                 }
-                else if (dereference != null && Settings.NewAddrModelling)
+                else if (dereference != null && Settings.AddressesEnabled())
                 {
                     var reference = BoogieVariable.AddressVar(dereference.Reference);
 
@@ -1069,7 +1069,7 @@ namespace TinyBCT.Translators
                 if (load != null)
                 {
                     var operand = load.Operand;
-                    if(load.Operand is Reference && !Settings.NewAddrModelling)
+                    if(load.Operand is Reference && !Settings.AddressesEnabled())
                     {
                         operand = (operand as Reference).Value;
                     }
@@ -1141,7 +1141,7 @@ namespace TinyBCT.Translators
             {
                 var instructionOperand = instruction.Operand;
                 // hack of old memory modelling
-                if (!Settings.NewAddrModelling && instructionOperand is Reference)
+                if (!Settings.AddressesEnabled() && instructionOperand is Reference)
                 {
                     // Reference loading only found when using "default" keyword.
                     // Ignoring translation, the actual value referenced is used by accessing

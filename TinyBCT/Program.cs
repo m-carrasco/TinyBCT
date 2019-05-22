@@ -166,7 +166,7 @@ namespace TinyBCT
                     }
                 };
 
-                if (Settings.NewAddrModelling && Settings.FastAddrModelling)
+                if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
                     ProcessFiles(referenceFinder);
 
                 Action<string> translateTypeDefinitions = (String inputFile) =>

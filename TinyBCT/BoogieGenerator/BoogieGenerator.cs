@@ -602,7 +602,7 @@ namespace TinyBCT
         // to BoogieVariable can be performed.
         static public BoogieVariable FromDotNetVariable(IVariable variable)
         {
-            Contract.Requires(!Settings.NewAddrModelling);
+            Contract.Requires(!Settings.AddressesEnabled());
             return new BoogieVariable(Helpers.GetBoogieType(variable), BoogieVariable.AdaptNameToBoogie(variable.Name));
         }
 
@@ -719,7 +719,7 @@ namespace TinyBCT
     {
         protected SplitFieldsModelingExpression(Helpers.BoogieType type, string expr) : base(type, expr)
         {
-            Contract.Assume(Settings.SplitFields);
+            Contract.Assume(Settings.SplitFieldsEnabled());
         }
     }
 
@@ -784,7 +784,7 @@ namespace TinyBCT
     {
         protected HeapModelingExpression(Helpers.BoogieType type, string expr) : base(type, expr)
         {
-            Contract.Assume(!Settings.SplitFields);
+            Contract.Assume(!Settings.SplitFieldsEnabled());
         }
     }
     public class ReadHeapExpression : HeapModelingExpression
@@ -873,7 +873,7 @@ namespace TinyBCT
             {
                 var resultArgumentsStr = String.Join(",", resultArguments.Select(v => v.Expr));
                 stmts.Add(new BoogieStatement($"call {resultArgumentsStr} := {boogieProcedureName}({arguments});"));
-                if (Settings.NewAddrModelling)
+                if (Settings.AddressesEnabled())
                 {
                     Contract.Assert(resultArguments.Count == 1);
                     Contract.Assert(resultArguments.Contains(resultVariable));
@@ -1053,7 +1053,7 @@ namespace TinyBCT
         
         public static HeapUpdate ForKeyValue(InstanceField key, Expression value)
         {
-            Contract.Assume(!Settings.SplitFields);
+            Contract.Assume(!Settings.SplitFieldsEnabled());
             var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Ref, Helpers.BoogieType.Real };
             Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field)));
             Contract.Assume(Helpers.GetBoogieType(key.Field).Equals(value.Type));
@@ -1068,7 +1068,7 @@ namespace TinyBCT
 
         public static SplitFieldUpdate ForKeyValue(InstanceField key, Expression value)
         {
-            Contract.Assume(Settings.SplitFields);
+            Contract.Assume(Settings.SplitFieldsEnabled());
             var supportedTypes = new HashSet<Helpers.BoogieType> { Helpers.BoogieType.Int, Helpers.BoogieType.Bool, Helpers.BoogieType.Ref, Helpers.BoogieType.Real };
             Contract.Assume(supportedTypes.Contains(Helpers.GetBoogieType(key.Field)));
             Contract.Assume(Helpers.GetBoogieType(key.Field).Equals(value.Type) || value.Type.Equals(Helpers.BoogieType.Union));
@@ -1354,7 +1354,7 @@ namespace TinyBCT
             }
             else
             {
-                if (!Settings.SplitFields)
+                if (!Settings.SplitFieldsEnabled())
                     return String.Format("const unique {0} : Field;", fieldName);
                 else
                 {
@@ -1426,12 +1426,14 @@ namespace TinyBCT
         {
             if (singleton == null)
             {
-                if (!Settings.NewAddrModelling)
+                if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.SplitFields)
                     singleton = new BoogieGeneratorALaBCT();
-                else if (!Settings.FastAddrModelling)
+                else if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Addresses)
                     singleton = new BoogieGeneratorAddr();
-                else
+                else if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
                     singleton = new BoogieGeneratorMixed();
+                else
+                    throw new NotImplementedException();
             }
 
             return singleton;
@@ -1629,7 +1631,7 @@ namespace TinyBCT
             var args = new List<IVariable> { op1 };
             var result = convertInstruction.Result;
 
-            if (Settings.NewAddrModelling)
+            if (Settings.AddressesEnabled())
             {
                 var tempBoogieVar = instructionTranslator.GetFreshVariable(Helpers.GetBoogieType(result));
                 var resultArguments = new List<BoogieVariable> { tempBoogieVar};

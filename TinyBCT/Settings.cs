@@ -10,21 +10,27 @@ namespace TinyBCT
 {
         public class ProgramOptions{
 
+        [Flags]
+        public enum MemoryModelOption
+        {
+            SplitFields = 1,
+            Addresses = 2,
+            Mixed = 3
+        }
+
         public ProgramOptions(){
             bplInputFiles = new List<string>();
             inputFiles = new List<string>();
             EmitLineNumbers = false;
             Exceptions = true;
-            SplitFields = true;
             AtomicInitArray = false;
             AvoidSubtypeCheckingForInterfaces = false;
             CheckNullDereferences = false;
             DebugLargeDLL = false;
             SilentExceptionsForMethods = false;
-            NewAddrModelling = false;
-            FastAddrModelling = false;
             DebugLines = false;
             Verbose = false;
+            MemoryModel = MemoryModelOption.SplitFields;
         }
 
         public override string ToString(){
@@ -42,16 +48,14 @@ namespace TinyBCT
             sb.AppendLine("OutputFile " + OutputFile);
             sb.AppendLine("EmitLineNumbers " + EmitLineNumbers);
             sb.AppendLine("Exceptions " + Exceptions);
-            sb.AppendLine("SplitFields " + SplitFields);
             sb.AppendLine("AtomicinitArray " + AtomicInitArray);
             sb.AppendLine("AvoidSubtypeCheckingForInterfaces " + AvoidSubtypeCheckingForInterfaces);
             sb.AppendLine("CheckNullDereferences " + CheckNullDereferences);
             sb.AppendLine("DebugLargeDLL " + DebugLargeDLL);
             sb.AppendLine("SilentExceptionsForMethods " + SilentExceptionsForMethods);
-            sb.AppendLine("NewAddrModelling " + NewAddrModelling);
-            sb.AppendLine("FastAddrModelling " + FastAddrModelling);
             sb.AppendLine("DebugLines " + DebugLines);
             sb.AppendLine("Verbose " + Verbose);
+            sb.AppendLine("MemoryModel" + MemoryModel);
             return sb.ToString();
         }
         public IList<string> GetInputFiles(){return inputFiles;}
@@ -74,6 +78,7 @@ namespace TinyBCT
             bplInputFiles = files;
         }
 
+        public MemoryModelOption MemoryModel;
         private List<String> inputFiles;
         private List<String> bplInputFiles;
 
@@ -81,14 +86,11 @@ namespace TinyBCT
 
         public bool EmitLineNumbers;
         public bool Exceptions;
-        public bool SplitFields;
         public bool AtomicInitArray;
         public bool AvoidSubtypeCheckingForInterfaces;
         public bool CheckNullDereferences;
         public bool DebugLargeDLL;
         public bool SilentExceptionsForMethods;
-        public bool NewAddrModelling;
-        public bool FastAddrModelling;
         public bool DebugLines;
         public bool Verbose;
     }
@@ -96,40 +98,39 @@ namespace TinyBCT
 
     class Settings
     {
+
         public static void SetProgramOptions(ProgramOptions op){
             InputFiles = op.GetInputFiles();
             BplInputFiles = op.GetBplInputFiles();
             OutputFile = op.OutputFile;
             EmitLineNumbers = op.EmitLineNumbers;
             Exceptions = op.Exceptions;
-            SplitFields = op.SplitFields;
             AtomicInit = op.AtomicInitArray;
             AvoidSubtypeCheckingForInterfaces = op.AvoidSubtypeCheckingForInterfaces;
             CheckNullDereferences = op.CheckNullDereferences;
             DebugLargeDLL = op.DebugLargeDLL;
             SilentExceptionsForMethods = op.SilentExceptionsForMethods;
-            NewAddrModelling = op.NewAddrModelling;
-            FastAddrModelling = op.FastAddrModelling;
             DebugLines = op.DebugLines;
             Verbose = op.Verbose;
+            MemoryModel = op.MemoryModel;
         }
 
+        public static ProgramOptions.MemoryModelOption MemoryModel;
         public static IList<string> InputFiles;
         public static IList<string> BplInputFiles;
         public static string OutputFile;
         public static bool EmitLineNumbers;
         public static bool Exceptions;
-        public static bool SplitFields;
         public static bool AtomicInit;
         public static bool AvoidSubtypeCheckingForInterfaces;
         public static bool CheckNullDereferences;
         public static bool DebugLargeDLL;
         public static bool SilentExceptionsForMethods;
-        public static bool NewAddrModelling;
-        public static bool FastAddrModelling;
         public static bool DebugLines;
         public static bool Verbose;
 
+        public static bool AddressesEnabled() { return MemoryModel >= ProgramOptions.MemoryModelOption.Addresses; }
+        public static bool SplitFieldsEnabled() { return MemoryModel == ProgramOptions.MemoryModelOption.SplitFields || MemoryModel == ProgramOptions.MemoryModelOption.Mixed; }
         public static ProgramOptions CreateProgramOptions(string[] args)
         {
             ProgramOptions options = new ProgramOptions();
@@ -157,10 +158,6 @@ namespace TinyBCT
              .Callback(b => options.Exceptions = b)
              .WithDescription("Enable translation of exceptions handling.");
 
-            p.Setup<bool>('s', "splitFields")
-             .Callback(b => options.SplitFields = b)
-             .WithDescription("Models the heap splitting instance fields into different dictionaries.");
-
             p.Setup<bool>('a', "atomicInitArray")
             .Callback(b => options.AtomicInitArray = b)
             .WithDescription("Handles atomic initialization of arrays.");
@@ -183,14 +180,6 @@ namespace TinyBCT
                 "If InvalidOperationException is thrown during a method translation, " +
                 "the translation will continue silently and the method will be replaced " +
                 "with an extern method (not necessarily a sound over-approximation).");
-
-            p.Setup<bool>('m', "NewAddrModelling")
-                .Callback(b => options.NewAddrModelling = b)
-                .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
-
-            p.Setup<bool>('f', "FastAddrModelling")
-                .Callback(b => options.FastAddrModelling = b)
-                .WithDescription("Every variable of the three address code will be explicitly allocated in the boogie code. Every variable or field will have a memory address.");
                 
             p.Setup<bool>("DebugLines")
                 .Callback(b => options.DebugLines = b)
@@ -199,6 +188,9 @@ namespace TinyBCT
             p.Setup<bool>('v', "Verbose")
                 .Callback(b => options.Verbose = b)
                 .WithDescription("Verbose output.");
+
+            p.Setup<ProgramOptions.MemoryModelOption>("MemoryModel")
+                .Callback(d => options.MemoryModel = d);
 
             var result = p.Parse(args);
 

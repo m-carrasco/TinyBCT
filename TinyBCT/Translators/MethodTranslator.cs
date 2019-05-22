@@ -46,7 +46,7 @@ namespace TinyBCT
 
             // TinyBCT transformations
 
-            if (!Settings.NewAddrModelling)
+            if (!Settings.AddressesEnabled())
             {
                 var refAlias = new RefAlias(methodBody);
                 refAlias.Transform();
@@ -60,7 +60,7 @@ namespace TinyBCT
 
             // it would be faster to do this while we do 
             // the global search for field references
-            if (Settings.FastAddrModelling)
+            if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
             {
                 ReferenceFinder reference = new ReferenceFinder();
                 reference.CollectLocalVariables(methodBody);
@@ -183,7 +183,7 @@ namespace TinyBCT
 
         String TranslateReturnTypeIfAny()
         {
-            if (Settings.NewAddrModelling)
+            if (Settings.AddressesEnabled())
             {
                 var returnVariables = new List<String>();
                 if (!Helpers.GetMethodBoogieReturnType(methodDefinition).Equals(Helpers.BoogieType.Void))

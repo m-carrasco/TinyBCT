@@ -143,16 +143,16 @@ namespace TinyBCT.Memory
 
     public abstract class BaseMemory : IMemory
     {
-        //public static IMemory singleton;
-
         public static IMemory Instance()
         {
-            if (!Settings.NewAddrModelling)
+            if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.SplitFields)
                 return new BCTMemory();
-            else if (!Settings.FastAddrModelling)
+            else if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Addresses)
                 return new AddrMemory();
-            else
+            else if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
                 return new MixedMemory();
+
+            throw new NotImplementedException();
         }
 
         public BaseMemory(IMemory dispatcher = null)
@@ -629,7 +629,7 @@ namespace TinyBCT.Memory
             //var addr = AddressOf(instanceFieldAccess);
             //var writeAddr = WriteAddr(addr, value);
 
-            if (!Settings.SplitFields)
+            if (!Settings.SplitFieldsEnabled())
             {
                 if (!Helpers.IsBoogieRefType(expr.Type)) // int, bool, real
                 {
@@ -664,7 +664,7 @@ namespace TinyBCT.Memory
 
         public override Expression ReadInstanceField(InstanceFieldAccess instanceFieldAccess)
         {
-            if (!Settings.SplitFields)
+            if (!Settings.SplitFieldsEnabled())
                 return ReadFieldExpression.From(new InstanceField(instanceFieldAccess));
             else
                 return dispatcher.ReadAddr(dispatcher.AddressOf(instanceFieldAccess));
@@ -677,7 +677,7 @@ namespace TinyBCT.Memory
 
             var readFieldExpr = dispatcher.ReadInstanceField(instanceFieldAccess);
 
-            if (!Settings.SplitFields)
+            if (!Settings.SplitFieldsEnabled())
             {
                 if (!Helpers.IsBoogieRefType(Helpers.GetBoogieType(result))) // int, bool, real
                 {
@@ -710,7 +710,7 @@ namespace TinyBCT.Memory
             {
                 var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
                 var instanceName = instanceField.Instance.Name;
-                if (Settings.SplitFields)
+                if (Settings.SplitFieldsEnabled())
                 {
                     return ReadFieldExpression.From(instanceField);
                 }
@@ -754,7 +754,7 @@ namespace TinyBCT.Memory
             {
                 var instanceName = instanceField.Instance;
                 var fieldName = FieldTranslator.GetFieldName(instanceField.Field);
-                if (Settings.SplitFields)
+                if (Settings.SplitFieldsEnabled())
                 {
                     return SplitFieldUpdate.ForKeyValue(instanceField, expr);
                 }
@@ -964,7 +964,7 @@ namespace TinyBCT.Memory
         public override StatementList ReadInstanceField(InstanceFieldAccess instanceFieldAccess, IVariable result)
         {
             // with split fields false, i guess we should cast to union always
-            Contract.Assert(Settings.SplitFields);
+            Contract.Assert(Settings.SplitFieldsEnabled());
 
             Expression readExpr = ReadInstanceField(instanceFieldAccess);
 
