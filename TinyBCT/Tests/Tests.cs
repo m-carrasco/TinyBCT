@@ -1666,30 +1666,22 @@ class Test {
     [Test, Category("AvRegressions"), Timeout(30000)]
     public void TestForeachOK()
     {
-        // todo: provide poirot .bpl and Collections.dll
-        // This test is not working in linux/macos. Possibly because we are not loading all the necessary assemblies.
-        // In Windows, we have less methods flagged as extern.
-
-        if (Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
-        {
-            var corralResult = CorralTestHelper("ForEachOK", "PoirotMain.Main", 10);
+        TestOptions t = new TestOptions();
+        t.UseCollectionStubsDll = true;
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("ForEachOK", "PoirotMain.Main", 10, testOptions:t);
             Assert.IsTrue(corralResult.NoBugs());
         }
-    }
 
     [Test, Category("Av-Regressions")]
     public void TestListSumOK()
     {
-        // todo: provide poirot .bpl and Collections.dll
-        // This test is not working in linux/macos. Possibly because we are not loading all the necessary assemblies.
-        // In Windows, we have less methods flagged as extern.
-
-        if (Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
-        {
-            var corralResult = CorralTestHelper("ListSum", "$Main_Wrapper_PoirotMain.Main", 10);
+        TestOptions t = new TestOptions();
+        t.UseCollectionStubsDll = true;
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("ListSum", "$Main_Wrapper_PoirotMain.Main", 10, testOptions:t);
             Assert.IsTrue(corralResult.NoBugs());
         }
-    }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestListSum2Fail()
@@ -1885,29 +1877,21 @@ class Test {
     [Test, Category("Av-Regressions"), Timeout(30000)]
     public void TestSet3()
     {
-        // todo: provide poirot .bpl and Collections.dll
-        // This test is not working in linux/macos. Possibly because we are not loading all the necessary assemblies.
-        // In Windows, we have less methods flagged as extern.
-
-        if (Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
-        {
-            var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass3", 10);
+        TestOptions t = new TestOptions();
+        t.UseCollectionStubsDll = true;
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass3", 10, testOptions:t);
             Assert.IsTrue(corralResult.NoBugs());
         }
-    }
     [Test, Category("Av-Regressions"), Timeout(20000)]
     public void TestSet4()
     {
-        // todo: provide poirot .bpl and Collections.dll
-        // This test is not working in linux/macos. Possibly because we are not loading all the necessary assemblies.
-        // In Windows, we have less methods flagged as extern.
-
-        if (Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
-        {
-            var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass4", 10);
+        TestOptions t = new TestOptions();
+        t.UseCollectionStubsDll = true;
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass4", 10, testOptions:t);
             Assert.IsTrue(corralResult.NoBugs());
         }
-    }
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestSet5()
     {
@@ -1919,16 +1903,12 @@ class Test {
     [Test, Category("Av-Regressions"), Timeout(30000)]
     public void TestSet6()
     {
-        // todo: provide poirot .bpl and Collections.dll
-        // This test is not working in linux/macos. Possibly because we are not loading all the necessary assemblies.
-        // In Windows, we have less methods flagged as extern.
-
-        if (Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
-        {
-            var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass6", 10);
+        TestOptions t = new TestOptions();
+        t.UseCollectionStubsDll = true;
+        t.AppendPoirotBPL = true;
+        var corralResult = CorralTestHelper("Set", "PoirotMain.ShouldPass6", 10, testOptions:t);
             Assert.IsTrue(corralResult.NoBugs());
         }
-    }
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestSetBug1()
     {
