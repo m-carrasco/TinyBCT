@@ -210,12 +210,12 @@ implementation System.String.Equals$System.String(a$in: Ref, b$in: Ref) returns 
   $result := (a$in == b$in);
 }
 
-implementation System.String.op_Equality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool) 
+implementation System.String.op_Equality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool)
 {
   $result := (a$in == b$in);
 }
 
-implementation System.String.op_Inequality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool) 
+implementation System.String.op_Inequality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool)
 {
   $result := (a$in != b$in);
 }
@@ -295,6 +295,13 @@ implementation {:inline 1} $BoxFromReal(r: real) returns (rf: Ref)
 procedure {:inline 1} $BoxFromUnion(u: Union) returns (r: Ref);
 
 implementation {:inline 1} $BoxFromUnion(u: Union) returns (r: Ref)
+{
+    r := u;
+}
+
+procedure {:inline 1} $BoxFromObject(u: Union) returns (r: Ref);
+
+implementation {:inline 1} $BoxFromObject(u: Union) returns (r: Ref)
 {
     r := u;
 }
