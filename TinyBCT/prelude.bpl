@@ -34,7 +34,7 @@ implementation {:inline 1} AllocAddr() returns (x: Addr)
     $AllocAddr[x] := true;
 }
 
-axiom (forall aA, aB : InstanceFieldAddr, oA, oB : Object :: {LoadInstanceFieldAddr(aA, oA), LoadInstanceFieldAddr(aB, oB)} oA != oB ==> LoadInstanceFieldAddr(aA, oA) != LoadInstanceFieldAddr(aB, oB));
+axiom (forall aA, aB : InstanceFieldAddr, oA, oB : Object :: {LoadInstanceFieldAddr(aA, oA), LoadInstanceFieldAddr(aB, oB)} (oA != oB || aA != aB) ==> LoadInstanceFieldAddr(aA, oA) != LoadInstanceFieldAddr(aB, oB));
 
 procedure {:allocator} {:inline 1} AuxAllocObject() returns (x: Object);
 procedure {:inline 1} AllocObject() returns (x: Object);

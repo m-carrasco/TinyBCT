@@ -1241,9 +1241,9 @@ namespace TinyBCT
         public override String GetFieldDefinition(IFieldReference fieldReference, String fieldName)
         {
             if (fieldReference.IsStatic)
-                return String.Format("var {0}: {1};", fieldName, "Addr");
+                return String.Format("const unique {0}: {1};", fieldName, "Addr");
             else
-                return String.Format("var {0} : InstanceFieldAddr;", fieldName);
+                return String.Format("const unique {0} : InstanceFieldAddr;", fieldName);
         }
 
         public override BoogieVariable GetProcedureResultVariable(MethodCallInstruction methodCallInstruction, InstructionTranslator instructionTranslator)
