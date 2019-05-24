@@ -46,14 +46,15 @@ namespace TinyBCT
 
             // TinyBCT transformations
 
+            var fieldInitialization = new FieldInitialization(methodBody);
+            fieldInitialization.Transform();
+
             if (!Settings.AddressesEnabled())
             {
                 var refAlias = new RefAlias(methodBody);
                 refAlias.Transform();
-
-                var fieldInitialization = new FieldInitialization(methodBody);
-                fieldInitialization.Transform();
             }
+
 
             // execute this after RefAlias! 
             var immutableArguments = new ImmutableArguments(methodBody);

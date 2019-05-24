@@ -54,10 +54,11 @@ namespace TinyBCT
                 if (lv.IsParameter || 
                     // in the delegate handling this type of variables are not used
                     // calling get boogie type will crash
-                    lv.Type is Microsoft.Cci.Immutable.FunctionPointerType) 
+                    lv.Type is Microsoft.Cci.Immutable.FunctionPointerType ||
+                    (lv.Type is IManagedPointerType && Settings.AddressesEnabled())) 
                     continue;
 
-                var varBoogieType = Helpers.GetBoogieType(lv);
+                var varBoogieType = Helpers.GetBoogieType(lv.Type);
                 IVariable initialValue = boogieTypeToLocalVariable[varBoogieType];
                 var storeInstruction = new LoadInstruction(0, lv, initialValue);
                 storeInstruction.Label = String.Empty;
@@ -72,7 +73,7 @@ namespace TinyBCT
 
                 foreach (IFieldDefinition field in fields.Where(f => !f.IsStatic))
                 {
-                    var fieldBoogieType = Helpers.GetBoogieType(field);
+                    var fieldBoogieType = Helpers.GetBoogieType(field.Type);
                     IVariable initialValue = boogieTypeToLocalVariable[fieldBoogieType];
                     var instanceAccess = new InstanceFieldAccess(thisVariable, field);
                     var storeInstruction = new StoreInstruction(0, instanceAccess, initialValue);
