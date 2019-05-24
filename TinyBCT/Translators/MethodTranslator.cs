@@ -46,9 +46,6 @@ namespace TinyBCT
 
             // TinyBCT transformations
 
-            var immutableArguments = new ImmutableArguments(methodBody);
-            immutableArguments.Transform();
-
             if (!Settings.AddressesEnabled())
             {
                 var refAlias = new RefAlias(methodBody);
@@ -57,6 +54,10 @@ namespace TinyBCT
                 var fieldInitialization = new FieldInitialization(methodBody);
                 fieldInitialization.Transform();
             }
+
+            // execute this after RefAlias! 
+            var immutableArguments = new ImmutableArguments(methodBody);
+            immutableArguments.Transform();
 
             // it would be faster to do this while we do 
             // the global search for field references
