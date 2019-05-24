@@ -1,4 +1,5 @@
 ﻿using Backend;
+using Backend.ThreeAddressCode.Values;
 using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
@@ -51,7 +52,10 @@ namespace TinyBCT.Translators
 
                 variables = Helpers.Strings.NormalizeStringForCorral(variables);
 
+                sb.AppendLine("\tcall $allocate_static_fields();");
+                sb.AppendLine("\tcall $default_values_static_fields();");
                 sb.AppendLine("\tcall $initialize_globals();");
+                sb.AppendLine("\tcall $call_static_constructors();");
                 if (String.IsNullOrEmpty(returnType))
                     sb.AppendLine(String.Format("\tcall {0}({1});", methodName, variables));
                 else
@@ -81,18 +85,96 @@ namespace TinyBCT.Translators
             sb.AppendLine("\t$ExceptionInCatchHandler := null;");
             sb.AppendLine("\t$ExceptionInCatchHandlerType := null;");
 
-            foreach (var staticConstructor in staticConstructors)
-            {
-                var signature = BoogieMethod.From(staticConstructor).Name;
-                sb.AppendLine(String.Format("\tcall {0}();", signature));
-                sb.AppendLine("\tif ($Exception != null)");
-                sb.AppendLine("\t{");
-                sb.AppendLine("\t\treturn;");
-                sb.AppendLine("\t}");
-            }
-
             sb.AppendLine("}");
             return sb.ToString();
+        }
+
+        private static BoogieLiteral GetDefaultConstant(Helpers.BoogieType boogieType)
+        {
+            if (boogieType == Helpers.BoogieType.Int)
+            {
+                Constant zero = new Constant(0) { Type = Types.Instance.PlatformType.SystemInt32 };
+                return BoogieLiteral.Numeric(zero);
+            }
+
+            if (boogieType == Helpers.BoogieType.Bool)
+            {
+                return BoogieLiteral.False; 
+            }
+
+            if (boogieType == Helpers.BoogieType.Real)
+            {
+                Constant zero = new Constant(0F) { Type = Types.Instance.PlatformType.SystemFloat32 };
+                return BoogieLiteral.Numeric(zero);
+            }
+
+            if (boogieType == Helpers.BoogieType.Object)
+            {
+                return BoogieLiteral.NullObject;
+            }
+
+            // address should not require a default value, you create one the same time you are referencing something.
+            throw new NotImplementedException("Unexpected type to initialize");
+        }
+
+        public static string CreateDefaultValuesStaticVariablesProcedure()
+        {
+            #region Create body of the procedure
+            StatementList body = new StatementList();
+
+            foreach (IFieldReference field in FieldTranslator.GetFieldReferences())
+            {
+                if (field.IsStatic)
+                {
+                    BoogieGenerator bg = BoogieGenerator.Instance();
+                    StaticFieldAccess staticFieldAccess = new StaticFieldAccess(field);
+
+                    body.Add(bg.WriteStaticField(staticFieldAccess, GetDefaultConstant(Helpers.GetBoogieType(field.Type))));
+                }
+            }
+            #endregion
+
+            string procedureName = "$default_values_static_fields";
+            string attributes = String.Empty;
+            StatementList localVariables = new StatementList();
+            String parametersWithTypes = String.Empty;
+            String returnTypeIfAny = String.Empty;
+
+            BoogieProcedureTemplate temp = new BoogieProcedureTemplate(procedureName, attributes, localVariables, body, parametersWithTypes, returnTypeIfAny, false);
+            return temp.TransformText();
+        }
+
+        public static string CreateStaticVariablesAllocProcedure()
+        {
+            string procedureName = "$allocate_static_fields";
+            string attributes = String.Empty;
+            StatementList body = BoogieGenerator.Instance().AllocStaticVariables();
+            StatementList localVariables = new StatementList();
+            String parametersWithTypes = String.Empty;
+            String returnTypeIfAny = String.Empty;
+
+            BoogieProcedureTemplate temp = new BoogieProcedureTemplate(procedureName, attributes, localVariables, body, parametersWithTypes, returnTypeIfAny, false);
+            return temp.TransformText();
+        }
+
+        public static string CreateStaticConstructorsCallsProcedure()
+        {
+            StatementList body = new StatementList();
+
+            foreach (var staticConstructor in staticConstructors)
+            {
+                var ctor = BoogieMethod.From(staticConstructor);
+                body.Add(BoogieGenerator.Instance().ProcedureCall(ctor, new List<Expression>(), null));
+            }
+
+            string procedureName = "$call_static_constructors";
+            string attributes = String.Empty;
+            StatementList localVariables = new StatementList();
+            String parametersWithTypes = String.Empty;
+            String returnTypeIfAny = String.Empty;
+
+            BoogieProcedureTemplate temp = new BoogieProcedureTemplate(procedureName, attributes, localVariables, body, parametersWithTypes, returnTypeIfAny, false);
+            return temp.TransformText();
         }
     }
 }

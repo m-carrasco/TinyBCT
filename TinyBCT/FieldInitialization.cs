@@ -66,18 +66,7 @@ namespace TinyBCT
 
 
             var fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
-            if (methodBody.MethodDefinition.IsStaticConstructor)
-            {
-                foreach (IFieldDefinition field in fields.Where(f => f.IsStatic))
-                {
-                    var fieldBoogieType = Helpers.GetBoogieType(field);
-                    IVariable initialValue = boogieTypeToLocalVariable[fieldBoogieType];
-                    var staticAccess = new StaticFieldAccess(field);
-                    var storeInstruction = new StoreInstruction(0, staticAccess, initialValue);
-                    storeInstruction.Label = String.Empty;
-                    instructions.Add(storeInstruction);
-                }
-            } else if (methodBody.MethodDefinition.IsConstructor)
+            if (methodBody.MethodDefinition.IsConstructor)
             {
                 var thisVariable = methodBody.Parameters[0];
 

@@ -1690,6 +1690,11 @@ namespace TinyBCT
             return Mem().AllocLocalVariables(variables);
         }
 
+        public StatementList AllocStaticVariables()
+        {
+            return Mem().AllocStaticVariables();
+        }
+
         public StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
         {
             return Mem().DeclareLocalVariables(variables, temporalVariables);
@@ -1768,6 +1773,16 @@ namespace TinyBCT
         public StatementList VariableAssignment(IVariable variableA, IValue value)
         {
             return Mem().VariableAssignment(variableA, value);
+        }
+
+        public StatementList AllocAddr(BoogieVariable var)
+        {
+            return Mem().AllocAddr(var);
+        }
+
+        public StatementList AllocStaticVariable(IFieldReference field)
+        {
+            return Mem().AllocStaticVariable(field);
         }
     }
 }

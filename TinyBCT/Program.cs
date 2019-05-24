@@ -219,6 +219,9 @@ namespace TinyBCT
                 ProcessFiles(translateCallsToStaticConstructors);
                 streamWriter.WriteLine(StaticInitializer.CreateInitializeGlobals());
                 streamWriter.WriteLine(StaticInitializer.CreateMainWrappers());
+                streamWriter.WriteLine(StaticInitializer.CreateStaticVariablesAllocProcedure());
+                streamWriter.WriteLine(StaticInitializer.CreateDefaultValuesStaticVariablesProcedure());
+                streamWriter.WriteLine(StaticInitializer.CreateStaticConstructorsCallsProcedure());
 
                 // TypeDefinitionTranslator.TypeAxioms(); diego's axioms
                 // information stored from previous steps is used

@@ -6,6 +6,7 @@ using static Test.TestUtils;
 using Backend;
 using NUnit.Framework;
 using MemOpt = TinyBCT.ProgramOptions.MemoryModelOption;
+using TinyBCT;
 
 public partial class TestsHelpers
 {
@@ -2287,59 +2288,83 @@ class Test {
     // ************************************* Switch ******************************
 
     [Test, Category("Manu")]
-    public void Switch1_NoBugs()
+    public void Switch1_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_NoBugs$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_NoBugs$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void Switch1_Bugged()
+    public void Switch1_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_Bugged$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_Bugged$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [Test, Category("Manu")]
-    public void Switch2_NoBugs()
+    public void Switch2_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_NoBugs$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_NoBugs$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void Switch2_Bugged()
+    public void Switch2_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_Bugged$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_Bugged$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [Test, Category("Manu")]
-    public void Switch3_NoBugs()
+    public void Switch3_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_NoBugs$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_NoBugs$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
 
     [Test, Category("Manu")]
-    public void Switch3_Bugged()
+    public void Switch3_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_Bugged$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_Bugged$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [Test, Category("Manu")]
-    public void Switch4_NoBugs()
+    public void Switch4_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_NoBugs$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_NoBugs$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void Switch4_Bugged()
+    public void Switch4_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_Bugged$System.Int32", 10);
+        ProgramOptions options = new TinyBCT.ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_Bugged$System.Int32", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
     }
 

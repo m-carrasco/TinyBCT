@@ -112,11 +112,14 @@ namespace TinyBCT.Memory
         Addressable AddressOf(StaticFieldAccess staticFieldAccess);
         Addressable AddressOf(IVariable var);
 
+        StatementList AllocAddr(BoogieVariable var);
         StatementList AllocAddr(IVariable var);
         StatementList AllocObject(BoogieVariable var);
         StatementList AllocObject(IVariable var, InstructionTranslator instTranslator);
         StatementList AllocLocalVariables(IList<IVariable> variables);
 
+        StatementList AllocStaticVariables();
+        StatementList AllocStaticVariable(IFieldReference field);
         StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables);
 
         StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator);
@@ -278,6 +281,25 @@ namespace TinyBCT.Memory
         {
             return dispatcher.WriteAddr(dispatcher.AddressOf(variableA), expr);
         }
+
+        public StatementList AllocStaticVariables()
+        {
+            StatementList stmts = new StatementList();
+            foreach (IFieldReference field in FieldTranslator.GetFieldReferences())
+            {
+                if (field.IsStatic)
+                    stmts.Add(dispatcher.AllocStaticVariable(field));
+            }
+
+            return stmts;
+        }
+
+        public abstract StatementList AllocStaticVariable(IFieldReference field);
+
+        public StatementList AllocAddr(BoogieVariable var)
+        {
+            return bg.ProcedureCall(BoogieMethod.AllocAddr, new List<Expression> { }, var);
+        }
     }
 
     public class AddrMemory : BaseMemory
@@ -295,7 +317,7 @@ namespace TinyBCT.Memory
         public override StatementList AllocAddr(IVariable var)
         {
             var resultBoogieVar = BoogieVariable.AddressVar(var);
-            return bg.ProcedureCall(BoogieMethod.AllocAddr, new List<Expression> { }, resultBoogieVar);
+            return dispatcher.AllocAddr(resultBoogieVar);
         }
         public override StatementList AllocObject(BoogieVariable boogieVar)
         {
@@ -540,7 +562,15 @@ namespace TinyBCT.Memory
             return stmts;
         }
 
-        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        public override StatementList AllocStaticVariable(IFieldReference field)
+        {
+            StaticField p = new StaticField(new StaticFieldAccess(field));
+            BoogieVariable bv = BoogieVariable.From(p);
+
+            return dispatcher.AllocAddr(bv);
+        }
+
+    public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
         {
             StatementList stmts = new StatementList();
 
@@ -590,6 +620,12 @@ namespace TinyBCT.Memory
         {
             return BoogieStatement.Nop;
         }
+
+        public override StatementList AllocStaticVariable(IFieldReference field)
+        {
+            return BoogieStatement.Nop;
+        }
+
         public override StatementList DeclareLocalVariables(IList<IVariable> variables, Dictionary<string, BoogieVariable> temporalVariables)
         {
             StatementList stmts = new StatementList();
@@ -1063,6 +1099,14 @@ namespace TinyBCT.Memory
         {
             throw new NotImplementedException();
         }
-    }
+
+        public override StatementList AllocStaticVariable(IFieldReference field)
+        {
+            if (RequiresAllocation(field))
+                return memAddr.AllocStaticVariable(field);
+            else
+                return memBCT.AllocStaticVariable(field);
+        }
+}
 
 }

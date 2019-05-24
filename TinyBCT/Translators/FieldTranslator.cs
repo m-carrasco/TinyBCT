@@ -1,6 +1,7 @@
 ﻿using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,12 @@ namespace TinyBCT.Translators
     {
         IFieldReference fieldRef;
         internal static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
+
+        public static IEnumerable<IFieldReference> GetFieldReferences()
+        {
+            var d = ImmutableDictionary.ToImmutableDictionary(fieldNames);
+            return d.Keys;
+        }
 
         public static ISet<String> GetFieldDefinitions()
         {
