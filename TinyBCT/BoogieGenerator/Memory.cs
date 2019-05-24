@@ -570,7 +570,7 @@ namespace TinyBCT.Memory
             return dispatcher.AllocAddr(bv);
         }
 
-    public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
+        public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
         {
             StatementList stmts = new StatementList();
 

@@ -2372,37 +2372,52 @@ class Test {
     // ************************************* MissingConstructorInitializations ******************************
 
     [Test, Category("Manu")]
-    public void MissingConstructorInitializations1()
+    public void MissingConstructorInitializations1([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testInt", 10);
+        ProgramOptions options = new ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testInt", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void MissingConstructorInitializations2()
+    public void MissingConstructorInitializations2([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testFloat", 10);
+        ProgramOptions options = new ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testFloat", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void MissingConstructorInitializations3()
+    public void MissingConstructorInitializations3([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testDouble", 10);
+        ProgramOptions options = new ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testDouble", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void MissingConstructorInitializations4()
+    public void MissingConstructorInitializations4([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testRef", 10);
+        ProgramOptions options = new ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"Test.MissingConstructorInitializations.testRef", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Manu")]
-    public void MissingConstructorInitializations5()
+    public void MissingConstructorInitializations5([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"$Main_Wrapper_Test.MissingConstructorInitializations.Main", 10);
+        ProgramOptions options = new ProgramOptions();
+        options.MemoryModel = memOp;
+
+        var corralResult = CorralTestHelper("MissingConstructorInitializations", @"$Main_Wrapper_Test.MissingConstructorInitializations.Main", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
     }
 

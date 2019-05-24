@@ -14,8 +14,8 @@ namespace Test
         public int int1 = 150;
         public int int2;
 
-        //public bool bool1 = true;
-        //public bool bool2;
+        public bool bool1 = true;
+        public bool bool2;
 
         public MissingConstructorInitializations ref1;
         public MissingConstructorInitializations ref2;
@@ -53,8 +53,9 @@ namespace Test
 
         public static void test1()
         {
-            //Contract.Assert(m.bool1 == true);
-            //Contract.Assert(m.bool2 == false);
+            var m = new MissingConstructorInitializations();
+            Contract.Assert(m.bool1 == true);
+            Contract.Assert(m.bool2 == false);
         }
 
         public static void testInt()
