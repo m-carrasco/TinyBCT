@@ -222,7 +222,7 @@ public class TestsBase
         {
             var pathToSelf = System.IO.Path.GetDirectoryName(typeof(TinyBCT.Program).Assembly.Location);
             // If we need to recompile, use: csc /target:library /debug /D:DEBUG /D:CONTRACTS_FULL CollectionStubs.cs
-            options = options == null ? new TinyBCT.ProgramOptions() : options;
+            options = options == null ? new ProgramOptions() : options;
             var dll = System.IO.Path.Combine(uniqueDir, assemblyName) + ".dll";
             var stubs = System.IO.Path.Combine(pathToSelf, "..", "..", "Dependencies", "CollectionStubs.dll");
             List<string> argsList = new List<string>();
@@ -888,7 +888,7 @@ class Test {
     }
 }
         ";
-        var options = new TinyBCT.ProgramOptions();
+        var options = new ProgramOptions();
         options.AvoidSubtypeCheckingForInterfaces = false;
         var corralResult = CorralTestHelperCode("TestInterfaceParameterOptionTrue", "Test.Main$Base2", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -1140,7 +1140,7 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.CheckNullDereferences = true;
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation4", "Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -1163,7 +1163,7 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.CheckNullDereferences = true;
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation5", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -1186,7 +1186,7 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.CheckNullDereferences = true;
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation6", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -1259,7 +1259,7 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.CheckNullDereferences = true;
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation7", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -1278,7 +1278,7 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.CheckNullDereferences = true;
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation8", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -1297,7 +1297,7 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.CheckNullDereferences = true;
         var corralResult = CorralTestHelperCode("TestNullPointerInstrumentation9", "$Main_Wrapper_Test.Main", 10, source,  options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -1989,7 +1989,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void SyntaxTest1([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest1", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -1998,7 +1998,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void SyntaxTest4([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest4", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2007,7 +2007,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void SyntaxTest3([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest3$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2016,7 +2016,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test1([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test1", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2032,7 +2032,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test3([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test3$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2041,7 +2041,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test4([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test4$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2050,7 +2050,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test5([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test5$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2058,7 +2058,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test6([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test6$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2067,7 +2067,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test7([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test7$Test.AddressesSimple", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2076,7 +2076,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test8_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test8_NoBugs", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2085,7 +2085,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses")]
     public void Test8_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.Test8_Bugged", 10,  options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2123,7 +2123,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses"), Category("RefKeyword")]
     public void RefKeyword1([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.Main", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2132,7 +2132,7 @@ public class TestsManu : TestsBase
     [Test, Category("Addresses"), Category("RefKeyword"), Sequential]
     public void RefKeyword2([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("RefKeyword", @"Test.RefKeyword.TestField$Test.RefKeyword", 10,  options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2154,7 +2154,7 @@ public class TestsManu : TestsBase
     [Ignore(""), Test, Category("Repro")]
     public void Boxing2()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Boxing", @"Test.Boxing.Test2", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2196,7 +2196,7 @@ class Test {
     [Test, Category("Manu")]
     public void ArrayAtomicInit1_NoBugs()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_NoBugs", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2229,7 +2229,7 @@ class Test {
     [Test, Category("Arrays")]
     public void ArrayAtomicInit1_Bugged([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, options:options);
@@ -2238,7 +2238,7 @@ class Test {
     [Test, Category("Arrays"), Category("Addresses")]
     public void ArrayAtomicInit1_Bugged_Addresses([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit1_Bugged", 10, options:options);
@@ -2248,7 +2248,7 @@ class Test {
     [Test, Category("Arrays")]
     public void ArrayAtomicInit2_Bugged([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, options:options);
@@ -2258,7 +2258,7 @@ class Test {
     [Test, Category("Arrays"), Category("Addresses")]
     public void ArrayAtomicInit2_Bugged_Addresses([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit2_Bugged", 10, options:options);
@@ -2268,7 +2268,7 @@ class Test {
     [Test, Category("Manu")]
     public void ArrayAtomicInit3_Bugged([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit3_Bugged", 10, options:options);
@@ -2278,7 +2278,7 @@ class Test {
     [Test, Category("Manu")]
     public void ArrayAtomicInit4_NoBugs([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.ArrayAtomicInit4_NoBugs", 10, options:options);
@@ -2290,7 +2290,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch1_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_NoBugs$System.Int32", 10, options: options);
@@ -2300,7 +2300,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch1_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test1_Bugged$System.Int32", 10, options: options);
@@ -2310,7 +2310,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch2_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_NoBugs$System.Int32", 10, options: options);
@@ -2320,7 +2320,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch2_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test2_Bugged$System.Int32", 10, options: options);
@@ -2330,7 +2330,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch3_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_NoBugs$System.Int32", 10, options: options);
@@ -2341,7 +2341,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch3_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test3_Bugged$System.Int32", 10, options: options);
@@ -2351,7 +2351,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch4_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_NoBugs$System.Int32", 10, options: options);
@@ -2361,7 +2361,7 @@ class Test {
     [Test, Category("Manu")]
     public void Switch4_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed, MemOpt.SplitFields)] MemOpt memOp)
     {
-        ProgramOptions options = new TinyBCT.ProgramOptions();
+        ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
 
         var corralResult = CorralTestHelper("Switch", @"Test.Switch.test4_Bugged$System.Int32", 10, options: options);
@@ -2702,7 +2702,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayStoreLoad1()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad1", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2711,7 +2711,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayStoreLoad2()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad2", 10, options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2720,7 +2720,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayStoreLoad3()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad3", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2729,7 +2729,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayStoreLoad4()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayStoreLoad4", 10, options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2748,7 +2748,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayCreate1()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate1", 10, options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2757,7 +2757,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayCreate2()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayCreate2", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2766,7 +2766,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayOfArrays1()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays1", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2775,7 +2775,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayOfArrays2()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10, options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2784,7 +2784,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayOfArrays3()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays3", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2793,7 +2793,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayOfArrays4()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayOfArrays2", 10, options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2802,7 +2802,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayLength()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayLength$System.Int32array", 10, options:options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -2811,7 +2811,7 @@ class Test {
     [Test, Category("Manu"), Timeout(10000)]
     public void ArrayLengthIteration()
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         var corralResult = CorralTestHelper("Arrays", @"Test.Arrays.arrayFor", 10, options:options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -2820,7 +2820,7 @@ class Test {
     [Test, Category("Arrays"), Timeout(10000)]
     public void ArgsLength([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10, options:options);
@@ -2829,7 +2829,7 @@ class Test {
     [Test, Category("Arrays"), Category("Addresses")]
     public void ArgsLengthAddresses([Values(MemOpt.Addresses/*, MemOpt.Mixed,*/, MemOpt.SplitFields)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.AtomicInitArray = true;
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Arrays", "Test.Arrays.ArgsLength$System.Stringarray", 10,  options:options);
@@ -3135,7 +3135,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs1_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test1_NoBugs", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -3144,7 +3144,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs2_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test2_NoBugs", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -3153,7 +3153,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs3_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test3_NoBugs", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -3162,7 +3162,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs4_NoBugs([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test4_NoBugs", 10, options: options);
         Assert.IsTrue(corralResult.NoBugs());
@@ -3171,7 +3171,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs1_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test1_Bugged", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -3180,7 +3180,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs2_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test2_Bugged", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -3189,7 +3189,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs3_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test3_Bugged", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
@@ -3198,7 +3198,7 @@ class Test {
     [Test, Category("Struct"), Timeout(0)]
     public void TestStructs4_Bugged([Values(MemOpt.Addresses, MemOpt.Mixed)] MemOpt memOp)
     {
-        TinyBCT.ProgramOptions options = new TinyBCT.ProgramOptions();
+        TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
         var corralResult = CorralTestHelper("Struct", @"Test.TestStructs.Test4_Bugged", 10, options: options);
         Assert.IsTrue(corralResult.AssertionFails());
