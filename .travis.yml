@@ -8,6 +8,8 @@ install:
   - (cd .. && ln -s $(cd z3-*/bin && pwd)/z3 corral/bin/Debug/z3.exe)
   - travis_retry nuget restore ${TRAVIS_SOLUTION}
   - nuget install NUnit.Console -Version 3.10.0 -OutputDirectory testrunner
+env:
+  - MONO_IOMAP=all
 script:
   - msbuild ${TRAVIS_SOLUTION}
   - mono ./testrunner/NUnit.ConsoleRunner.3.10.0/tools/nunit3-console.exe ./TinyBCT/bin/Debug/TinyBCT.exe
