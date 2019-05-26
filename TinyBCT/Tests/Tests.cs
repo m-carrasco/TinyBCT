@@ -10,6 +10,13 @@ using TinyBCT;
 
 public partial class TestsHelpers
 {
+    [OneTimeSetUp]
+    public static void ClassInit()
+    {
+        var location = System.IO.Path.GetDirectoryName(typeof(TestsBase).Assembly.Location);
+        System.IO.Directory.SetCurrentDirectory(location);
+    }
+
     private static string pathAuxDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TestUtilsAux");
 
     [Category("Call-Corral"), Test, Timeout(10000)]
@@ -22,7 +29,7 @@ public partial class TestsHelpers
     }
     [Category("Call-Corral")]
     [Test]
-    [Timeout(10000)]
+    [Timeout(0)]
     public void TestsCorralResultAssertionFails()
     {
         var corralResult = Test.TestUtils.CallCorral(1, System.IO.Path.Combine(pathAuxDir, @"assertion_failure.bpl"));
