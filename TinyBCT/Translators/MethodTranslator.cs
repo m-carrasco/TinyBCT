@@ -20,20 +20,21 @@ namespace TinyBCT
         IMethodDefinition methodDefinition;
         MethodBody methodBody;
         ClassHierarchyAnalysis CHA;
+        private ControlFlowGraph CFG;
 
-        public static void transformBody(MethodBody methodBody)
+        public static ControlFlowGraph transformBody(MethodBody methodBody)
         {
             var cfAnalysis = new ControlFlowAnalysis(methodBody);
             //var cfg = cfAnalysis.GenerateNormalControlFlow();
-            Traverser.CFG = cfAnalysis.GenerateExceptionalControlFlow();
+            ControlFlowGraph cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
-            var splitter = new WebAnalysis(Traverser.CFG, methodBody.MethodDefinition);
+            var splitter = new WebAnalysis(cfg, methodBody.MethodDefinition);
             splitter.Analyze();
             splitter.Transform();
 
             methodBody.UpdateVariables();
 
-            var typeAnalysis = new TypeInferenceAnalysis(Traverser.CFG, methodBody.MethodDefinition.Type);
+            var typeAnalysis = new TypeInferenceAnalysis(cfg, methodBody.MethodDefinition.Type);
             typeAnalysis.Analyze();
 
             //var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(Traverser.CFG);
@@ -69,6 +70,8 @@ namespace TinyBCT
             }
 
             methodBody.RemoveUnusedLabels();
+
+            return cfg;
         }
 
 
@@ -98,58 +101,63 @@ namespace TinyBCT
         }
         // called from Traverser
         // set in Main
-        public static void IMethodDefinitionTraverse(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+        public static void TranslateAssemblies(ISet<Assembly> assemblies, ClassHierarchyAnalysis CHA)
         {
-
-            // TODO: Hack to for treating a method as nondet
-            var method = mD.ResolvedMethod;
-            var methodName =method.ContainingType.FullName() + "." + method.Name.Value;
-            if (methodName.Equals("SVX.ContractBase.getNondet"))
+            foreach (Assembly assembly in assemblies)
             {
-                InstructionTranslator.AddToExternalMethods(method);
-                return;
-            }
-            // End Hack
-            
-            if (!mD.IsExternal)
-            {
-                try
+                foreach (IMethodDefinition methodDefinition in assembly.GetAllDefinedMethods())
                 {
-                    if (whitelistContains(mD.ContainingType.FullName()))
+                    // TODO: Hack to for treating a method as nondet
+                    var method = methodDefinition.ResolvedMethod;
+                    var methodName = method.ContainingType.FullName() + "." + method.Name.Value;
+                    if (methodName.Equals("SVX.ContractBase.getNondet"))
                     {
-                        var disassembler = new Disassembler(host, mD, sourceLocationProvider);
-                        MethodBody mB = disassembler.Execute();
-                        transformBody(mB);
+                        InstructionTranslator.AddToExternalMethods(method);
+                        return;
+                    }
+                    // End Hack
 
-                        MethodTranslator methodTranslator = new MethodTranslator(mD, mB, Traverser.CHA);
-                        // todo: improve this piece of code
-                        StreamWriter streamWriter = Program.streamWriter;
-                        streamWriter.WriteLine(methodTranslator.Translate());
-                        Helpers.addTranslatedMethod(mD);
+                    if (!methodDefinition.IsExternal)
+                    {
+                        try
+                        {
+                            if (whitelistContains(methodDefinition.ContainingType.FullName()))
+                            {
+                                var disassembler = new Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
+                                MethodBody mB = disassembler.Execute();
+                                ControlFlowGraph cfg = transformBody(mB);
+                                
+                                MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, mB, CHA, cfg);
+                                // todo: improve this piece of code
+                                StreamWriter streamWriter = Program.streamWriter;
+                                streamWriter.WriteLine(methodTranslator.Translate());
+                                Helpers.addTranslatedMethod(methodDefinition);
+                            }
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + BoogieMethod.From(methodDefinition).Name);
+                            if (!Settings.SilentExceptionsForMethods)
+                            {
+                                throw ex;
+                            }
+                        }
                     }
                 }
-                catch (InvalidOperationException ex)
-                {
-                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + BoogieMethod.From(mD).Name);
-                    if (!Settings.SilentExceptionsForMethods)
-                    {
-                        throw ex;
-                    }
-                }
             }
-
         }
 
-        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA)
+        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA, ControlFlowGraph cfg)
         {
             this.methodDefinition = methodDefinition;
             this.methodBody = methodBody;
             this.CHA = CHA;
+            this.CFG = cfg;
         }
 
         StatementList TranslateInstructions(out Dictionary<string, BoogieVariable> temporalVariables)
         {
-            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody);
+            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody, CFG);
             instTranslator.Translate();
 
             foreach (var v in instTranslator.RemovedVariables)

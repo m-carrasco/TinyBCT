@@ -30,12 +30,15 @@ namespace TinyBCT.Translators
 
         // called from Traverser
         // set in Main
-        public static void TypeDefinitionTranslatorTraverse(INamedTypeDefinition typeDef)
+        public static void TranslateTypes(ISet<Assembly> assemblies)
         {
-            TypeDefinitionTranslator t = new TypeDefinitionTranslator(typeDef);
-            // todo: improve this piece of code
-            StreamWriter streamWriter = Program.streamWriter;
-            streamWriter.WriteLine(t.Translate());
+            foreach (INamedTypeDefinition type in assemblies.GetAllDefinedTypes())
+            {
+                TypeDefinitionTranslator t = new TypeDefinitionTranslator(type);
+                // todo: improve this piece of code
+                StreamWriter streamWriter = Program.streamWriter;
+                streamWriter.WriteLine(t.Translate());
+            }
         }
 
         // this is experimental 

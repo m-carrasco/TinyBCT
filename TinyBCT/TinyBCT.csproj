@@ -187,7 +187,6 @@
     <Compile Include="Translators\StaticInitializer.cs" />
     <Compile Include="Translators\TypeDefinitionTranslator.cs" />
     <Compile Include="Translators\TypesAndDelegatesCollector.cs" />
-    <Compile Include="Traverser\Traverser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReferenceFinder.cs" />

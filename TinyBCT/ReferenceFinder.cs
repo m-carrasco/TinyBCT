@@ -64,25 +64,31 @@ namespace TinyBCT
             (new VariablesCollector()).Visit(methodBody);
         }
 
-        public static void TraverseForFields(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+        public static void TraverseForFields(ISet<Assembly> assemblies)
         {
-            var disassembler = new Disassembler(host, mD, sourceLocationProvider);
-            MethodBody methodBody = disassembler.Execute();
+            foreach (Assembly assembly in assemblies)
+            {
+                foreach (IMethodDefinition methodDefinition in assembly.GetAllDefinedMethods())
+                {
+                    var disassembler = new Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
+                    MethodBody methodBody = disassembler.Execute();
 
-            var cfAnalysis = new ControlFlowAnalysis(methodBody);
-            Traverser.CFG = cfAnalysis.GenerateExceptionalControlFlow();
+                    var cfAnalysis = new ControlFlowAnalysis(methodBody);
+                    var cfg = cfAnalysis.GenerateExceptionalControlFlow();
 
-            var splitter = new WebAnalysis(Traverser.CFG, methodBody.MethodDefinition);
-            splitter.Analyze();
-            splitter.Transform();
+                    var splitter = new WebAnalysis(cfg, methodBody.MethodDefinition);
+                    splitter.Analyze();
+                    splitter.Transform();
 
-            methodBody.UpdateVariables();
+                    methodBody.UpdateVariables();
 
-            var typeAnalysis = new TypeInferenceAnalysis(Traverser.CFG, methodBody.MethodDefinition.Type);
-            typeAnalysis.Analyze();
+                    var typeAnalysis = new TypeInferenceAnalysis(cfg, methodBody.MethodDefinition.Type);
+                    typeAnalysis.Analyze();
 
-            ReferenceFinder reference = new ReferenceFinder();
-            reference.CollectFields(methodBody);
+                    ReferenceFinder reference = new ReferenceFinder();
+                    reference.CollectFields(methodBody);
+                }
+            }
         }
 
         public class VariablesCollector : InstructionVisitor

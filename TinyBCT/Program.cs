@@ -23,26 +23,6 @@ namespace TinyBCT
             return outputResultPath;
         }
 
-        static void ProcessFiles(Action<string> processAction)
-        {
-            foreach (var inputFile in Settings.InputFiles)
-                processAction(inputFile);
-        }
-
-        static ClassHierarchyAnalysis CreateCHAnalysis(IMetadataHost host)
-        {
-            foreach (var inputFile in Settings.InputFiles)
-            {
-                var assembly = new Assembly(host);
-                assembly.Load(inputFile);
-   
-            }
-            var CHAnalysis = new ClassHierarchyAnalysis(host);
-            CHAnalysis.Analyze();
-            return CHAnalysis;
-
-        }
-
         public static void CreateAllAsyncMethods(StreamWriter sw)
         {
             StatementList stmts = new StatementList();
@@ -116,7 +96,7 @@ namespace TinyBCT
             ProgramOptions options = Settings.CreateProgramOptions(args);
             Start(options);
         }
-        
+
         public static void Start(ProgramOptions programOptions){
 
             Console.WriteLine(programOptions);
@@ -127,150 +107,109 @@ namespace TinyBCT
 
             using (var host = new PeReader.DefaultHost())
             {
-                var CHAnalysis = CreateCHAnalysis(host);
+                #region Initialize host types
                 Types.Initialize(host);
+                #endregion
+
+                #region Load assemblies
+                ISet<Assembly> inputAssemblies = new HashSet<Assembly>();
+                foreach (string inputFile in Settings.InputFiles)
+                {
+                    Assembly assembly = new Assembly(host);
+                    assembly.Load(inputFile);
+                    inputAssemblies.Add(assembly);
+                }
+                #endregion
+
+                #region Execute CHA
+                var CHAnalysis = new ClassHierarchyAnalysis(host);
+                CHAnalysis.Analyze();
+                #endregion
 
                 // TODO(diegog): Analysis not integrated yet
                 // This can be used to obtain the allocated types and delegates
-                var allocationsAndDelelegatesAnalysis = new TypesAndDelegatesCollector(host);
-                //allocationsAndDelelegatesAnalysis.Analyze();
+                //var allocationsAndDelelegatesAnalysis = new TypesAndDelegatesCollector(host);
 
-                Action<string> writeTAC = (String inputFile) =>
-                {
-                    using (var assembly = new Assembly(host))
-                    {
-                        // analysis-net setup
-                        assembly.Load(inputFile);
+                #region Write three address code for debugging
+                TACWriter.WriteTAC(inputAssemblies);
+                #endregion
 
-                        TACWriter.Open(inputFile);
-                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
-                        visitor.AddMethodDefinitionAction(TACWriter.IMethodDefinitionTraverse); // saves tac code for debugging
-                        visitor.Traverse(assembly.Module);
-                        TACWriter.Close();
-                    }
-                };
-
-                ProcessFiles(writeTAC);
-
-                Action<string> referenceFinder = (String inputFile) =>
-                {
-                    using (var assembly = new Assembly(host))
-                    {
-                        // analysis-net setup
-                        assembly.Load(inputFile);
-                        Types.Initialize(host);
-
-                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
-                        visitor.AddMethodDefinitionAction(ReferenceFinder.TraverseForFields);
-                        visitor.Traverse(assembly.Module);
-                    }
-                };
-
+                #region Look for references (used in mixed memory model)
                 if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
-                    ProcessFiles(referenceFinder);
+                    ReferenceFinder.TraverseForFields(inputAssemblies);
+                #endregion
 
-                Action<string> translateTypeDefinitions = (String inputFile) =>
-                {
-                    using (var assembly = new Assembly(host))
-                    {
-                        // analysis-net setup
-                        assembly.Load(inputFile);
-                        Types.Initialize(host);
+                #region Translate defined types and add axioms about subtyping
+                TypeDefinitionTranslator.TranslateTypes(inputAssemblies);
+                #endregion
 
-                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
-                        visitor.AddNamedTypeDefinitionAction(TypeDefinitionTranslator.TypeDefinitionTranslatorTraverse); // generates axioms for typing 
-                        visitor.Traverse(assembly.Module);
-                    }
-                };
+                #region Translate defined methods
+                MethodTranslator.TranslateAssemblies(inputAssemblies, CHAnalysis);
+                #endregion
 
-                ProcessFiles(translateTypeDefinitions);
-
-
-                Action<string> translateMethodDefinitions = (String inputFile) =>
-                {
-                    using (var assembly = new Assembly(host))
-                    {
-                        // analysis-net setup
-                        assembly.Load(inputFile);
-                        Types.Initialize(host);
-
-                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
-                        visitor.AddMethodDefinitionAction(MethodTranslator.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
-                        visitor.Traverse(assembly.Module);
-                    }
-                };
-
-                ProcessFiles(translateMethodDefinitions);
-
-                Action<string> translateCallsToStaticConstructors = (String inputFile) =>
-                {
-                    using (var assembly = new Assembly(host))
-                    {
-                        // analysis-net setup
-                        assembly.Load(inputFile);
-                        Types.Initialize(host);
-
-                        var visitor = new Traverser(host, assembly.PdbReader, CHAnalysis);
-                        visitor.AddMethodDefinitionAction(StaticInitializer.IMethodDefinitionTraverse); // given a IMethodDefinition and a MethodBody are passed to a MethodTranslator object
-                        visitor.Traverse(assembly.Module);
-                    }
-                };
-
-                ProcessFiles(translateCallsToStaticConstructors);
+                #region Create main wrapper with static fields initialization and static constructors calls
+                StaticInitializer.SearchStaticConstructorsAndMain(inputAssemblies);
                 streamWriter.WriteLine(StaticInitializer.CreateInitializeGlobals());
                 streamWriter.WriteLine(StaticInitializer.CreateMainWrappers());
                 streamWriter.WriteLine(StaticInitializer.CreateStaticVariablesAllocProcedure());
                 streamWriter.WriteLine(StaticInitializer.CreateDefaultValuesStaticVariablesProcedure());
                 streamWriter.WriteLine(StaticInitializer.CreateStaticConstructorsCallsProcedure());
+                #endregion
 
-                // TypeDefinitionTranslator.TypeAxioms(); diego's axioms
-                // information stored from previous steps is used
+                #region Translate types that are referenced but not defined in the input assemblies
                 TypeDefinitionTranslator.DefineUndeclaredSuperClasses();
+                #endregion
 
-            BoogieLiteral.Strings.WriteStringConsts(streamWriter);
+                #region Translate string constants
+                BoogieLiteral.Strings.WriteStringConsts(streamWriter);
+                #endregion
 
-            streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
-            streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
-            streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
+                #region Translate delegates
+                streamWriter.WriteLine(DelegateStore.DefineMethodsIdentifiers());
+                streamWriter.WriteLine(DelegateStore.CreateDelegateMethod());
+                streamWriter.WriteLine(DelegateStore.InvokeDelegateMethod());
+                #endregion
 
-            // CreateAllAsyncMethods(streamWriter);
+                // CreateAllAsyncMethods(streamWriter);
 
-            
-
-            // extern method called
-            foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
-            {
-                var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
-                streamWriter.WriteLine(head);
-            }
-            foreach (var methodRef in InstructionTranslator.PotentiallyMissingMethodsCalled)
-            {
-                if (Helpers.IsCurrentlyMissing(methodRef))
+                #region Translate called methods that are not present in our input assemblies
+                foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
                 {
                     var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
                     streamWriter.WriteLine(head);
                 }
-            }
-
-            // we declare read or written fields
-            foreach (var field in FieldTranslator.GetFieldDefinitions())
-                streamWriter.WriteLine(field);
-
-            streamWriter.Close();
-
-            foreach (var bplInputFile in Settings.BplInputFiles)
-            {
-                var output = new FileStream(outputPath, FileMode.Append, FileAccess.Write);
-                ////output.WriteLine("// Appending {0}", bplInputFile);
-                ////streamWriter.Flush();
-
-                using (var inputStream = File.OpenRead(bplInputFile))
+                foreach (var methodRef in InstructionTranslator.PotentiallyMissingMethodsCalled)
                 {
-                    inputStream.CopyTo(output);//streamWriter.BaseStream);
+                    if (Helpers.IsCurrentlyMissing(methodRef))
+                    {
+                        var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
+                        streamWriter.WriteLine(head);
+                    }
                 }
 
-                output.Close();
-            }
+                #endregion
+
+                #region Translate class fields
+                // we declare read or written fields
+                foreach (var field in FieldTranslator.GetFieldDefinitions())
+                    streamWriter.WriteLine(field);
+                #endregion
+
+                streamWriter.Close();
+
+                #region Append bpl input files
+                foreach (var bplInputFile in Settings.BplInputFiles)
+                {
+                    var output = new FileStream(outputPath, FileMode.Append, FileAccess.Write);
+ 
+                    using (var inputStream = File.OpenRead(bplInputFile))
+                    {
+                        inputStream.CopyTo(output);
+                    }
+
+                    output.Close();
+                }
+                #endregion
             }
 
         }

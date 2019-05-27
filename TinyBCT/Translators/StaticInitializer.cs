@@ -12,20 +12,13 @@ namespace TinyBCT.Translators
 {
     class StaticInitializer
     {
-        internal static ISet<IMethodDefinition> mainMethods 
-            = new HashSet<IMethodDefinition>();
-        internal static ISet<IMethodDefinition> staticConstructors 
-            = new HashSet<IMethodDefinition>();
+        internal static IEnumerable<IMethodDefinition> mainMethods;
+        internal static IEnumerable<IMethodDefinition> staticConstructors;
 
-        public static void IMethodDefinitionTraverse(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+        public static void SearchStaticConstructorsAndMain(ISet<Assembly> assemblies)
         {
-            if (mD.IsStaticConstructor)
-            {
-                staticConstructors.Add(mD);
-            } else if (Helpers.IsMain(mD))
-            {
-                mainMethods.Add(mD);
-            }
+            staticConstructors = assemblies.GetAllDefinedMethods().Where(m => m.IsStaticConstructor);
+            mainMethods = assemblies.GetAllDefinedMethods().Where(m => Helpers.IsMain(m));
         }
 
         public static string CreateMainWrappers()

@@ -19,6 +19,7 @@ namespace TinyBCT.Translators
     // one instance is created for each translated method
     public class InstructionTranslator
     {
+        private ControlFlowGraph CFG;
         private ClassHierarchyAnalysis CHA;
         private MethodBody methodBody; // currently used to get ExceptionsInformation
         // Diego: No longer required
@@ -48,8 +49,9 @@ namespace TinyBCT.Translators
         protected IMethodDefinition method;
         public Dictionary<string, BoogieVariable> temporalVariables;
 
-        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody)
+        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody, ControlFlowGraph cfg)
         {
+            this.CFG = cfg;
             this.CHA = CHA;
             this.method = methodBody.MethodDefinition;
             this.methodBody = methodBody;
@@ -229,7 +231,7 @@ namespace TinyBCT.Translators
             // IN THAT CASE IT WILL DIRECTLY CALL funcOnPontentialCallee over "method"
             protected void DynamicDispatch(IMethodReference method, IVariable receiver, MethodCallOperation operation, Func<IMethodReference, StatementList> funcOnPotentialCallee)
             {
-                var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, Traverser.CHA);
+                var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, instTranslator.CHA);
 
                 var getTypeBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "DynamicDispatch_Type_");
 
@@ -856,7 +858,7 @@ namespace TinyBCT.Translators
                 {
                     Func<IMethodReference, StatementList> onPotentialCallee = (potential => CallMethod(instruction, potential));
                     DynamicDispatch(instruction.Method, instruction.Arguments.Count > 0 ? instruction.Arguments[0] : null, instruction.Method.IsStatic ? MethodCallOperation.Static : MethodCallOperation.Virtual, onPotentialCallee);
-                    AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
+                    AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction, instTranslator.CFG));
                     return;
                 }
 
@@ -864,7 +866,7 @@ namespace TinyBCT.Translators
 
                 AddBoogie(CallMethod(instruction, instruction.Method));
 
-                AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
+                AddBoogie(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction, instTranslator.CFG));
             }
 
             public override void Visit(ConditionalBranchInstruction instruction)
@@ -1304,7 +1306,7 @@ namespace TinyBCT.Translators
                  */
 
                 // only encode behaviour if there was an unhandled exception
-                var target = GetThrowTarget(instruction);
+                var target = GetThrowTarget(instruction, instTranslator.CFG);
                 var ifBody = String.IsNullOrEmpty(target) ? BoogieStatement.ReturnStatement : BoogieStatement.Goto(target);
                 AddBoogie(BoogieStatement.If(Expression.ExceptionVarNotNull, ifBody));
             }
@@ -1407,7 +1409,7 @@ namespace TinyBCT.Translators
                     AddBoogie(boogieGenerator.VariableAssignment(BoogieVariable.ExceptionVar(), BoogieVariable.ExceptionInCatchHandlerVar()));
                 }
 
-                var target = GetThrowTarget(instruction);
+                var target = GetThrowTarget(instruction, instTranslator.CFG);
 
                 if (String.IsNullOrEmpty(target))
                     AddBoogie(BoogieStatement.ReturnStatement);
@@ -1422,7 +1424,7 @@ namespace TinyBCT.Translators
 
             // if $Exception is not null, the method call instruction is handled as if it was a throw instruction
             // nearest catch handler is searched otherwise exit method.
-            public static StatementList HandleExceptionAfterMethodCall(Instruction ins)
+            public static StatementList HandleExceptionAfterMethodCall(Instruction ins, ControlFlowGraph cfg)
             {
                 if (!Settings.Exceptions)
                     return BoogieStatement.Nop;
@@ -1431,7 +1433,7 @@ namespace TinyBCT.Translators
                 var null_obj = bg.NullObject();
                 var exceptionNotNull = Expression.ExceptionVarNotNull;
                 var ifStmts = new StatementList();
-                var label = GetThrowTarget(ins);
+                var label = GetThrowTarget(ins, cfg);
                 if (String.IsNullOrEmpty(label))
                     ifStmts.Add(BoogieStatement.ReturnStatement);
                 else
@@ -1443,9 +1445,9 @@ namespace TinyBCT.Translators
             // retrieves all succesors blocks of the block that contains the throw instruction (it could be a method call instruction)
             // we want to jump to the nearest catch handler, so we get the block with the nearest label.
             // if there is none, we should exit the method
-            protected static string GetThrowTarget(Instruction instruction)
+            protected static string GetThrowTarget(Instruction instruction, ControlFlowGraph cfg)
             {
-                var node = Traverser.CFG.Nodes.Where((x => x.Instructions.Contains(instruction))).First();
+                var node = cfg.Nodes.Where((x => x.Instructions.Contains(instruction))).First();
                 var successors = node.Successors.Where(block => block.Instructions.Any(ins => ins is CatchInstruction || ins is FinallyInstruction) && block.Instructions.First().Label != null);
 
                 if (successors.Count() == 0)
@@ -1462,7 +1464,7 @@ namespace TinyBCT.Translators
             // next handler if current catch is not compatible with the exception type
             protected  string GetNextHandlerIfCurrentCatchNotMatch(Instruction instruction)
             {
-                var node = Traverser.CFG.Nodes.Where((x => x.Instructions.Contains(instruction))).First();
+                var node = instTranslator.CFG.Nodes.Where((x => x.Instructions.Contains(instruction))).First();
 
                 // predecessors of a catch is a try - exceptional cfg add edges to the block that make a try not the catch blocks.
                 var successors = node.Predecessors.SelectMany(n => n.Successors).Where(n => n != node && n.Kind != CFGNodeKind.Exit);
@@ -1600,7 +1602,7 @@ namespace TinyBCT.Translators
                     // For example:
                     // memoryInt := WriteInt(memoryInt, _var1, var1); // first one with underscore, second without (this is intentional)
                     stmts.Add(boogieGenerator.VariableAssignment(createObjIns.Result, freshVar));
-                    stmts.Add(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction));
+                    stmts.Add(ExceptionTranslation.HandleExceptionAfterMethodCall(instruction, instTranslator.CFG));
 
                     return stmts;
                 };

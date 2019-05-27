@@ -16,29 +16,24 @@ namespace TinyBCT
         private static StringBuilder sb;
         private static StreamWriter sw;
 
-        // called from Traverser
-        // set in Main
-        public static void IMethodDefinitionTraverse(IMethodDefinition mD, IMetadataHost host, ISourceLocationProvider sourceLocationProvider)
+        public static void WriteTAC(ISet<Assembly> assemblies)
         {
-            if (!mD.IsExternal)
+            foreach (Assembly a in assemblies)
             {
-                try
+                Open(a.Module.Location);
+                foreach (IMethodDefinition methodDefinition in a.GetAllDefinedMethods())
                 {
-                    var disassembler = new Disassembler(host, mD, sourceLocationProvider);
-                    MethodBody mB = disassembler.Execute();
-                    MethodTranslator.transformBody(mB);
-
-                    TACWriter.AddMethod(mB);
-                    TACWriter.Write();
-                }
-                catch (InvalidOperationException ex)
-                {
-                    Console.WriteLine("WARNING: Exception thrown while translating method (omitting): " + BoogieMethod.From(mD).Name);
-                    if (!Settings.SilentExceptionsForMethods)
+                    if (methodDefinition.Body.Size > 0)
                     {
-                        throw ex;
+                        var disassembler = new Disassembler(a.Host, methodDefinition, a.PdbReader);
+                        MethodBody mB = disassembler.Execute();
+                        MethodTranslator.transformBody(mB);
+
+                        TACWriter.AddMethod(mB);
+                        TACWriter.Write();
                     }
                 }
+                Close();
             }
         }
 

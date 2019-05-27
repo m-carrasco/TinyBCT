@@ -1004,16 +1004,30 @@ namespace TinyBCT
     }
 	public static class Extensions
 	{
-		public static string FullName(this ITypeReference tref)
-		{
-			return TypeHelper.GetTypeName(tref, NameFormattingOptions.Signature | NameFormattingOptions.TypeParameters);
-		}
-		public static string GetName(this ITypeReference tref)
-		{
-			if (tref is INamedTypeReference)
-				return (tref as INamedTypeReference).Name.Value;
+        public static IEnumerable<IMethodDefinition> GetAllDefinedMethods(this Assembly a)
+        {
+            return a.Module.GetAllTypes().SelectMany(t => t.Methods);
+        }
 
-			return TypeHelper.GetTypeName(tref, NameFormattingOptions.OmitContainingType | NameFormattingOptions.OmitContainingNamespace | NameFormattingOptions.SmartTypeName);
-		}
+        public static IEnumerable<INamedTypeDefinition> GetAllDefinedTypes(this ISet<Assembly> assemblies)
+        {
+            return assemblies.SelectMany(assembly => assembly.Module.GetAllTypes());
+        }
+        public static IEnumerable<IMethodDefinition> GetAllDefinedMethods(this ISet<Assembly> assemblies)
+        {
+            return assemblies.GetAllDefinedTypes().SelectMany(t => t.Methods);
+        }
+
+        public static string FullName(this ITypeReference tref)
+        {
+	        return TypeHelper.GetTypeName(tref, NameFormattingOptions.Signature | NameFormattingOptions.TypeParameters);
+        }
+        public static string GetName(this ITypeReference tref)
+        {
+	        if (tref is INamedTypeReference)
+		        return (tref as INamedTypeReference).Name.Value;
+
+	        return TypeHelper.GetTypeName(tref, NameFormattingOptions.OmitContainingType | NameFormattingOptions.OmitContainingNamespace | NameFormattingOptions.SmartTypeName);
+        }
 	}
 }
