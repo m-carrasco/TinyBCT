@@ -172,19 +172,13 @@ namespace TinyBCT
 
                 // CreateAllAsyncMethods(streamWriter);
 
-                #region Translate called methods that are not present in our input assemblies
-                foreach (var methodRef in InstructionTranslator.ExternMethodsCalled)
+                #region Translate called methods as extern (bodyless methods or methods not present in our input assemblies)
+
+                var externMethods = InstructionTranslator.CalledMethods.Except(inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0));
+                foreach (var methodRef in externMethods)
                 {
                     var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
                     streamWriter.WriteLine(head);
-                }
-                foreach (var methodRef in InstructionTranslator.PotentiallyMissingMethodsCalled)
-                {
-                    if (Helpers.IsCurrentlyMissing(methodRef))
-                    {
-                        var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
-                        streamWriter.WriteLine(head);
-                    }
                 }
 
                 #endregion

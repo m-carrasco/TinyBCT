@@ -28,7 +28,7 @@ namespace TinyBCT.Translators
         // store for extern method called
         // since those methods do not have bodies, they are not translated
         // we need to declared them if they are called
-        public static ISet<IMethodReference> ExternMethodsCalled = new HashSet<IMethodReference>();
+        public static ISet<IMethodReference> CalledMethods = new HashSet<IMethodReference>();
         // store for methods that have not been found yet but have been called
         // Also necessary to declare them if they end up being missing
         public static ISet<IMethodReference> PotentiallyMissingMethodsCalled = new HashSet<IMethodReference>();
@@ -58,9 +58,9 @@ namespace TinyBCT.Translators
             temporalVariables = new Dictionary<string, BoogieVariable>();
         }
 
-        public static void AddToExternalMethods(IMethodReference method)
+        public static void AddToCalledMethods(IMethodReference method)
         {
-            ExternMethodsCalled.Add(method.ResolvedMethod);
+            CalledMethods.Add(method);
         }
 
         public BoogieVariable GetFreshVariable(Helpers.BoogieType type, string prefix)
@@ -311,8 +311,7 @@ namespace TinyBCT.Translators
                     AddBoogie(funcOnPotentialCallee(method));
                 }
 
-                if (Helpers.IsExternal(method.ResolvedMethod) || method.ResolvedMethod.IsAbstract)
-                    InstructionTranslator.AddToExternalMethods(method);
+                InstructionTranslator.AddToCalledMethods(method);
             }
 
             public StatementList AddSubtypeInformationToExternCall(MethodCallInstruction instruction)
@@ -774,16 +773,8 @@ namespace TinyBCT.Translators
 
             private StatementList CallMethod(MethodCallInstruction instruction, IMethodReference callee)
             {
+                AddToCalledMethods(Helpers.GetUnspecializedVersion(callee));
 
-                var methodDefinition = callee.ResolvedMethod;
-
-                if (Helpers.IsExternal(methodDefinition))
-                    AddToExternalMethods(methodDefinition);
-                // Important not to add methods to both sets.
-                else if (Helpers.IsCurrentlyMissing(methodDefinition))
-                    PotentiallyMissingMethodsCalled.Add(Helpers.GetUnspecializedVersion(methodDefinition));
-
-                var signature = BoogieMethod.From(callee).Name;
                 var stmts = new StatementList();
 
                 var location = instTranslator.CurrentInstructionLocation;

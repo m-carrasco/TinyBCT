@@ -107,16 +107,6 @@ namespace TinyBCT
             {
                 foreach (IMethodDefinition methodDefinition in assembly.GetAllDefinedMethods())
                 {
-                    // TODO: Hack to for treating a method as nondet
-                    var method = methodDefinition.ResolvedMethod;
-                    var methodName = method.ContainingType.FullName() + "." + method.Name.Value;
-                    if (methodName.Equals("SVX.ContractBase.getNondet"))
-                    {
-                        InstructionTranslator.AddToExternalMethods(method);
-                        return;
-                    }
-                    // End Hack
-
                     if (!methodDefinition.IsExternal)
                     {
                         try

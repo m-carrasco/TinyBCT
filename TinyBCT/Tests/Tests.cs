@@ -161,8 +161,7 @@ public class TestsBase
         TinyBCT.BoogieLiteral.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
         TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
 
-        TinyBCT.Translators.InstructionTranslator.ExternMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
-        TinyBCT.Translators.InstructionTranslator.PotentiallyMissingMethodsCalled = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
+        TinyBCT.Translators.InstructionTranslator.CalledMethods = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
         TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
         TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
 
