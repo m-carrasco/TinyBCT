@@ -107,10 +107,6 @@ namespace TinyBCT
 
             using (var host = new PeReader.DefaultHost())
             {
-                #region Initialize host types
-                Types.Initialize(host);
-                #endregion
-
                 #region Load assemblies
                 ISet<Assembly> inputAssemblies = new HashSet<Assembly>();
                 foreach (string inputFile in Settings.InputFiles)
@@ -124,6 +120,10 @@ namespace TinyBCT
                 #region Execute CHA
                 var CHAnalysis = new ClassHierarchyAnalysis(host);
                 CHAnalysis.Analyze();
+                #endregion
+
+                #region Initialize host types
+                Types.Initialize(host);
                 #endregion
 
                 // TODO(diegog): Analysis not integrated yet
