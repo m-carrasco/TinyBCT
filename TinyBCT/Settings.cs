@@ -55,7 +55,7 @@ namespace TinyBCT
             sb.AppendLine("SilentExceptionsForMethods " + SilentExceptionsForMethods);
             sb.AppendLine("DebugLines " + DebugLines);
             sb.AppendLine("Verbose " + Verbose);
-            sb.AppendLine("MemoryModel" + MemoryModel);
+            sb.AppendLine("MemoryModel " + MemoryModel);
             return sb.ToString();
         }
         public IList<string> GetInputFiles(){return inputFiles;}

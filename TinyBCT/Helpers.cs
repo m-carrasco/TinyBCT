@@ -740,7 +740,7 @@ namespace TinyBCT
 
             mentionedClasses.Add(type);
 
-            if (type is INamespaceTypeReference || type is INestedTypeReference)
+            if (!(type.ResolvedType is Dummy) && (type is INamespaceTypeReference || type is INestedTypeReference))
             { 
                 type = TypeHelper.GetInstanceOrSpecializedNestedType(type.ResolvedType);
             }
