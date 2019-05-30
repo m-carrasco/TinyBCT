@@ -99,7 +99,7 @@ namespace TinyBCT.Translators
                     continue;
 
 
-                GenerateTypeDefinition(sb, c, typeName);
+                GenerateTypeDefinition(sb, c);
 
                 if (InstructionTranslator.MentionedClasses.Any())
                 {
@@ -139,7 +139,7 @@ namespace TinyBCT.Translators
                 return "";
 
             normalizedTypeStrings.Add(typeName);
-            GenerateTypeDefinition(sb, typeDef, typeName);
+            GenerateTypeDefinition(sb, typeDef);
 
             // todo: improve this piece of code
             //StreamWriter streamWriter = Program.streamWriter;
@@ -308,7 +308,7 @@ namespace TinyBCT.Translators
             return String.Format("const unique T${0} : int;", typeName);
         }
 
-        public static void GenerateTypeDefinition(StringBuilder sb, ITypeReference typeReference, string typeName)
+        public static void GenerateTypeDefinition(StringBuilder sb, ITypeReference typeReference)
         {
             InstructionTranslator.MentionedClasses.Add(typeReference);
 

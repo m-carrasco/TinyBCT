@@ -2955,6 +2955,13 @@ class Test {
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    [Test, Category("Manu"), Timeout(0)]
+    public void DynamicKeyword1()
+    {
+        var corralResult = CorralTestHelper("DynamicKeyword", "Test.DynamicKeyword.Main", 10);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     [Ignore(""), Test, Category("Async")]
     public void Async1()
     {

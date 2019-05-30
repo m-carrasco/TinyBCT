@@ -173,7 +173,7 @@ namespace Test
                 MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "mscorlib.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Core.dll")),
-                //MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "System.Runtime.dll")),
+                MetadataReference.CreateFromFile(Path.Combine(assemblyPath, "Microsoft.CSharp.dll")) // Microsoft.CSharp is required for the dynamic keyword
             };
 
             CSharpCompilation compilation = CSharpCompilation.Create(

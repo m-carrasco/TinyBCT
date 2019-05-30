@@ -176,6 +176,7 @@
     <Compile Include="Switch.cs" />
     <Compile Include="UnaryOperations.cs" />
     <Compile Include="Struct.cs" />
+    <Compile Include="DynamicKeyword.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
