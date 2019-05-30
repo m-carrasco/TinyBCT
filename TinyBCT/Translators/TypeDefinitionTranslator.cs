@@ -1,4 +1,5 @@
-﻿using Microsoft.Cci;
+﻿using Backend.Utils;
+using Microsoft.Cci;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace TinyBCT.Translators
 {
-    class TypeDefinitionTranslator
+    public class TypeDefinitionTranslator
     {
         public static ISet<ITypeDefinition> classes = new HashSet<ITypeDefinition>();
 
@@ -98,7 +99,7 @@ namespace TinyBCT.Translators
                     continue;
 
 
-                GenerateTypeDefinition(sb, c.ResolvedType, typeName);
+                GenerateTypeDefinition(sb, c, typeName);
 
                 if (InstructionTranslator.MentionedClasses.Any())
                 {
@@ -157,77 +158,189 @@ namespace TinyBCT.Translators
             }
             return argTypes;
         }
-        public static void GenerateTypeDefinition(StringBuilder sb, ITypeDefinition typeDefinition, string typeName)
-        {
 
+        // the function returns true if the given type reference depends in a type parameter
+        // not necessarily the type must be declared as class Type<T> 
+        // it could be nested and implicitly depend on a generic parameter 
+        // it could inherit a generic parameter
+        // there are some situations that can only be resolved if the definition is present
+        private static bool IsParametericType(ITypeReference typeReference)
+        {
+            if (typeReference is IGenericTypeInstanceReference)
+                return true;
+
+            INestedTypeReference nestedType = typeReference as INestedTypeReference;
+            if (nestedType != null && !(nestedType is Dummy))
+            { 
+                // check Inner example in TestAxiomsGenerics2
+                // it is a nested type reference, and also a INamedTypeReference but GenericParameterCount is zero and DoesNotInheritGenericParameters is true
+                var res = !nestedType.ResolvedType.DoesNotInheritGenericParameters; //|| IsParametericType(nestedType.ResolvedType.BaseClasses.First());
+
+                return res;
+            }
+
+            INamedTypeReference namedType = typeReference as INamedTypeReference;
+
+            if (namedType != null)
+            {
+                return namedType.GenericParameterCount > 0;
+
+            }
+
+            return false;
+        }
+
+        public static int CountArguments(ITypeReference typeReference)
+        {
+            if (typeReference is IArrayTypeReference arrayTypeReference)
+            {
+                return 1;
+            }
+                
+
+            if (typeReference is IGenericTypeInstanceReference genericType)
+            {
+                return genericType.GenericArguments.Count();
+            }
+
+            if (typeReference is INamedTypeReference namedType)
+            {
+                return namedType.GenericParameterCount;
+            }
+
+            return 0;
+        }
+
+        public static void ParametricTypeDeclarations()
+        {
+            var types = ParametricTypes.Select(t => ParametricTypeDeclaration(t));
+            foreach (var t in types)
+                Program.streamWriter.WriteLine(t);
+        }
+
+        public static string ParametricTypeDeclaration(string type)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(String.Format("function {0}() : Ref;", type));
+            sb.AppendLine(String.Format("const unique {0} : int;", type));
+            sb.AppendLine(String.Format("axiom $TypeConstructor({0}()) == {0};", type));
+            sb.AppendLine(String.Format("axiom(forall  $T: Ref:: {{  $Subtype({0}(), $T) }} $Subtype({0}(), $T) <==> ({0}() == $T || $Subtype(T$System.Object(), $T)));", type));
+            return sb.ToString();
+        }
+
+        public static ISet<string> ParametricTypes = new HashSet<string>();
+
+        private static IEnumerable<string> GetParametricTypes(int count)
+        {
+            var ids = Enumerable.Range(0, count);
+            var types = ids.Select(i => String.Format("T$T$_{0}", i));
+            ParametricTypes.AddRange(types);
+            return types;
+        }
+
+        public static string GetAbstractFunctionType(ITypeReference typeReference)
+        {
+            String typeName = Helpers.GetNormalizedType(typeReference);
+            int numberArgs = CountArguments(typeReference);
+            IEnumerable<string> parameters = GetParametricTypes(numberArgs).Select(t => String.Format("{0}()", t));
+            var abstractType = String.Format("T${0}({1})", typeName, String.Join(",", parameters));
+
+            return abstractType;
+        }
+
+        private static IEnumerable<string> GetQuantifierVariables(int count)
+        {
+            var ids = Enumerable.Range(0, count);
+            return ids.Select(i => "T" + i);
+        }
+    
+        private static string TypeConstructorAxiom(ITypeReference type)
+        {
+            string typeName = Helpers.GetNormalizedType(type);
+            string abstractType = GetAbstractFunctionType(type);
+            return String.Format("axiom $TypeConstructor({0}) == T${1};", abstractType, typeName);
+        }
+
+        private static string AxiomAllInstanceTypesSubtypeAbstractType(ITypeReference typeReference)
+        {
+            var abstractType = GetAbstractFunctionType(typeReference);
+            string typeName = Helpers.GetNormalizedType(typeReference);
+            IEnumerable<string> quantifiedVarNames = GetQuantifierVariables(CountArguments(typeReference));
+
+            var quantifierDecl = String.Join(",", quantifiedVarNames.Select(t => t + ": Ref"));
+            var quantifiedType = String.Format("T${0}({1})", typeName, String.Join(",", quantifiedVarNames));
+
+            return String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", quantifierDecl, quantifiedType, abstractType);
+        }
+
+        private static string SubtypeIfParentsSubtypeOrIsSameTypeOrAbstractType(ITypeReference typeReference, IEnumerable<ITypeReference> superTypes)
+        {
+            IList<string> quantifiedVarNames = GetQuantifierVariables(CountArguments(typeReference)).ToList();
+            var abstractFunctionType = GetAbstractFunctionType(typeReference); // if it is not a parametrized type it returns the same type
+            string typeName = Helpers.GetNormalizedType(typeReference);
+
+            var subtyping = superTypes.Select(t => String.Format("$Subtype({0},$T_)", GetAbstractFunctionType(t))).ToList();
+            subtyping.Add(String.Format("{0} == $T_", abstractFunctionType));
+            string subtypingOr = String.Join(" || ", subtyping);
+
+
+            var quantifiedType = String.Format("T${0}({1})", typeName, String.Join(",", quantifiedVarNames));
+            quantifiedVarNames.Add("$T_"); // we dont want this variable in the quantified type (that's why it is added after)
+            var quantifiedDecl = String.Join(",", quantifiedVarNames.Select(t => t + ": Ref"));
+
+            return String.Format("axiom(forall {0} :: {{  $Subtype({1}, $T_) }} ", quantifiedDecl, quantifiedType) +
+                    String.Format("$Subtype({0}, $T_) <==> ({1}));", quantifiedType, subtypingOr);
+        }
+
+        private static string TypeFunction(ITypeReference typeReference)
+        {
+            string typeName = Helpers.GetNormalizedType(typeReference);
+            int numberArgs = CountArguments(typeReference);
+            var funcParams = Enumerable.Range(0, numberArgs).Select(idx => String.Format("t{0} : Ref", idx));
+            String argsString = String.Join(",", funcParams);
+
+            return String.Format("function T${0}({1}) : Ref;", typeName, argsString);
+        }
+
+        private static string TypeConstant(ITypeReference typeReference)
+        {
+            string typeName = Helpers.GetNormalizedType(typeReference);
+            return String.Format("const unique T${0} : int;", typeName);
+        }
+
+        public static void GenerateTypeDefinition(StringBuilder sb, ITypeReference typeReference, string typeName)
+        {
+            InstructionTranslator.MentionedClasses.Add(typeReference);
+
+            #region Type function & constant declaration
+            sb.AppendLine(TypeFunction(typeReference));
+            sb.AppendLine(TypeConstant(typeReference));
+            #endregion
+
+            #region TypeConstructor axioms and special subtyping for parametric types
+            if (CountArguments(typeReference) > 0)
+                sb.AppendLine(AxiomAllInstanceTypesSubtypeAbstractType(typeReference));
+
+            sb.AppendLine(TypeConstructorAxiom(typeReference));
+            #endregion
+
+            #region Subtyping axioms
+            ITypeDefinition typeDefinition = typeReference.ResolvedType;
             var superClass = typeDefinition.BaseClasses.SingleOrDefault();
 
-            var argsString = String.Empty;
-            typeDefinition = TypeHelper.UninstantiateAndUnspecialize(typeDefinition).ResolvedType;
-            if (typeDefinition is INamespaceTypeReference || typeDefinition is INestedTypeReference || typeDefinition is IGenericTypeInstance)
-            {
-                typeDefinition = TypeHelper.GetInstanceOrSpecializedNestedType(typeDefinition.ResolvedType);
-            }
-
-            var typeArguments = GetArgumentsTypes(typeDefinition);
-            if (typeArguments != null)
-            {
-                argsString = String.Join(",", typeArguments.Select(t => t.ToString() + " : Ref"));
-            }
-            
-            sb.AppendLine(String.Format("function T${0}({1}) : Ref;", typeName, argsString));
-            sb.AppendLine(String.Format("const unique T${0} : int;", typeName));
-            
-            if (superClass == null)
-            {
+            // superClass is empty for interfaces and the object type
+            if (superClass == null || typeDefinition is Dummy)
                 superClass = Backend.Types.Instance.PlatformType.SystemObject;
-            }
 
-            if (typeDefinition is IGenericTypeInstanceReference)
-            {
-                var callWithQuantifiedVars =
-                Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments);
-                var callWithGenericsTypes = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses);
-                /// subtype(generic($T), generic(T$T()) 
-                sb.AppendLine(
-                String.Format("axiom(forall {0} :: {{  $Subtype({1}, {2}) }} $Subtype({1}, {2}) );", argsString, callWithQuantifiedVars, callWithGenericsTypes));
-                sb.AppendLine(String.Format("axiom $TypeConstructor({0}) == T${1};", callWithGenericsTypes, typeName));
-            }
-            else
-            {
-                sb.AppendLine(String.Format("axiom $TypeConstructor(T${0}()) == T${0};", typeName));
-            }
-            var funcCall = Helpers.GetNormalizedTypeFunction(typeDefinition, InstructionTranslator.MentionedClasses, typeArguments: typeArguments);
-
-            if (argsString != String.Empty)
-            {
-                argsString += ", ";
-            }
             var superTypes = new List<ITypeReference>();
-            superTypes.Add(superClass.ResolvedType);
-            if (Dummy.TypeDefinition != superClass.ResolvedType)
-            {
-                if (!Settings.AvoidSubtypeCheckingForInterfaces)
-                {
-                    superTypes.AddRange(typeDefinition.Interfaces.Select(t => t.ResolvedType));
-                }
-            }
-            StringBuilder sbSubtypes = new StringBuilder();
-            foreach (var i in superTypes)
-            {
-                Func<ITypeReference, Boolean> forceRecursion = (t =>
-                    !(  (t is IGenericTypeParameter) && 
-                        (typeArguments != null && typeArguments.Contains(t))));
-                var superClassTypeArgs = GetArgumentsTypes(i.ResolvedType);
-                var superClassFuncCall = Helpers.GetNormalizedTypeFunction(i, InstructionTranslator.MentionedClasses, superClassTypeArgs, forceRecursion: forceRecursion);
+            superTypes.Add(superClass);
+            if (!Settings.AvoidSubtypeCheckingForInterfaces)
+                superTypes.AddRange(typeDefinition.Interfaces.Select(t => t));
+            InstructionTranslator.MentionedClasses.AddRange(superTypes);
 
-                parents.Add(i.ResolvedType);
-                sbSubtypes.Append(String.Format("|| $Subtype({1}, $T)", funcCall, superClassFuncCall));
-            }
-            sb.AppendLine(
-                String.Format("axiom(forall {0} $T: Ref:: {{  $Subtype({1}, $T) }} ", argsString, funcCall) +
-                String.Format("$Subtype({0}, $T) <==> ({0} == $T {1}));", funcCall, sbSubtypes.ToString()));
+            sb.AppendLine(SubtypeIfParentsSubtypeOrIsSameTypeOrAbstractType(typeReference, superTypes));
             sb.AppendLine();
+            #endregion
         }
     }
 }

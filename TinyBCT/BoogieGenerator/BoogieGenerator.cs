@@ -67,7 +67,8 @@ namespace TinyBCT
         public static Expression Subtype(Expression expr, ITypeReference type)
         {
             Contract.Assume(Helpers.IsBoogieRefType(expr.Type));
-            return new Expression(Helpers.BoogieType.Bool, $"$Subtype({expr.Expr}, {Helpers.GetNormalizedTypeFunction(type, InstructionTranslator.MentionedClasses)})");
+            InstructionTranslator.MentionedClasses.Add(type);
+            return new Expression(Helpers.BoogieType.Bool, $"$Subtype({expr.Expr}, {TypeDefinitionTranslator.GetAbstractFunctionType(type)})");
         }
         public static Expression Negation(Expression b)
         {

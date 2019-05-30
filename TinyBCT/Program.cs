@@ -158,6 +158,7 @@ namespace TinyBCT
 
                 #region Translate types that are referenced but not defined in the input assemblies
                 TypeDefinitionTranslator.DefineUndeclaredSuperClasses();
+                TypeDefinitionTranslator.ParametricTypeDeclarations();
                 #endregion
 
                 #region Translate string constants
