@@ -101,6 +101,9 @@ namespace TinyBCT
 
                 public virtual BoogieType GetBoogieType(ITypeReference type)
                 {
+                    if (type.IsEnum)
+                        return BoogieType.Int;
+
                     if (type.TypeCode.Equals(PrimitiveTypeCode.String))
                         return BoogieType.Object;
 
@@ -113,11 +116,7 @@ namespace TinyBCT
 
                     if (TypeHelper.IsPrimitiveInteger(type) || type.TypeCode.Equals(PrimitiveTypeCode.Char)  /*|| type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr)*/)
                         return BoogieType.Int;
-
-                    // hack for Enums
-                    if (type.IsEnum)
-                        return BoogieType.Int;
-
+                       
                     // not sure about this
                     // appeared when accessing anArray.Length
                     if (type.TypeCode.Equals(PrimitiveTypeCode.UIntPtr))
