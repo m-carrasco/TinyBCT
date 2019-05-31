@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Backend.ThreeAddressCode.Values;
-using Microsoft.Cci;
 using static Test.TestUtils;
-using Backend;
 using NUnit.Framework;
 using MemOpt = TinyBCT.ProgramOptions.MemoryModelOption;
 using TinyBCT;
@@ -155,30 +152,7 @@ public class TestsBase
     [SetUp]
     public void TestInitialize()
     {
-        TinyBCT.BoogieGenerator.singleton = null;
-
-        TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
-        TinyBCT.BoogieLiteral.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
-        TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
-
-        TinyBCT.Translators.InstructionTranslator.CalledMethods = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
-        TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
-        TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
-
-        TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, TinyBCT.DelegateExpression>();
-        TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
-
-        TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();
-        TinyBCT.Translators.TypeDefinitionTranslator.parents = new HashSet<ITypeDefinition>();
-        TinyBCT.Translators.TypeDefinitionTranslator.normalizedTypeStrings = new HashSet<string>();
-
-        TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
-        TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
-
-        TinyBCT.ImmutableArguments.MethodToMapping = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();
-
-        TinyBCT.ReferenceFinder.ResetFieldReferences();
-        TinyBCT.Translators.TypeDefinitionTranslator.ParametricTypes = new HashSet<string>();
+        TinyBCT.Program.ResetStaticVariables();
     }
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "RegressionsAv");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TempDirForTests");
@@ -222,44 +196,28 @@ public class TestsBase
         {
             compileErrors = !Test.TestUtils.CreateAssemblyDefinition(source, assemblyName, references, prefixDir: uniqueDir, useCSC: useCSC);
         }
-        // Didn't work because there are conflitcs with mscorelib...
-        // var references = new string[] { "CollectionStubs.dll" };
 
         if (!compileErrors)
         {
             var pathToSelf = System.IO.Path.GetDirectoryName(typeof(TinyBCT.Program).Assembly.Location);
-            // If we need to recompile, use: csc /target:library /debug /D:DEBUG /D:CONTRACTS_FULL CollectionStubs.cs
             options = options == null ? new ProgramOptions() : options;
             var dll = System.IO.Path.Combine(uniqueDir, assemblyName) + ".dll";
-            var stubs = System.IO.Path.Combine(pathToSelf, "..", "..", "Dependencies", "CollectionStubs.dll");
-            List<string> argsList = new List<string>();
-            argsList.Add("/i:" + dll);
+            var stubs = System.IO.Path.Combine(pathToSelf, "..", "..", "..", "TinyBCT", "Dependencies", "CollectionStubs.dll");
             var inputFiles = new List<string>(){dll};
-            //if (useStubs){
             if (testOptions.UseCollectionStubsDll){
                 inputFiles.Add(stubs);
-                argsList.Add(stubs);
             }
                 
             options.SetInputFiles(inputFiles);
-            argsList.Add("/l:true");
             options.EmitLineNumbers = true;
-            //if (useStubs)
+
             if (testOptions.AppendPoirotBPL)
             {
-                argsList.Add("/b:" + System.IO.Path.Combine(pathToSelf, "..", "..", "Dependencies", "poirot_stubs.bpl"));
-                var bplFile = System.IO.Path.Combine(pathToSelf, "..", "..", "Dependencies", "poirot_stubs.bpl");
+                var bplFile = System.IO.Path.Combine(pathToSelf, "..", "..", "..", "TinyBCT",  "Dependencies", "poirot_stubs.bpl");
                 options.SetBplFiles(new List<string>(){bplFile});
-
             }
-            //if (additionalTinyBCTOptions != String.Empty)
-            //{
-            //    argsList.AddRange(additionalTinyBCTOptions.Split());
-            //}
+
             TinyBCT.Program.Start(options);
-            //var p = String.Join(" ", argsList);
-            //Console.WriteLine(p);
-            //TinyBCT.Program.Main(argsList.ToArray());
         }
         else
         {

@@ -12,4 +12,4 @@ env:
   - MONO_IOMAP=all
 script:
   - msbuild ${TRAVIS_SOLUTION}
-  - mono ./testrunner/NUnit.ConsoleRunner.3.10.0/tools/nunit3-console.exe ./TinyBCT/bin/Debug/TinyBCT.exe
+  - mono ./testrunner/NUnit.ConsoleRunner.3.10.0/tools/nunit3-console.exe ./TinyBCT/bin/Debug/NUnitTests.dll

@@ -9,11 +9,40 @@ using Backend;
 using System.IO;
 using TinyBCT.Translators;
 using Backend.Model;
+using Backend.ThreeAddressCode.Values;
 
 namespace TinyBCT
 {
-    class Program 
+    public class Program 
     {
+        public static void ResetStaticVariables()
+        {
+            TinyBCT.BoogieGenerator.singleton = null;
+
+            TinyBCT.Helpers.methodsTranslated = new System.Collections.Generic.HashSet<string>();
+            TinyBCT.BoogieLiteral.Strings.stringLiterals = new System.Collections.Generic.HashSet<string>();
+            TinyBCT.Helpers.Strings.specialCharacters = new Dictionary<Char, int>() { { ' ', 0 } };
+
+            TinyBCT.Translators.InstructionTranslator.CalledMethods = new System.Collections.Generic.HashSet<Microsoft.Cci.IMethodReference>();
+            TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
+            TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
+
+            TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, TinyBCT.DelegateExpression>();
+            TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
+
+            TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();
+            TinyBCT.Translators.TypeDefinitionTranslator.parents = new HashSet<ITypeDefinition>();
+            TinyBCT.Translators.TypeDefinitionTranslator.normalizedTypeStrings = new HashSet<string>();
+
+            TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
+            TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
+
+            TinyBCT.ImmutableArguments.MethodToMapping = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();
+
+            TinyBCT.ReferenceFinder.ResetFieldReferences();
+            TinyBCT.Translators.TypeDefinitionTranslator.ParametricTypes = new HashSet<string>();
+        }
+
         public static StreamWriter streamWriter;
 
         private static string SetupOutputFile()
