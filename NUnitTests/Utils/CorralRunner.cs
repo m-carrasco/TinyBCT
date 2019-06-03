@@ -28,6 +28,8 @@ namespace NUnitTests.Utils
             {
                 StringBuilder sb = new StringBuilder();
 
+                sb.Append(InputBplFile + " ");
+
                 if (ExecutionContextBound != null)
                     sb.Append("/k:" + ExecutionContextBound.ToString() + " ");
 
@@ -54,8 +56,6 @@ namespace NUnitTests.Utils
 
                 if (PrintBoogieExt)
                     sb.Append("/printBoogieExt ");
-
-                sb.Append(InputBplFile);
 
                 return sb.ToString();
             }

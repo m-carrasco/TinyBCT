@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using TinyBCT;
 
 namespace NUnitTests
-{   class TinyBctRunner
+{
+    class TinyBctRunner
     {
         public string Run(ProgramOptions options)
         {
@@ -15,7 +16,7 @@ namespace NUnitTests
         }
     }
 
-    class TestOptions : ProgramOptions
+    public class TestOptions : ProgramOptions
     {
         public TestOptions()
         {

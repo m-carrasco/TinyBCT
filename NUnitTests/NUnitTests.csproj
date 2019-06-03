@@ -113,17 +113,37 @@
     <EmbeddedResource Include="Resources\TestExceptionsWhen.cs" />
     <EmbeddedResource Include="Resources\UnaryOperations.cs" />
     <EmbeddedResource Include="Resources\Delegates1.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\AbstractClassDLL.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\Args.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\AsNotSubtype.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\AsSimple.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\AsSubtypeFails.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\AsSubtypeOk.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ComplexExpr.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\DoubleQuestion.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ex1.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ex2.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ForEach2Bug.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ForEachOK.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ListSum.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\ListSum2.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\Set.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\stringEq.cs" />
+    <EmbeddedResource Include="Resources\AvRegressions\stringEqWithEquals.cs" />
     <Compile Include="Utils\Compiler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\CorralRunner.cs" />
     <Compile Include="Utils\Resource.cs" />
     <Compile Include="Utils\TinyBctRunner.cs" />
     <Compile Include="Tests.cs" />
-    <Compile Include="TestUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <EmbeddedResource Include="Resources\AddressesSimple.cs" />
+    <EmbeddedResource Include="Resources\TestsAux\assertion_failure.bpl" />
+    <EmbeddedResource Include="Resources\TestsAux\name_resolution_error.bpl" />
+    <EmbeddedResource Include="Resources\TestsAux\no_bugs.bpl" />
+    <EmbeddedResource Include="Resources\TestsAux\syntax_error.bpl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TinyBCT\TinyBCT.csproj">
