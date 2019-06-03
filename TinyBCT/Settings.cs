@@ -69,7 +69,7 @@ namespace TinyBCT
                 throw new ArgumentException("Input files do not exist");
 
             inputFiles = files;
-            OutputFile = inputFiles.First();
+            OutputFile = Path.ChangeExtension(inputFiles.First(), ".bpl");
         }
         public void SetBplFiles(List<String> files){
             bool ok = files.All((f) => {return File.Exists(f);});

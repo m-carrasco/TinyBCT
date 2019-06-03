@@ -4,6 +4,9 @@ using static Test.TestUtils;
 using NUnit.Framework;
 using MemOpt = TinyBCT.ProgramOptions.MemoryModelOption;
 using TinyBCT;
+using NUnitTests;
+using System.IO;
+using NUnitTests.Utils;
 
 public partial class TestsHelpers
 {
@@ -157,7 +160,7 @@ public class TestsBase
     protected string pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "RegressionsAv");
     private static string pathTempDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test", "TempDirForTests");
 
-    protected virtual CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, TinyBCT.ProgramOptions options = null, bool useCSC = false, TestOptions testOptions = null)
+    protected virtual Test.TestUtils.CorralResult CorralTestHelperCode(string testName, string mainMethod, int recursionBound, string source, TinyBCT.ProgramOptions options = null, bool useCSC = false, TestOptions testOptions = null)
     {
         var testBpl = System.IO.Path.ChangeExtension(testName, ".bpl");
         if (!System.IO.Directory.Exists(pathTempDir))
@@ -170,7 +173,7 @@ public class TestsBase
         // Console.WriteLine(corralResult.ToString());
         return corralResult;
     }
-    protected virtual CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound,  TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
+    protected virtual Test.TestUtils.CorralResult CorralTestHelper(string testName, string mainMethod, int recursionBound,  TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         string source = System.IO.File.ReadAllText(System.IO.Path.Combine(pathSourcesDir, System.IO.Path.ChangeExtension(testName, ".cs")));
         return CorralTestHelperCode(testName, mainMethod, recursionBound, source,  options:options, testOptions: testOptions);
@@ -1950,13 +1953,28 @@ public class TestsManu : TestsBase
         Assert.IsTrue(corralResult.NoBugs());
     }
 
+    private string RunTinyBct(ProgramOptions options)
+    {
+        TinyBctRunner bctRunner = new TinyBctRunner();
+        var bplFile = bctRunner.Run(options);
+
+        return bplFile;
+    }
 
     [Test, Category("Addresses")]
     public void SyntaxTest1([Values(MemOpt.Addresses, MemOpt.Mixed)]MemOpt memOp)
     {
+        var source = Resource.GetResourceAsString("NUnitTests.Resources.AddressesSimple.cs");
+        var dll = Compiler.CompileSource(source);
+
         TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
-        var corralResult = CorralTestHelper("AddressesSimple", "Test.AddressesSimple.SyntaxTest1", 10,  options:options);
+        options.SetInputFiles(new List<String>() { dll });
+        var bplFile = RunTinyBct(options);
+
+        CorralRunner corralRunner = new CorralRunner();
+        var corralResult = corralRunner.Run(new CorralRunner.CorralOptions() { RecursionBound = 10, InputBplFile = bplFile, MainProcedure = "Test.AddressesSimple.SyntaxTest1" }) ;
+
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -3191,7 +3209,7 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    protected override CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
+    protected override Test.TestUtils.CorralResult CorralTestHelper(string testName, string mainMethod, int recusionBound, TinyBCT.ProgramOptions options = null, TestOptions testOptions = null)
     {
         pathSourcesDir = System.IO.Path.Combine(Test.TestUtils.rootTinyBCT, "Test");
         return base.CorralTestHelper(testName, mainMethod, recusionBound, options: options, testOptions: testOptions);
