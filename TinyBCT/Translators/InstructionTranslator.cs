@@ -317,6 +317,7 @@ namespace TinyBCT.Translators
             public StatementList AddSubtypeInformationToExternCall(MethodCallInstruction instruction)
             {
                 var methodRef = instruction.Method;
+
                 // IsDelegateInvokation requires containing type != null - not sure if that always holds
                 if (instruction.HasResult && Helpers.IsBoogieRefType(methodRef.Type))
                 {

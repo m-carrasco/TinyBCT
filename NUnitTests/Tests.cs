@@ -164,12 +164,11 @@ class TestsBase
         return new CorralRunner.CorralOptions() { MainProcedure = name };
     }
 
-    protected CorralRunner.CorralResult TestSingleCSharpFile(string source, ProgramOptions options, CorralRunner.CorralOptions corralOptions)
+    protected CorralRunner.CorralResult TestDll(string dllPath, ProgramOptions options, CorralRunner.CorralOptions corralOptions)
     {
-        Contract.Assert(!String.IsNullOrEmpty(source));
+        Contract.Assert(File.Exists(dllPath));
 
-        var dll = Compiler.CompileSource(source);
-        var inputFiles = new List<String>() { dll };
+        var inputFiles = new List<String>() { dllPath };
         inputFiles.AddRange(options.GetInputFiles());
         options.SetInputFiles(inputFiles);
         TinyBctRunner bctRunner = new TinyBctRunner();
@@ -180,6 +179,14 @@ class TestsBase
         var corralResult = corralRunner.Run(corralOptions);
 
         return corralResult;
+    }
+
+    protected CorralRunner.CorralResult TestSingleCSharpFile(string source, ProgramOptions options, CorralRunner.CorralOptions corralOptions)
+    {
+        Contract.Assert(!String.IsNullOrEmpty(source));
+
+        var dll = Compiler.CompileSource(source);
+        return TestDll(dll, options, corralOptions);
     }
 
     protected CorralRunner.CorralResult TestSingleCSharpResourceFile(string resource, ProgramOptions options, CorralRunner.CorralOptions corralOptions)
@@ -3210,8 +3217,28 @@ public class TestStringHelpers
     }
 }
 
-    public class TestOptions{
-        public bool UseCollectionStubsDll = false;
-        public bool AppendPoirotBPL = false;
-        public int RecursionBound = 10;
+class TestsAzure : TestsBase
+{
+
+    [Test, Ignore("Until we have support for external getter/setter")]
+    public void Test1_NoBugs()
+    {
+        var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
+        ProgramOptions programOptions = new ProgramOptions();
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorld.Function1.Run_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
     }
+
+    [Test]
+    public void Test1_Bugged()
+    {
+        var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
+        ProgramOptions programOptions = new ProgramOptions();
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorld.Function1.Run_Bugged$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+}
