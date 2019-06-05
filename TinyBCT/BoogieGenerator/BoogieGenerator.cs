@@ -35,12 +35,7 @@ namespace TinyBCT
             stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
             return PrimitiveType2Union(expr);
         }
-        public static Expression PrimitiveType2Union(Expression expr, InstructionTranslator instTranslator)
-        {
-            Contract.Assert(!Helpers.IsBoogieRefType(expr.Type));
-            instTranslator.AddBoogie(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
-            return PrimitiveType2Union(expr);
-        }
+
         public static Expression Union2PrimitiveType(Helpers.BoogieType boogieType, Expression expr)
         {
             Contract.Assume(!Helpers.IsBoogieRefType(boogieType));
@@ -354,6 +349,19 @@ namespace TinyBCT
 
     public class DelegateExpression : Expression
     {
+        public override bool Equals(object obj)
+        {
+            if (obj is DelegateExpression del)
+                return del.Expr.Equals(Expr);
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return Expr.GetHashCode();
+        }
+
         protected DelegateExpression(Helpers.BoogieType type, string expr) : base(type, expr) { }
 
         // This method has a clone? GetMethodName
@@ -1276,8 +1284,10 @@ namespace TinyBCT
 
         public override StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null)
         {
-            var argumentList = ComputeArguments(methodCallInstruction, instTranslator);
-            return ProcedureCall(BoogieMethod.From(procedure), argumentList.Select(v => v.Item1).ToList(), resultVariable);
+            StatementList stmts = new StatementList();
+            var argumentList = ComputeArguments(methodCallInstruction, instTranslator, stmts);
+            stmts.Add(ProcedureCall(BoogieMethod.From(procedure), argumentList.Select(v => v.Item1).ToList(), resultVariable));
+            return stmts;
         }
 
     }
@@ -1394,7 +1404,8 @@ namespace TinyBCT
 
         public override StatementList ProcedureCall(IMethodReference procedure, MethodCallInstruction methodCallInstruction, InstructionTranslator instTranslator, BoogieVariable resultVariable = null)
         {
-            var argumentList = ComputeArguments(methodCallInstruction, instTranslator);
+            StatementList res = new StatementList();
+            var argumentList = ComputeArguments(methodCallInstruction, instTranslator, res);
             var boogieProcedure = BoogieMethod.From(procedure);
 
             int s = procedure.IsStatic ? 0 : 1;
@@ -1414,7 +1425,8 @@ namespace TinyBCT
                 resultArguments.Add(resultVariable);
             }
 
-            return BoogieStatement.ProcedureCall(boogieProcedure, argumentList.Select(v => v.Item1).ToList(), resultArguments, resultVariable);
+            res.Add(BoogieStatement.ProcedureCall(boogieProcedure, argumentList.Select(v => v.Item1).ToList(), resultArguments, resultVariable));
+            return res;
         }
 
     }
@@ -1444,7 +1456,7 @@ namespace TinyBCT
 
         public abstract String GetFieldDefinition(IFieldReference fieldReference, String fieldName);
 
-        protected List<(Expression, IVariable)> ComputeArguments(MethodCallInstruction instruction, InstructionTranslator instTranslator)
+        protected List<(Expression, IVariable)> ComputeArguments(MethodCallInstruction instruction, InstructionTranslator instTranslator, StatementList stmts)
         {
             BoogieGenerator bg = BoogieGenerator.singleton;
 
@@ -1467,7 +1479,7 @@ namespace TinyBCT
                     // TODO(rcastano): try to reuse variables.
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
                     // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, receiver, argType)
-                    instTranslator.AddBoogie(bg.VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(Mem().ReadAddr(receiver), instTranslator)));
+                    stmts.Add(bg.VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(Mem().ReadAddr(receiver), stmts)));
                     copyArgs.Add((tempBoogieVar, null));
                 }
                 else
@@ -1498,7 +1510,7 @@ namespace TinyBCT
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
 
                     // intended output: String.Format("\t\t{0} := {2}2Union({1});", localVar, instruction.Arguments.ElementAt(arg_i), argType)
-                    instTranslator.AddBoogie(bg.VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(Mem().ReadAddr(instruction.Arguments.ElementAt(arg_i)), instTranslator)));
+                    stmts.Add(bg.VariableAssignment(tempBoogieVar, Expression.PrimitiveType2Union(Mem().ReadAddr(instruction.Arguments.ElementAt(arg_i)), stmts)));
                     copyArgs.Add((tempBoogieVar, null));
                     #endregion
                 }

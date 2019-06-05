@@ -27,7 +27,7 @@ namespace TinyBCT
             TinyBCT.Translators.InstructionTranslator.MentionedClasses = new HashSet<ITypeReference>();
             TinyBCT.Translators.FieldTranslator.fieldNames = new Dictionary<IFieldReference, String>();
 
-            TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, TinyBCT.DelegateExpression>();
+            TinyBCT.Translators.DelegateStore.methodIdentifiers = new Dictionary<IMethodReference, TinyBCT.DelegateExpression>(new DelegateStore.IMethodReferenceCmp());
             TinyBCT.Translators.DelegateStore.MethodGrouping = new Dictionary<string, ISet<IMethodReference>>();
 
             TinyBCT.Translators.TypeDefinitionTranslator.classes = new HashSet<ITypeDefinition>();

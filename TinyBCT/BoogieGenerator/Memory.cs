@@ -554,7 +554,7 @@ namespace TinyBCT.Memory
             if (Helpers.IsGenericField(instanceFieldAccess.Field) && !boogieType.Equals(Helpers.BoogieType.Object))
             {
                 stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
-                stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
+                stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator.Boogie())));
             }
             else
                 stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), expr));
@@ -670,7 +670,7 @@ namespace TinyBCT.Memory
                 if (!Helpers.IsBoogieRefType(expr.Type)) // int, bool, real
                 {
                     stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
-                    stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
+                    stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator.Boogie())));
                     //sb.AppendLine(String.Format("\t\t$Heap := Write($Heap, {0}, {1}, {2});", instanceFieldAccess.Instance, fieldName, PrimitiveType2Union(Helpers.GetBoogieType(value.Type), value.Name)));
                 }
                 else
@@ -689,7 +689,7 @@ namespace TinyBCT.Memory
                 {
                     stmts.Add(Expression.AssumeInverseRelationUnionAndPrimitiveType(expr));
                     //sb.AppendLine(VariableAssignment(heapAccess, PrimitiveType2Union(boogieType, value.Name)));
-                    stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator)));
+                    stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), Expression.PrimitiveType2Union(expr, instTranslator.Boogie())));
                 }
                 else
                     stmts.Add(dispatcher.WriteAddr(dispatcher.AddressOf(instanceFieldAccess), expr));

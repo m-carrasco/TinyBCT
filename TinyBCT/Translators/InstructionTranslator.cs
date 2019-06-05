@@ -1212,7 +1212,7 @@ namespace TinyBCT.Translators
                         $ArrayContents := $ArrayContents[$ArrayContents[a][1] := $ArrayContents[$ArrayContents[a][1]][1 := Int2Union(0)]];
                     */
                     AddBoogie(Expression.AssumeInverseRelationUnionAndPrimitiveType(boogieGenerator.ReadAddr(instruction.Operand)));
-                    AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Operand), instTranslator)));
+                    AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(instruction.Operand), instTranslator.Boogie())));
                 }
                 else
                     AddBoogie(boogieGenerator.CallWriteArrayElement(arrayExpr, firstIndexExpr, boogieGenerator.ReadAddr(instruction.Operand)));
@@ -1617,7 +1617,7 @@ namespace TinyBCT.Translators
                     if (Helpers.IsBoogieRefType(argument)) // Ref and Union are alias
                         invokeDelegateArguments.Add(boogieGenerator.ReadAddr(argument));
                     else
-                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument), instTranslator));
+                        invokeDelegateArguments.Add(Expression.PrimitiveType2Union(boogieGenerator.ReadAddr(argument), instTranslator.Boogie()));
                 }
 
                 //var arguments = arguments2Union.Count > 0 ? "," + String.Join(",",arguments2Union) : String.Empty;
@@ -1665,8 +1665,24 @@ namespace TinyBCT.Translators
 
     public class DelegateStore
     {
+        public class IMethodReferenceCmp : IEqualityComparer<IMethodReference>
+        {
+            public bool Equals(IMethodReference one, IMethodReference two)
+            {
+                // Adjust according to requirements.
+                return one.InternedKey == two.InternedKey;
+
+            }
+
+            public int GetHashCode(IMethodReference item)
+            {
+                return (int)item.InternedKey;
+
+            }
+        }
+
         internal static IDictionary<IMethodReference, DelegateExpression> methodIdentifiers =
-                new Dictionary<IMethodReference, DelegateExpression>();
+                new Dictionary<IMethodReference, DelegateExpression>(new IMethodReferenceCmp());
 
         // we use a string as a key because hashing ITypeReference is not working as expected
 
@@ -1855,7 +1871,7 @@ namespace TinyBCT.Translators
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (var methodId in methodIdentifiers.Values)
+            foreach (var methodId in methodIdentifiers.Values.Distinct())
                 sb.AppendLine(String.Format("const unique {0}: int;", methodId.Expr));
 
             return sb.ToString();
