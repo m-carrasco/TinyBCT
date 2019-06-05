@@ -146,11 +146,9 @@ class TestsBase
     static TestsBase()
     {
         rootTinyBCT = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..");
-        pathAuxDir = System.IO.Path.Combine(rootTinyBCT, "Test", "TestUtilsAux");
         corralPath = Path.Combine(rootTinyBCT, "..", "corral", "bin", "Debug", "corral.exe");
     }
 
-    protected static string pathAuxDir;
     protected static string rootTinyBCT;
     protected static string corralPath;
 
@@ -3218,11 +3216,17 @@ public class TestStringHelpers
 
 class TestsAzure : TestsBase
 {
+    private string CopyToSystemTempDir(string file, string newExtension = ".dll")
+    {
+        var tmpDll = Path.ChangeExtension(Path.GetTempFileName(), ".dll");
+        File.WriteAllBytes(tmpDll, File.ReadAllBytes(file));
+        return tmpDll;
+    }
 
     [Test]
     public void Test1_NoBugs()
     {
-        var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
         ProgramOptions programOptions = new ProgramOptions();
         programOptions.StubGettersSetters = true;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
@@ -3234,7 +3238,7 @@ class TestsAzure : TestsBase
     [Test]
     public void Test1_Bugged()
     {
-        var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
         ProgramOptions programOptions = new ProgramOptions();
         programOptions.StubGettersSetters = true;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
