@@ -17,6 +17,7 @@ namespace TinyBCT
             var usedProperties = propertiesFinder.FindPropertiesCalls(inputAssemblies).Except(nonExternMethods);
             foreach (var property in usedProperties)
             {
+                streamWriter.WriteLine(GetFieldDef(property));
                 var proc = property.Name.Value.StartsWith("get_") ? GetProcedureStub(property) : SetProcedureStub(property);
                 streamWriter.WriteLine(proc);
             }

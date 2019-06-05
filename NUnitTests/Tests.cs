@@ -3219,7 +3219,7 @@ public class TestStringHelpers
 class TestsAzure : TestsBase
 {
 
-    [Test, Ignore("Until we have support for getters")]
+    [Test]
     public void Test1_NoBugs()
     {
         var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
