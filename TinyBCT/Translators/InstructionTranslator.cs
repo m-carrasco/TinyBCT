@@ -264,46 +264,18 @@ namespace TinyBCT.Translators
                         }
                     }
 
-                    // we need to extend the else if chain
-                    // Diego: Check to refactor to avoid duplication
-                    if (calless.Count > 0)
+                    if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
                     {
-                        if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
-                        {
-                            if (Settings.AvoidSubtypeCheckingForInterfaces)
-                            {
-                                AddBoogie(BoogieStatement.Else(funcOnPotentialCallee(method)));
-                            }
-                            else
-                            {
-                                AddBoogie(BoogieStatement.ElseIf(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
-                            }
-                        }
-                        else
-                        {
-                            AddBoogie(BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
-                        }
+                        var stmt = calless.Count > 0 ? BoogieStatement.Else(funcOnPotentialCallee(method)) :
+                            BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False));
+                        AddBoogie(stmt);
                     }
                     else
                     {
-                        if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
-                        {
-                            if (Settings.AvoidSubtypeCheckingForInterfaces)
-                            {
-                                AddBoogie(funcOnPotentialCallee(method));
-                            }
-                            else
-                            {
-                                AddBoogie(BoogieStatement.If(boogieGenerator.Subtype(getTypeBoogieVar, method.ContainingType), funcOnPotentialCallee(method)));
-                                AddBoogie(BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
-                            }
-                        }
-                        else
-                        {
-                            AddBoogie(BoogieStatement.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)));
-                        }
+                        var stmt = calless.Count > 0 ? BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)) :
+                            BoogieStatement.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False));
 
+                        AddBoogie(stmt);
                     }
                 }
                 else

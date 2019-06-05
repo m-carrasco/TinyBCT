@@ -456,11 +456,6 @@ namespace TinyBCT
                                                                        MethodCallOperation operation,  ClassHierarchyAnalysis CHA)
         {
             var result = new List<IMethodReference>();
-            // var unsolvedCallee = invocation.Method;
-            if(unsolvedCallee.Name.Value.Contains("GetEnumerator"))
-            {
-
-            }
             switch(operation)
             {
                 case MethodCallOperation.Static:
@@ -473,15 +468,8 @@ namespace TinyBCT
                     {
                         type = (type as IManagedPointerTypeReference).TargetType;
                         type = TypeHelper.UninstantiateAndUnspecialize(type);
-                        //type = (type is IGenericTypeInstanceReference) ? (type as IGenericTypeInstanceReference).GenericType : type;
-
                     }
                     var calleeTypes = new List<ITypeReference>(CHA.GetAllSubtypes(type));
-                    //// Hack to get the type from CollectionStubs 
-                    //var typeCHA = CHA.Types.SingleOrDefault(t => t.ToString() == type.ToString());
-                    //if (typeCHA != null)
-                    //    type = typeCHA;
-
                     calleeTypes.Add(type);
                     var candidateCalless = calleeTypes.Select(t => t.FindMethodImplementationForGenerics(unsolvedCallee)).Where(t => t!=null);
                     var candidateCalless2 = calleeTypes.Select(t => t.FindMethodImplementation(unsolvedCallee)).Where(t => t != null);
@@ -491,7 +479,6 @@ namespace TinyBCT
                         if (!result.Contains(candidate)) 
                             result.Add(candidate);
                     }
-                    //result.AddRange(candidateCalless);
                     break;
             }
 
@@ -504,14 +491,6 @@ namespace TinyBCT
         {
             var originalReceiverType = receiverType;
             IMethodReference result = null;
-            if(method.ToString().Contains("Current"))
-            {
-
-            }
-            if (method.ToString().Contains("GetEnumerator"))
-            {
-
-            }
 
             while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType ))
             {
@@ -542,10 +521,6 @@ namespace TinyBCT
                 }
 
             }
-            if(result==null)
-            {
-
-            }
 
             return result;
         }
@@ -553,14 +528,6 @@ namespace TinyBCT
         {
             var originalReceiverType = receiverType;
             IMethodReference result = null;
-            if (method.ToString().Contains("Current"))
-            {
-
-            }
-            if (method.ToString().Contains("GetEnumerator"))
-            {
-
-            }
 
             while (receiverType != null && IsSubtypeOrImplements(receiverType, method.ContainingType))
             {

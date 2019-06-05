@@ -334,8 +334,6 @@ namespace TinyBCT.Translators
 
             var superTypes = new List<ITypeReference>();
             superTypes.Add(superClass);
-            if (!Settings.AvoidSubtypeCheckingForInterfaces)
-                superTypes.AddRange(typeDefinition.Interfaces.Select(t => t));
             InstructionTranslator.MentionedClasses.AddRange(superTypes);
 
             sb.AppendLine(SubtypeIfParentsSubtypeOrIsSameTypeOrAbstractType(typeReference, superTypes));

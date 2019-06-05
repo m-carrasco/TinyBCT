@@ -89,7 +89,6 @@ namespace TinyBCT
         public bool EmitLineNumbers;
         public bool Exceptions;
         public bool AtomicInitArray;
-        public bool AvoidSubtypeCheckingForInterfaces;
         public bool CheckNullDereferences;
         public bool DebugLargeDLL;
         public bool SilentExceptionsForMethods;
@@ -109,7 +108,6 @@ namespace TinyBCT
             EmitLineNumbers = op.EmitLineNumbers;
             Exceptions = op.Exceptions;
             AtomicInit = op.AtomicInitArray;
-            AvoidSubtypeCheckingForInterfaces = op.AvoidSubtypeCheckingForInterfaces;
             CheckNullDereferences = op.CheckNullDereferences;
             DebugLargeDLL = op.DebugLargeDLL;
             SilentExceptionsForMethods = op.SilentExceptionsForMethods;
@@ -126,7 +124,6 @@ namespace TinyBCT
         public static bool EmitLineNumbers;
         public static bool Exceptions;
         public static bool AtomicInit;
-        public static bool AvoidSubtypeCheckingForInterfaces;
         public static bool CheckNullDereferences;
         public static bool DebugLargeDLL;
         public static bool SilentExceptionsForMethods;
@@ -166,10 +163,6 @@ namespace TinyBCT
             p.Setup<bool>('a', "atomicInitArray")
             .Callback(b => options.AtomicInitArray = b)
             .WithDescription("Handles atomic initialization of arrays.");
-
-            p.Setup<bool>('t', "avoidSubtypeForInterfaces")
-            .Callback(b => options.AvoidSubtypeCheckingForInterfaces = b)
-            .WithDescription("Do not use subtypes hierarquies for variables/parameters of interface types (open world)");
 
             p.Setup<bool>("checkNullDereferences")
             .Callback(b => options.CheckNullDereferences = b)
