@@ -3220,11 +3220,12 @@ public class TestStringHelpers
 class TestsAzure : TestsBase
 {
 
-    [Test, Ignore("Until we have support for external getter/setter")]
+    [Test, Ignore("Until we have support for getters")]
     public void Test1_NoBugs()
     {
         var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
         ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
         corralOptions.MainProcedure = "HelloWorld.Function1.Run_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);
@@ -3236,6 +3237,7 @@ class TestsAzure : TestsBase
     {
         var dllLocation = typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location;
         ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
         corralOptions.MainProcedure = "HelloWorld.Function1.Run_Bugged$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);

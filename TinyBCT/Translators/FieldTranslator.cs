@@ -12,7 +12,6 @@ namespace TinyBCT.Translators
 {
     class FieldTranslator
     {
-        IFieldReference fieldRef;
         internal static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
 
         public static IEnumerable<IFieldReference> GetFieldReferences()
@@ -39,24 +38,20 @@ namespace TinyBCT.Translators
             if (fieldNames.ContainsKey(fieldRef))
                 return fieldNames[fieldRef];
 
-            FieldTranslator ft = new FieldTranslator(fieldRef);
+            FieldTranslator ft = new FieldTranslator();
 
-            return ft.BoogieNameForField();
+            var name = ft.BoogieNameForField(fieldRef.ContainingType, fieldRef.Name.Value);
+            fieldNames.Add(fieldRef, name);
+            return name;
         }
 
-        public FieldTranslator(IFieldReference f)
+        public String BoogieNameForField(ITypeReference containingType, string fName)
         {
-            fieldRef = f;
-        }
-
-        public String BoogieNameForField()
-        {
-            var typeName = Helpers.GetNormalizedType(fieldRef.ContainingType);
-            var fieldName = typeName + "." + fieldRef.Name.Value;
+            var typeName = Helpers.GetNormalizedType(containingType);
+            var fieldName = typeName + "." + fName;
             var name = String.Format("F${0}", fieldName);
             name = Helpers.Strings.NormalizeStringForCorral(name);
 
-            fieldNames.Add(fieldRef, name);
             return name;
         }
     }

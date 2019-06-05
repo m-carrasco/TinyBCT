@@ -201,10 +201,22 @@ namespace TinyBCT
                 #endregion
 
                 // CreateAllAsyncMethods(streamWriter);
+                #region Heuristic to catch getters & setters. If they are in our input assemblies we generate a body using a field associated to that property
+                IEnumerable<IMethodReference> usedProperties = new List<IMethodReference>();
+                if (Settings.StubGettersSetters)
+                {
+                    if (Settings.StubGettersSetters)
+                    {
+                        GetterSetterStub getterSetterStub = new GetterSetterStub();
+                        usedProperties = getterSetterStub.Stub(inputAssemblies, streamWriter);
+                    }
+                }
+                #endregion
+
 
                 #region Translate called methods as extern (bodyless methods or methods not present in our input assemblies)
 
-                var externMethods = InstructionTranslator.CalledMethods.Except(inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0));
+                var externMethods = InstructionTranslator.CalledMethods.Except(inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0)).Except(usedProperties);
                 foreach (var methodRef in externMethods)
                 {
                     var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));

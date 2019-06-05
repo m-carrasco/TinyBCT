@@ -31,6 +31,7 @@ namespace TinyBCT
             DebugLines = false;
             Verbose = false;
             MemoryModel = MemoryModelOption.SplitFields;
+            StubGettersSetters = false;
         }
 
         public override string ToString(){
@@ -56,6 +57,7 @@ namespace TinyBCT
             sb.AppendLine("DebugLines " + DebugLines);
             sb.AppendLine("Verbose " + Verbose);
             sb.AppendLine("MemoryModel " + MemoryModel);
+            sb.AppendLine("StubGettersSetters " + StubGettersSetters);
             return sb.ToString();
         }
         public IList<string> GetInputFiles(){return inputFiles;}
@@ -93,6 +95,7 @@ namespace TinyBCT
         public bool SilentExceptionsForMethods;
         public bool DebugLines;
         public bool Verbose;
+        public bool StubGettersSetters;
     }
 
 
@@ -113,6 +116,7 @@ namespace TinyBCT
             DebugLines = op.DebugLines;
             Verbose = op.Verbose;
             MemoryModel = op.MemoryModel;
+            StubGettersSetters = op.StubGettersSetters;
         }
 
         public static ProgramOptions.MemoryModelOption MemoryModel;
@@ -128,6 +132,7 @@ namespace TinyBCT
         public static bool SilentExceptionsForMethods;
         public static bool DebugLines;
         public static bool Verbose;
+        public static bool StubGettersSetters;
 
         public static bool AddressesEnabled() { return MemoryModel >= ProgramOptions.MemoryModelOption.Addresses; }
         public static bool SplitFieldsEnabled() { return MemoryModel == ProgramOptions.MemoryModelOption.SplitFields || MemoryModel == ProgramOptions.MemoryModelOption.Mixed; }
@@ -192,6 +197,8 @@ namespace TinyBCT
             p.Setup<ProgramOptions.MemoryModelOption>("MemoryModel")
                 .Callback(d => options.MemoryModel = d);
 
+            p.Setup<bool>("StubGettersSetters")
+                .Callback(d => options.StubGettersSetters = d);
             var result = p.Parse(args);
 
             if (result.HasErrors)

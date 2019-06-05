@@ -186,6 +186,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReferenceFinder.cs" />
     <Compile Include="BoogieGenerator\Memory.cs" />
+    <Compile Include="PropertiesFinder.cs" />
+    <Compile Include="GetterSetterStubs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
