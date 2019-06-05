@@ -24,7 +24,6 @@ namespace TinyBCT
             EmitLineNumbers = false;
             Exceptions = true;
             AtomicInitArray = false;
-            AvoidSubtypeCheckingForInterfaces = false;
             CheckNullDereferences = false;
             DebugLargeDLL = false;
             SilentExceptionsForMethods = false;
@@ -50,7 +49,6 @@ namespace TinyBCT
             sb.AppendLine("EmitLineNumbers " + EmitLineNumbers);
             sb.AppendLine("Exceptions " + Exceptions);
             sb.AppendLine("AtomicinitArray " + AtomicInitArray);
-            sb.AppendLine("AvoidSubtypeCheckingForInterfaces " + AvoidSubtypeCheckingForInterfaces);
             sb.AppendLine("CheckNullDereferences " + CheckNullDereferences);
             sb.AppendLine("DebugLargeDLL " + DebugLargeDLL);
             sb.AppendLine("SilentExceptionsForMethods " + SilentExceptionsForMethods);

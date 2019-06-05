@@ -844,7 +844,6 @@ class Test {
 }
         ";
         var options = new ProgramOptions();
-        options.AvoidSubtypeCheckingForInterfaces = false;
         var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("Test.Main$Base2"));
         Assert.IsTrue(corralResult.AssertionFails());
     }

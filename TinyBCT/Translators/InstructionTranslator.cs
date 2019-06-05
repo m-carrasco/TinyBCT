@@ -264,19 +264,11 @@ namespace TinyBCT.Translators
                         }
                     }
 
-                    if (method.ResolvedMethod != null && (method.ResolvedMethod.IsAbstract || method.ResolvedMethod.IsExternal))
-                    {
-                        var stmt = calless.Count > 0 ? BoogieStatement.Else(funcOnPotentialCallee(method)) :
-                            BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False));
-                        AddBoogie(stmt);
-                    }
+                    if (calless.Count > 0)
+                        AddBoogie(BoogieStatement.Else(funcOnPotentialCallee(method)));
                     else
-                    {
-                        var stmt = calless.Count > 0 ? BoogieStatement.ElseIf(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False)) :
-                            BoogieStatement.If(Expression.NotEquals(boogieGenerator.ReadAddr(receiver), boogieGenerator.NullObject()), BoogieStatement.Assert(BoogieLiteral.False));
-
-                        AddBoogie(stmt);
-                    }
+                        AddBoogie(funcOnPotentialCallee(method));
+                        
                 }
                 else
                 {
