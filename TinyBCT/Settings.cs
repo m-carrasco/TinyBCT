@@ -31,6 +31,7 @@ namespace TinyBCT
             Verbose = false;
             MemoryModel = MemoryModelOption.SplitFields;
             StubGettersSetters = false;
+            Z3Strings = false;
         }
 
         public override string ToString(){
@@ -56,6 +57,7 @@ namespace TinyBCT
             sb.AppendLine("Verbose " + Verbose);
             sb.AppendLine("MemoryModel " + MemoryModel);
             sb.AppendLine("StubGettersSetters " + StubGettersSetters);
+            sb.AppendLine("Z3Strings " + Z3Strings);
             return sb.ToString();
         }
         public IList<string> GetInputFiles(){return inputFiles;}
@@ -93,6 +95,7 @@ namespace TinyBCT
         public bool DebugLines;
         public bool Verbose;
         public bool StubGettersSetters;
+        public bool Z3Strings;
     }
 
 
@@ -113,6 +116,7 @@ namespace TinyBCT
             Verbose = op.Verbose;
             MemoryModel = op.MemoryModel;
             StubGettersSetters = op.StubGettersSetters;
+            Z3Strings = op.Z3Strings;
         }
 
         public static ProgramOptions.MemoryModelOption MemoryModel;
@@ -128,6 +132,7 @@ namespace TinyBCT
         public static bool DebugLines;
         public static bool Verbose;
         public static bool StubGettersSetters;
+        public static bool Z3Strings;
 
         public static bool AddressesEnabled() { return MemoryModel >= ProgramOptions.MemoryModelOption.Addresses; }
         public static bool SplitFieldsEnabled() { return MemoryModel == ProgramOptions.MemoryModelOption.SplitFields || MemoryModel == ProgramOptions.MemoryModelOption.Mixed; }
@@ -190,6 +195,10 @@ namespace TinyBCT
 
             p.Setup<bool>("StubGettersSetters")
                 .Callback(d => options.StubGettersSetters = d);
+
+            p.Setup<bool>("Z3Strings")
+                .Callback(d => options.Z3Strings = d);
+
             var result = p.Parse(args);
 
             if (result.HasErrors)

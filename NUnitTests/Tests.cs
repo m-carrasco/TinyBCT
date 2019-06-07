@@ -1369,7 +1369,10 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.Main"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Repro")]
@@ -1664,7 +1667,10 @@ class Test {
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestComplexExpr2()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.ComplexExpr.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("PoirotMain.ShouldPass"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.ComplexExpr.cs", options, CreateDefaultCorralOptions("PoirotMain.ShouldPass"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1700,7 +1706,7 @@ class Test {
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.ex2.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("cMain.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
-    [Test, Category("Av-Regressions"), Timeout(10000)]
+    [Test, Category("Av-Regressions"), Timeout(0)]
     public void TestAbstractClassDLL()
     {
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.AbstractClassDLL.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.doStuff$Int$System.Int32"));
@@ -1720,43 +1726,61 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    [Test, Category("Av-Regressions"), Timeout(10000)]
+    [Test, Category("Av-Regressions"), Timeout(0)]
     public void TestStringEqOperator1()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.ShouldFail"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", options, CreateDefaultCorralOptions("Test.ShouldFail"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqOperator2()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.ShouldPass"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", options, CreateDefaultCorralOptions("Test.ShouldPass"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqOperator3()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.ShouldPass2"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", options, CreateDefaultCorralOptions("Test.ShouldPass2"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqOperator4()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.IneqShouldFail"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", options, CreateDefaultCorralOptions("Test.IneqShouldFail"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqOperator5()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.IneqShouldPass"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", options, CreateDefaultCorralOptions("Test.IneqShouldPass"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqOperator6()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.IneqShouldPass2"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEq.cs", options, CreateDefaultCorralOptions("Test.IneqShouldPass2"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Av-Regressions"), Timeout(10000)]
@@ -1773,7 +1797,10 @@ class Test {
   }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.Main"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("Av-Regressions"), Timeout(10000)]
@@ -1790,28 +1817,40 @@ class Test {
   }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.Main"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqWithEquals1()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEqWithEquals.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.ShouldFail"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEqWithEquals.cs", options, CreateDefaultCorralOptions("Test.ShouldFail"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqWithEquals2()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEqWithEquals.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.ShouldPass"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEqWithEquals.cs", options, CreateDefaultCorralOptions("Test.ShouldPass"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test, Category("Av-Regressions"), Timeout(10000)]
     public void TestStringEqWithEquals3()
     {
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEqWithEquals.cs", CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.ShouldPass2"));
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AvRegressions.stringEqWithEquals.cs", options, CreateDefaultCorralOptions("Test.ShouldPass2"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -1993,6 +2032,7 @@ class TestsManu : TestsBase
     {
         TinyBCT.ProgramOptions options = new ProgramOptions();
         options.MemoryModel = memOp;
+        options.Z3Strings = true;
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AddressesSimple.cs", options, CreateDefaultCorralOptions("Test.AddressesSimple.Test1"));
         Assert.IsTrue(corralResult.NoBugs());
     }
@@ -3229,6 +3269,7 @@ class TestsAzure : TestsBase
         var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
         ProgramOptions programOptions = new ProgramOptions();
         programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
         corralOptions.MainProcedure = "HelloWorld.Function1.Run_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);
@@ -3241,9 +3282,130 @@ class TestsAzure : TestsBase
         var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
         ProgramOptions programOptions = new ProgramOptions();
         programOptions.StubGettersSetters = true;
+        //programOptions.Z3Strings = true;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
         corralOptions.MainProcedure = "HelloWorld.Function1.Run_Bugged$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
+    [Test]
+    public void Test2_NoBugs()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorld.Function1.Run2_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test2_Bugged()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorld.Function1.Run2_Bugged$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
 }
+
+class TestsStrings : TestsBase
+{
+    [Test]
+    public void Test1_NoBugs()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test1_NoBugs$System.String"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test1_Bugged()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test1_Bugged$System.String"));
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test2_NoBugs()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test2_NoBugs"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test2_Bugged()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test2_Bugged"));
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test3_NoBugs()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test3_NoBugs"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test3_Bugged()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test3_Bugged"));
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test4_NoBugs()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test4_NoBugs$System.Boolean$System.String"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test4_Bugged()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test4_Bugged$System.Boolean$System.String"));
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test5_NoBugs()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test5_NoBugs$System.String"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test5_Bugged()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.Z3Strings = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.StringOperations.cs", options, CreateDefaultCorralOptions("NUnitTests.Resources.StringTest.Test5_Bugged$System.String"));
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+} 

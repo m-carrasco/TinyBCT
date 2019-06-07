@@ -213,10 +213,16 @@ namespace TinyBCT
                 }
                 #endregion
 
+                streamWriter.WriteLine(StringTranslator.StringConcatStub());
+                streamWriter.WriteLine(StringTranslator.StringEqualsStub());
+                streamWriter.WriteLine(StringTranslator.StringOpEqualityStub());
+                streamWriter.WriteLine(StringTranslator.StringOpInequalityStub());
+                streamWriter.WriteLine(StringTranslator.StringFunctions());
 
                 #region Translate called methods as extern (bodyless methods or methods not present in our input assemblies)
 
                 var externMethods = InstructionTranslator.CalledMethods.Except(inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0)).Except(usedProperties);
+                externMethods = externMethods.Where(m => !StringTranslator.GetBoogieNamesForStubs().Contains(BoogieMethod.From(m).Name));
                 foreach (var methodRef in externMethods)
                 {
                     var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));

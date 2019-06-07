@@ -188,6 +188,7 @@
     <Compile Include="BoogieGenerator\Memory.cs" />
     <Compile Include="PropertiesFinder.cs" />
     <Compile Include="GetterSetterStubs.cs" />
+    <Compile Include="Translators\StringTranslator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

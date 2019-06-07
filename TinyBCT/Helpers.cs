@@ -273,8 +273,10 @@ namespace TinyBCT
             public static readonly BoogieType Addr = new BoogieType(ConstValue.Addr);
             public static readonly BoogieType Union = Object;
             public static readonly BoogieType Void = new BoogieType(ConstValue.Void);
+            public static readonly BoogieType StringLiteral = new BoogieType(ConstValue.StringLiteral);
+
             private ConstValue Const { get; }
-            private enum ConstValue { Int, Bool, Real, Object, Addr, Void };
+            private enum ConstValue { Int, Bool, Real, Object, Addr, Void, StringLiteral };
             public string FirstUppercase()
             {
                 return Const.ToString();
@@ -287,6 +289,9 @@ namespace TinyBCT
                     return "real";
                 if (Const == ConstValue.Bool)
                     return "bool";
+                if (Const == ConstValue.StringLiteral)
+                    return Const.ToString();
+
                 return Const.ToString();
             }
         };
@@ -945,9 +950,8 @@ namespace TinyBCT
                 {
                     case BinaryOperation.Eq: method = BoogieMethod.StringEquality; break;
                     case BinaryOperation.Neq: method = BoogieMethod.StringInequality; break;
-                    case BinaryOperation.Add: method = BoogieMethod.StringConcat; break;
                 }
-                Contract.Assume(method != null);
+                Contract.Assert(method != null);
                 return method;
             }
             
@@ -959,11 +963,8 @@ namespace TinyBCT
                     
                     case BranchOperation.Eq: method = BoogieMethod.StringEquality; break;
                     case BranchOperation.Neq: method = BoogieMethod.StringInequality; break;
-                    default:
-                        Contract.Assert(false);
-                        break;
                 }
-                Contract.Assume(method != null);
+                Contract.Assert(method != null);
                 return method;
             }
         }

@@ -202,25 +202,6 @@ function $RefToDelegateTypeParameters(int, Ref) : Type;
 // used for delegates - don't know yet what it is for (from BCT)
 function Type0() : Ref;
 
-procedure System.String.Equals$System.String(a$in: Ref, b$in: Ref) returns ($result: bool);
-procedure System.String.op_Equality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool);
-procedure System.String.op_Inequality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool);
-
-implementation System.String.Equals$System.String(a$in: Ref, b$in: Ref) returns ($result: bool)
-{
-  $result := (a$in == b$in);
-}
-
-implementation System.String.op_Equality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool)
-{
-  $result := (a$in == b$in);
-}
-
-implementation System.String.op_Inequality$System.String$System.String(a$in: Ref, b$in: Ref) returns ($result: bool)
-{
-  $result := (a$in != b$in);
-}
-
 // global state for exceptions
 var $Exception : Ref;
 var $ExceptionType : Ref;

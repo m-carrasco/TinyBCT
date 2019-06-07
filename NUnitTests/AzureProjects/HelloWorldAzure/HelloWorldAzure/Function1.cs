@@ -60,7 +60,6 @@ namespace HelloWorld
 
             Contract.Assert(result.StatusCode == HttpStatusCode.OK || result.StatusCode == HttpStatusCode.BadRequest);
             Contract.Assert((name == null || result.StatusCode == HttpStatusCode.OK));
-            //Contract.Assert(false);
             return result;
         }
 
@@ -81,12 +80,52 @@ namespace HelloWorld
                 ? CreateHttpResponseMessage(req, HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
                 : CreateHttpResponseMessage(req, HttpStatusCode.OK, "Hello " + name);
 
-            //Contract.Assert(result.StatusCode == HttpStatusCode.OK || result.StatusCode == HttpStatusCode.BadRequest);
             Contract.Assert(!(name == null || result.StatusCode == HttpStatusCode.OK));
-            //Contract.Assert(false);
             return result;
         }
 
+
+        [FunctionName("Function3")]
+        public static HttpResponseMessage Run2_NoBugs([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+            log.Info("C# HTTP trigger function processed a request.");
+
+            // parse query parameter
+            string name = req.GetQueryNameValuePairs()
+                .FirstOrDefault(q => string.Compare(q.Key, "name", true) == 0)
+                .Value;
+
+            if (name == null)
+                name = req.Content.ReadContentStub();
+
+            HttpResponseMessage result = name == null
+                ? CreateHttpResponseMessage(req, HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
+                : CreateHttpResponseMessage(req, HttpStatusCode.OK, "Hello " + name);
+
+            Contract.Assert((name == null || result.ReasonPhrase == "Hello " + name));
+            return result;
+        }
+
+        [FunctionName("Function4")]
+        public static HttpResponseMessage Run2_Bugged([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+            log.Info("C# HTTP trigger function processed a request.");
+
+            // parse query parameter
+            string name = req.GetQueryNameValuePairs()
+                .FirstOrDefault(q => string.Compare(q.Key, "name", true) == 0)
+                .Value;
+
+            if (name == null)
+                name = req.Content.ReadContentStub();
+
+            HttpResponseMessage result = name == null
+                ? CreateHttpResponseMessage(req, HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
+                : CreateHttpResponseMessage(req, HttpStatusCode.OK, "Hello " + name);
+
+            Contract.Assert(!(name == null || result.ReasonPhrase == "Hello " + name));
+            return result;
+        }
 
         // var Status_Field : [Ref]int;
         //procedure boogie_si_record_int(x: int);
@@ -96,6 +135,7 @@ namespace HelloWorld
         {
             var r = req.CreateResponse(state, msg);
             Contract.Assume(r.StatusCode == state);
+            Contract.Assume(r.ReasonPhrase == msg);
             return r;
         }
     }

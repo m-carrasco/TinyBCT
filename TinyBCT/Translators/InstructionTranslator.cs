@@ -502,8 +502,6 @@ namespace TinyBCT.Translators
 
             public override void Visit(BinaryInstruction instruction)
             {
-                //addLabel(instruction);
-
                 IVariable left = instruction.LeftOperand;
                 IVariable right = instruction.RightOperand;
 
@@ -514,17 +512,11 @@ namespace TinyBCT.Translators
                     BoogieMethod methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
                     
                     var tempVar = instTranslator.GetFreshVariable(Helpers.GetBoogieType(instruction.Result));
-                    var arguments = new List<Expression>();
-                    arguments.Add(Helpers.Strings.FixStringLiteral(left, boogieGenerator));
-                    arguments.Add(Helpers.Strings.FixStringLiteral(right, boogieGenerator));
+                    var arguments = new List<Expression>() { boogieGenerator.ReadAddr(left), boogieGenerator.ReadAddr(right) };
                     AddBoogie(boogieGenerator.ProcedureCall(methodName, arguments, tempVar));
                     AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, tempVar));
                 } else
                 {
-                    // TODO(rcastano): refactor this. Ideally, there might be different BoogieGenerators,
-                    // each making slightly different translations, for example, bitvector representation
-                    // of integers as opposed to Boogie int.
-                    // When that happens, this should most likely be encapsulated within BoogieGenerator.
                     if (Expression.IsSupportedBinaryOperation(instruction.Operation, Helpers.GetBoogieType(left), Helpers.GetBoogieType(right)))
                     {
                         // mod keyword in boogie returns integer
@@ -708,14 +700,17 @@ namespace TinyBCT.Translators
                     } else if (instructionOperand is Dereference)
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
-                    } else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant)
+                    } else if (instructionOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String) && instruction.Operand is Constant constant)
                     {
                         // strings values that appear in the three address code are declared globally in the .bpl
                         // stringVariableName is the name of the declared global variable
 
-                        Expression expr = Helpers.Strings.FixStringLiteral(instructionOperand, boogieGenerator);
+                        StringTranslator stringTranslator = new StringTranslator();
+                        var stmts = stringTranslator.CallAllocLiteral(instruction.Result, constant, instTranslator);
+                        AddBoogie(stmts);
+                        //Expression expr = Helpers.Strings.FixStringLiteral(instructionOperand, boogieGenerator);
+                        //AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, expr));
 
-                        AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, expr));
                     } else if (instructionOperand is IVariable || instructionOperand is Constant || (instructionOperand is Reference && !Settings.AddressesEnabled()))
                     {
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, instructionOperand));
@@ -787,12 +782,6 @@ namespace TinyBCT.Translators
 
             public override void Visit(MethodCallInstruction instruction)
             {
-                // This is check is done because an object creation is splitted into two TAC instructions
-                // This prevents to add the same instruction tag twice
-                // DIEGO: Removed after fix in analysis framewlrk 
-                // if (!Helpers.IsConstructor(instruction.Method))
-                //addLabel(instruction);
-                //var arguments = "";
                 StatementList toAppend = new StatementList();
 
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
@@ -835,12 +824,9 @@ namespace TinyBCT.Translators
                     rightOperand.Type.TypeCode.Equals(PrimitiveTypeCode.String))
                 {
                     BoogieMethod boogieMethod = Helpers.Strings.GetBinaryMethod(instruction.Operation);
-
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.BoogieType.Bool);
-                    var arguments = new List<Expression>();
-                    arguments.Add(Helpers.Strings.FixStringLiteral(leftOperand, boogieGenerator));
-                    arguments.Add(Helpers.Strings.FixStringLiteral(rightOperand, boogieGenerator));
-                    AddBoogie(boogieGenerator.ProcedureCall(boogieMethod, arguments, tempBoogieVar));
+                    StringTranslator stringTranslator = new StringTranslator();
+                    AddBoogie(stringTranslator.CallStringProcedure(boogieMethod, leftOperand, rightOperand, tempBoogieVar));
                     AddBoogie(BoogieStatement.If(tempBoogieVar, BoogieStatement.Goto(instruction.Target)));
                 }
                 else

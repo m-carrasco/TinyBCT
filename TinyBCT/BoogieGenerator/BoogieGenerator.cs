@@ -15,7 +15,7 @@ namespace TinyBCT
 {
     public class Expression
     {
-        protected Expression(Helpers.BoogieType type, string expr)
+        public Expression(Helpers.BoogieType type, string expr)
         {
             Type = type;
             Expr = expr;
@@ -464,6 +464,9 @@ namespace TinyBCT
             else if (BoogieLiteral.IsNullConst(cons))
             {
                 return BoogieLiteral.FromNull(cons);
+            } else if (cons.Value is String)
+            {
+                return new BoogieLiteral(Helpers.BoogieType.StringLiteral, cons.ToString());
             }
             throw new NotImplementedException();
         }
@@ -1171,6 +1174,8 @@ namespace TinyBCT
             return new BoogieMethod($"CreateDelegate_{normalizedType}");
         }
 
+
+        public static readonly BoogieMethod StringEquals = new BoogieMethod("System.String.Equals$System.String");
         public static readonly BoogieMethod StringEquality = new BoogieMethod("System.String.op_Equality$System.String$System.String");
         public static readonly BoogieMethod StringInequality = new BoogieMethod("System.String.op_Inequality$System.String$System.String");
         public static readonly BoogieMethod StringConcat = new BoogieMethod("System.String.Concat$System.String$System.String");

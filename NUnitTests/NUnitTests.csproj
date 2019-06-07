@@ -136,6 +136,7 @@
     <Compile Include="Utils\Resource.cs" />
     <Compile Include="Utils\TinyBctRunner.cs" />
     <Compile Include="Tests.cs" />
+    <EmbeddedResource Include="Resources\StringOperations.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

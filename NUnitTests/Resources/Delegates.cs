@@ -84,12 +84,9 @@ namespace Test
         {
             var g = new Generic<int>();
             Contract.Assert(g.test(1) == 1);
-
-           // Func<int, int> f = g.test;
-           // Contract.Assert(g.test(5) == 5);
         }
 
-        public void generics2()
+         void generics2()
         {
             var g = new Generic<int>();
             Contract.Assert(g.test(1) != 1);
