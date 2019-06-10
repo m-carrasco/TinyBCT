@@ -213,13 +213,7 @@ namespace TinyBCT
                 }
                 #endregion
 
-                streamWriter.WriteLine(StringTranslator.StringConcatStub());
-                streamWriter.WriteLine(StringTranslator.StringEqualsStub());
-                streamWriter.WriteLine(StringTranslator.StringOpEqualityStub());
-                streamWriter.WriteLine(StringTranslator.StringOpInequalityStub());
-                streamWriter.WriteLine(StringTranslator.StringFormat1());
-                streamWriter.WriteLine(StringTranslator.StringFormat2());
-                streamWriter.WriteLine(StringTranslator.StringFunctions());
+                streamWriter.WriteLine(StringTranslator.Stubs());
 
                 #region Translate called methods as extern (bodyless methods or methods not present in our input assemblies)
 

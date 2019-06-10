@@ -68,6 +68,22 @@ namespace TinyBCT.Translators
             };
         }
 
+        public static string Stubs()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine(StringTranslator.StringConcatStub());
+            sb.AppendLine(StringTranslator.StringEqualsStub());
+            sb.AppendLine(StringTranslator.StringOpEqualityStub());
+            sb.AppendLine(StringTranslator.StringOpInequalityStub());
+            sb.AppendLine(StringTranslator.StringFormat1());
+            sb.AppendLine(StringTranslator.StringFormat2());
+            sb.AppendLine(StringTranslator.StringFunctions());
+            sb.AppendLine(StringTranslator.ToStringDecimal());
+
+            return sb.ToString();
+        }
+
         public static string StringConcatStub()
         {
             string methodName = BoogieMethod.StringConcat.Name;
@@ -228,6 +244,29 @@ namespace TinyBCT.Translators
             }
 
             string parameterTypes = "param0 : Object,param1 : Object,param2 : Object";
+            string returnTypes = "returns ($result : Object)";
+            bool isExtern = false;
+
+            BoogieProcedureTemplate procedure =
+                new BoogieProcedureTemplate(methodName, attr, localVariables, instructions, parameterTypes, returnTypes, isExtern);
+
+            return procedure.TransformText();
+        }
+
+        public static string ToStringDecimal()
+        {
+            string methodName = BoogieMethod.ToStringDecimal.Name;
+            string attr = String.Empty;
+            StatementList localVariables = new StatementList();
+            StatementList instructions = new StatementList();
+
+            if (Settings.Z3Strings)
+            {
+                instructions.Add(BoogieStatement.FromString("call $result:= Alloc();"));
+                instructions.Add(BoogieStatement.FromString("assume ObjectToString($result) == ObjectToString(this);"));
+            }
+
+            string parameterTypes = "this : Ref";
             string returnTypes = "returns ($result : Object)";
             bool isExtern = false;
 

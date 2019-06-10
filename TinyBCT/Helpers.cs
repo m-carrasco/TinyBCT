@@ -104,6 +104,9 @@ namespace TinyBCT
                     if (type.IsEnum)
                         return BoogieType.Int;
 
+                    if (type.InternedKey == Types.Instance.PlatformType.SystemDecimal.InternedKey)
+                        return BoogieType.Real;
+
                     if (type.TypeCode.Equals(PrimitiveTypeCode.String))
                         return BoogieType.Object;
 

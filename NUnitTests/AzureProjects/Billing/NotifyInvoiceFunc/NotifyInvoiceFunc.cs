@@ -68,6 +68,7 @@ namespace BillingFunctionsModified
             Contract.Assert(email.To == "asc-lab@altkom.pl");
             Contract.Assert(email.From.Email == "asc-lab@altkom.pl");
             Contract.Assert(email.Subject == $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+            Contract.Assert(email.Content == $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
 
             return email;
         }
@@ -84,6 +85,7 @@ namespace BillingFunctionsModified
             Contract.Assert(email.To != "asc-lab@altkom.pl");
             Contract.Assert(email.From.Email != "asc-lab@altkom.pl");
             Contract.Assert(email.Subject != $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+            Contract.Assert(email.Content != $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
 
             return email;
         }
