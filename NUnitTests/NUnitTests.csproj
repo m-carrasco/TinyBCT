@@ -155,6 +155,10 @@
       <Project>{DF3D6FFA-5633-48E6-B9E0-68D694AF8F25}</Project>
       <Name>HelloWorldAzure</Name>
     </ProjectReference>
+    <ProjectReference Include="AzureProjects\Billing\NotifyInvoiceFunc\NotifyInvoiceFunc.csproj">
+      <Project>{9613186D-41B8-4C27-9142-79067A29D54C}</Project>
+      <Name>NotifyInvoiceFunc</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.2\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
