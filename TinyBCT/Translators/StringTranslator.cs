@@ -59,6 +59,8 @@ namespace TinyBCT.Translators
         {
             return new HashSet<string>()
             {
+                BoogieMethod.StringFormat1.Name,
+                BoogieMethod.StringFormat2.Name,
                 BoogieMethod.StringEquals.Name,
                 BoogieMethod.StringEquality.Name,
                 BoogieMethod.StringInequality.Name,
@@ -122,7 +124,7 @@ namespace TinyBCT.Translators
             return procedure.TransformText();
         }
 
-        public static  string StringOpEqualityStub()
+        public static string StringOpEqualityStub()
         {
             string methodName = BoogieMethod.StringEquality.Name;
             string attr = String.Empty;
@@ -178,6 +180,63 @@ namespace TinyBCT.Translators
             return procedure.TransformText();
         }
 
+        public static string StringFormat1()
+        {
+            string methodName = BoogieMethod.StringFormat1.Name;
+            string attr = String.Empty;
+            StatementList localVariables = new StatementList();
+            StatementList instructions = new StatementList();
+
+            if (Settings.Z3Strings)
+            {
+                localVariables.Add(BoogieStatement.FromString("var res : string;"));
+                localVariables.Add(BoogieStatement.FromString("var obj : Object;"));
+
+                instructions.Add(BoogieStatement.FromString("res := replace(ObjectToString(param0), \"{0}\", ObjectToString(param1));"));
+                instructions.Add(BoogieStatement.FromString("call obj := Alloc();"));
+                instructions.Add(BoogieStatement.FromString("assume ObjectToString(obj) == res;"));
+                instructions.Add(BoogieStatement.FromString("$result := obj;"));
+            }
+
+            string parameterTypes = "param0 : Object,param1 : Object";
+            string returnTypes = "returns ($result : Object)";
+            bool isExtern = false;
+
+            BoogieProcedureTemplate procedure =
+                new BoogieProcedureTemplate(methodName, attr, localVariables, instructions, parameterTypes, returnTypes, isExtern);
+
+            return procedure.TransformText();
+        }
+
+        public static string StringFormat2()
+        {
+            string methodName = BoogieMethod.StringFormat2.Name;
+            string attr = String.Empty;
+            StatementList localVariables = new StatementList();
+            StatementList instructions = new StatementList();
+
+            if (Settings.Z3Strings)
+            {
+                localVariables.Add(BoogieStatement.FromString("var res : string;"));
+                localVariables.Add(BoogieStatement.FromString("var obj : Object;"));
+
+                instructions.Add(BoogieStatement.FromString("res := replace(ObjectToString(param0), \"{0}\", ObjectToString(param1));"));
+                instructions.Add(BoogieStatement.FromString("res:= replace(res, \"{1}\", ObjectToString(param2));"));
+                instructions.Add(BoogieStatement.FromString("call obj := Alloc();"));
+                instructions.Add(BoogieStatement.FromString("assume ObjectToString(obj) == res;"));
+                instructions.Add(BoogieStatement.FromString("$result := obj;"));
+            }
+
+            string parameterTypes = "param0 : Object,param1 : Object,param2 : Object";
+            string returnTypes = "returns ($result : Object)";
+            bool isExtern = false;
+
+            BoogieProcedureTemplate procedure =
+                new BoogieProcedureTemplate(methodName, attr, localVariables, instructions, parameterTypes, returnTypes, isExtern);
+
+            return procedure.TransformText();
+        }
+
         public static string StringFunctions()
         {
             if (Settings.Z3Strings)
@@ -185,6 +244,7 @@ namespace TinyBCT.Translators
                 StringBuilder stringBuilder = new StringBuilder();
                 stringBuilder.AppendLine("function ObjectToString(obj: Object) : string;");
                 stringBuilder.AppendLine("function {:builtin \"str.++\"} concat(string, string): string;");
+                stringBuilder.AppendLine("function {:builtin \"str.replace\"} replace(string, string, string): string;");
                 return stringBuilder.ToString();
             } else
                 return string.Empty;

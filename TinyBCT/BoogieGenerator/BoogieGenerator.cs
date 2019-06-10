@@ -1174,6 +1174,8 @@ namespace TinyBCT
             return new BoogieMethod($"CreateDelegate_{normalizedType}");
         }
 
+        public static readonly BoogieMethod StringFormat1 = new BoogieMethod("System.String.Format$System.String$System.Object");
+        public static readonly BoogieMethod StringFormat2 = new BoogieMethod("System.String.Format$System.String$System.Object$System.Object");
 
         public static readonly BoogieMethod StringEquals = new BoogieMethod("System.String.Equals$System.String");
         public static readonly BoogieMethod StringEquality = new BoogieMethod("System.String.op_Equality$System.String$System.String");

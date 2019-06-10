@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using SendGrid.Helpers.Mail;
@@ -47,6 +48,87 @@ namespace BillingFunctions
             {
                 Body = $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}."
             };
+        }
+    }
+}
+
+namespace BillingFunctionsModified
+{
+    public static class NotifyInvoiceFunc
+    {
+        private static BillingFunctionsStubs.SendGridMessage CreateEmail_NoBugs(InvoiceNotificationRequest request)
+        {
+            var email = new BillingFunctionsStubs.SendGridMessage();
+
+            email.AddTo("asc-lab@altkom.pl");
+            email.AddContent("text/html", $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
+            email.SetFrom(new BillingFunctionsStubs.EmailAddress("asc-lab@altkom.pl"));
+            email.SetSubject($"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+
+            Contract.Assert(email.To == "asc-lab@altkom.pl");
+            Contract.Assert(email.From.Email == "asc-lab@altkom.pl");
+            Contract.Assert(email.Subject == $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+
+            return email;
+        }
+
+        private static BillingFunctionsStubs.SendGridMessage CreateEmail_Bugged(InvoiceNotificationRequest request)
+        {
+            var email = new BillingFunctionsStubs.SendGridMessage();
+
+            email.AddTo("asc-lab@altkom.pl");
+            email.AddContent("text/html", $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
+            email.SetFrom(new BillingFunctionsStubs.EmailAddress("asc-lab@altkom.pl"));
+            email.SetSubject($"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+
+            Contract.Assert(email.To != "asc-lab@altkom.pl");
+            Contract.Assert(email.From.Email != "asc-lab@altkom.pl");
+            Contract.Assert(email.Subject != $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+
+            return email;
+        }
+    }
+}
+
+namespace BillingFunctionsStubs
+{
+    class SendGridMessage
+    {
+        public string To; // this should be a list
+        public string Content; // dictionary with ContentType?
+        public string ContentType;
+        public EmailAddress From;
+        public string Subject;
+
+        public void AddTo(string email)
+        {
+            To = email;
+        }
+
+        public void AddContent(string t, string content)
+        {
+            ContentType = t;
+            Content = content;
+        }
+
+        public void SetFrom(EmailAddress email)
+        {
+            From = email;
+        }
+
+        public void SetSubject(string s)
+        {
+            Subject = s;
+        }
+    }
+
+    class EmailAddress
+    {
+        public string Email { get; set; }
+
+        public EmailAddress(string e)
+        {
+            Email = e;
         }
     }
 }
