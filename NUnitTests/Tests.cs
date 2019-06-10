@@ -3316,19 +3316,6 @@ class TestsAzure : TestsBase
     }
 
     [Test]
-    public void NotifyInvoiceFunc()
-    {
-        var dllLocation = CopyToSystemTempDir(typeof(BillingFunctionsModified.NotifyInvoiceFunc).Assembly.Location);
-        ProgramOptions programOptions = new ProgramOptions();
-        //programOptions.StubGettersSetters = true;
-        //programOptions.Z3Strings = true;
-        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
-        corralOptions.MainProcedure = "BillingFunctions.NotifyInvoiceFunc.Run$Shared.Printing.InvoiceNotificationRequest$SendGrid.Helpers.Mail.SendGridMessage$$Twilio.Rest.Api.V2010.Account.CreateMessageOptions$$Microsoft.Extensions.Logging.ILogger";
-        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
-        Assert.IsTrue(corralResult.AssertionFails());
-    }
-
-    [Test]
     public void CreateEmail_NoBugs()
     {
         var dllLocation = CopyToSystemTempDir(typeof(BillingFunctionsModified.NotifyInvoiceFunc).Assembly.Location);
