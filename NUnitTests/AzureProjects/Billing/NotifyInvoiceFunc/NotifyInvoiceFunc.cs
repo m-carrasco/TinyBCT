@@ -65,9 +65,9 @@ namespace BillingFunctionsModified
             email.SetFrom(new BillingFunctionsStubs.EmailAddress("asc-lab@altkom.pl"));
             email.SetSubject($"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
 
-            Contract.Assert(email.To == "asc-lab@altkom.pl");
-            Contract.Assert(email.From.Email == "asc-lab@altkom.pl");
-            Contract.Assert(email.Subject == $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+            //Contract.Assert(email.To == "asc-lab@altkom.pl");
+            //Contract.Assert(email.From.Email == "asc-lab@altkom.pl");
+            //Contract.Assert(email.Subject == $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
             Contract.Assert(email.Content == $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
 
             return email;
@@ -82,18 +82,65 @@ namespace BillingFunctionsModified
             email.SetFrom(new BillingFunctionsStubs.EmailAddress("asc-lab@altkom.pl"));
             email.SetSubject($"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
 
-            Contract.Assert(email.To != "asc-lab@altkom.pl");
-            Contract.Assert(email.From.Email != "asc-lab@altkom.pl");
-            Contract.Assert(email.Subject != $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
+            //Contract.Assert(email.To != "asc-lab@altkom.pl");
+            //Contract.Assert(email.From.Email != "asc-lab@altkom.pl");
+            //Contract.Assert(email.Subject != $"New Invoice - {request.InvoiceForNotification.InvoiceNumber}");
             Contract.Assert(email.Content != $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
 
             return email;
+        }
+
+        private static BillingFunctionsStubs.CreateMessageOptions CreateSMS_NoBugs(InvoiceNotificationRequest request)
+        {
+            BillingFunctionsStubs.CreateMessageOptions createMessageOptions = new BillingFunctionsStubs.CreateMessageOptions(new BillingFunctionsStubs.PhoneNumber("+15005550006"))
+            {
+                Body = $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}."
+            };
+
+            Contract.Assert(createMessageOptions.Body == $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
+            //Contract.Assert(createMessageOptions.To.Number == "+15005550006");
+
+            return createMessageOptions;
+        }
+
+        private static BillingFunctionsStubs.CreateMessageOptions CreateSMS_Bugged(InvoiceNotificationRequest request)
+        {
+            BillingFunctionsStubs.CreateMessageOptions createMessageOptions = new BillingFunctionsStubs.CreateMessageOptions(new BillingFunctionsStubs.PhoneNumber("+15005550006"))
+            {
+                Body = $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}."
+            };
+
+            Contract.Assert(createMessageOptions.Body != $"You have new invoice {request.InvoiceForNotification.InvoiceNumber} for {request.InvoiceForNotification.TotalCost.ToString()}.");
+            //Contract.Assert(createMessageOptions.To.Number != "+15005550006");
+
+            return createMessageOptions;
         }
     }
 }
 
 namespace BillingFunctionsStubs
 {
+    class CreateMessageOptions
+    {
+        public CreateMessageOptions(PhoneNumber to)
+        {
+            this.To = to;
+        }
+
+        public PhoneNumber To;
+        public string Body;
+    }
+
+    class PhoneNumber
+    {
+        public PhoneNumber(string number)
+        {
+            this.Number = number;
+        }
+
+        public string Number;
+    }
+
     class SendGridMessage
     {
         public string To; // this should be a list

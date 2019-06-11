@@ -3341,6 +3341,33 @@ class TestsAzure : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
+    [Test, Ignore("Corral is taking too long to verify this.")]
+    public void CreateSMS_NoBugs()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(BillingFunctionsModified.NotifyInvoiceFunc).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "BillingFunctionsModified.NotifyInvoiceFunc.CreateSMS_NoBugs$Shared.Printing.InvoiceNotificationRequest";
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test, Ignore("Corral is taking too long to verify this.")]
+    public void CreateSMS_Bugged()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(BillingFunctionsModified.NotifyInvoiceFunc).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "BillingFunctionsModified.NotifyInvoiceFunc.CreateSMS_Bugged$Shared.Printing.InvoiceNotificationRequest";
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+
 
     //BillingFunctionsModified.NotifyInvoiceFunc.CreateEmail$Shared.Printing.InvoiceNotificationRequest
 }
