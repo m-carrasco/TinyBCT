@@ -1481,7 +1481,14 @@ namespace TinyBCT
             if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
             {
                 var receiver = instruction.Arguments.ElementAt(0);
-                if (!Helpers.IsBoogieRefType(receiver)) // not sure when this happens
+
+
+                bool isAddr = Helpers.GetBoogieType(receiver).Equals(Helpers.BoogieType.Addr);
+                var addrType = receiver.Type as IManagedPointerType;
+                bool notObject = (!isAddr && !Helpers.GetBoogieType(receiver).Equals(Helpers.BoogieType.Object)) ||
+                    (isAddr && !Helpers.GetBoogieType(addrType.TargetType).Equals(Helpers.BoogieType.Object));
+
+                if (notObject) // with generics we have to cast everything into a Union (object type is an alias of Union so it does not requires casting)
                 {
                     // TODO(rcastano): try to reuse variables.
                     var tempBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "$temp_var_");
