@@ -3464,3 +3464,33 @@ class TestsStrings : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 } 
+
+class TestAsync : TestsBase
+{
+    [Test]
+    public void Test1_EmptyMethod()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.$EmptyAsyncMethod$d__0.MoveNext"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test1_OneDelayMethod()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.$OneDelayMethod$d__1.MoveNext"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test1_TwoDelaysMethod()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.$TwoDelaysMethod$d__2.MoveNext"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+}

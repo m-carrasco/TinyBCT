@@ -130,6 +130,7 @@
     <EmbeddedResource Include="Resources\AvRegressions\Set.cs" />
     <EmbeddedResource Include="Resources\AvRegressions\stringEq.cs" />
     <EmbeddedResource Include="Resources\AvRegressions\stringEqWithEquals.cs" />
+    <EmbeddedResource Include="Resources\AsyncMethod.cs" />
     <Compile Include="Utils\Compiler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\CorralRunner.cs" />
