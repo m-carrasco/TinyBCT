@@ -132,7 +132,10 @@ namespace TinyBCT
             Settings.SetProgramOptions(programOptions);
             var outputPath = SetupOutputFile();
 
-            Prelude.Write(); // writes prelude.bpl content into the output file
+            streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.Prelude.bpl"));
+
+            if (Settings.AsyncSupport)
+                streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.AsyncPrelude.bpl"));
 
             using (var host = new PeReader.DefaultHost())
             {
@@ -210,6 +213,16 @@ namespace TinyBCT
                         GetterSetterStub getterSetterStub = new GetterSetterStub();
                         usedProperties = getterSetterStub.Stub(inputAssemblies, streamWriter);
                     }
+                }
+                #endregion
+
+                #region Generate stubs for async methods
+                if (Settings.AsyncSupport)
+                {
+                    streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.AsyncPrelude.bpl"));
+                    AsyncStubs asyncStubs = new AsyncStubs(inputAssemblies);
+                    streamWriter.WriteLine(asyncStubs.AsyncMethodBuilderStartStub());
+                    streamWriter.WriteLine(asyncStubs.AsyncStubsScheduleTask());
                 }
                 #endregion
 

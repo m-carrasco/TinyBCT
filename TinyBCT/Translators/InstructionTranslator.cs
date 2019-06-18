@@ -938,6 +938,19 @@ namespace TinyBCT.Translators
 
             public override void Visit(InitializeObjectInstruction instruction)
             {
+                // we should re consider this whole handler
+                // now we have a memory model that supports managed pointers
+                // so it could facilitate this regarding structs
+
+                var targetTypeName = instruction.TargetAddress.Type.FullName();
+                if (targetTypeName.Equals("System.Runtime.CompilerServices.TaskAwaiter&"))
+                {
+                    var arguments = new List<Expression>();
+                    arguments.Add(BoogieVariable.FromDotNetVariable(instruction.TargetAddress));
+                    boogieGenerator.ProcedureCall(BoogieMethod.AsyncStubsInitTaskAwaiter, arguments);
+                    return;
+                }
+
                 //addLabel(instruction);
                 Contract.Assume(instruction.Variables.Count == 1);
                 foreach (var var in instruction.Variables)

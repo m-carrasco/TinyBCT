@@ -171,7 +171,6 @@
     <Compile Include="FieldInitialization.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="ImmutableArguments.cs" />
-    <Compile Include="Prelude.cs" />
     <Compile Include="RefAlias.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="TACWriter.cs" />
@@ -189,13 +188,12 @@
     <Compile Include="PropertiesFinder.cs" />
     <Compile Include="GetterSetterStubs.cs" />
     <Compile Include="Translators\StringTranslator.cs" />
+    <Compile Include="AsyncStubs.cs" />
+    <Compile Include="Resource.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <None Include="prelude.bpl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="BoogieProcedureTemplate.tt">
@@ -237,6 +235,10 @@
       <Project>{34b9a0ce-df18-4cbc-8f7a-90c2b74338d5}</Project>
       <Name>PeReader</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\AsyncPrelude.bpl" />
+    <EmbeddedResource Include="Resources\Prelude.bpl" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

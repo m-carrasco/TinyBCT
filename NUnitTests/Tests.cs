@@ -7,6 +7,7 @@ using NUnitTests;
 using System.IO;
 using NUnitTests.Utils;
 using System.Diagnostics.Contracts;
+using Resource = NUnitTests.Utils.Resource;
 
 class TestsHelpers :  TestsBase
 {
@@ -3472,7 +3473,7 @@ class TestAsync : TestsBase
     {
         var options = CreateDefaultTinyBctOptions();
         options.MemoryModel = MemOpt.Mixed;
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.$EmptyAsyncMethod$d__0.MoveNext"));
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.EmptyAsyncMethod$System.TimeSpan$System.Int32"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -3481,7 +3482,7 @@ class TestAsync : TestsBase
     {
         var options = CreateDefaultTinyBctOptions();
         options.MemoryModel = MemOpt.Mixed;
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.$OneDelayMethod$d__1.MoveNext"));
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.OneDelayMethod$System.TimeSpan$System.Int32"));
         Assert.IsTrue(corralResult.NoBugs());
     }
 
@@ -3490,7 +3491,9 @@ class TestAsync : TestsBase
     {
         var options = CreateDefaultTinyBctOptions();
         options.MemoryModel = MemOpt.Mixed;
-        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.$TwoDelaysMethod$d__2.MoveNext"));
+        var corralOptions = CreateDefaultCorralOptions("AsyncClass.TwoDelaysMethod$System.TimeSpan$System.Int32");
+        corralOptions.TrackAllVars = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
         Assert.IsTrue(corralResult.NoBugs());
     }
 }

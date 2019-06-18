@@ -1184,6 +1184,8 @@ namespace TinyBCT
         public static readonly BoogieMethod AllocObject = new BoogieMethod("AllocObject");
         public static readonly BoogieMethod AllocAddr = new BoogieMethod("AllocAddr");
         public static readonly BoogieMethod Alloc = new BoogieMethod("Alloc");
+        public static readonly BoogieMethod AsyncStubsInitTaskAwaiter = new BoogieMethod("$AsyncStubs$InitTaskAwaiter");
+        public static readonly BoogieMethod AsyncStubsTaskAwaiterIsCompleted = new BoogieMethod("System.Runtime.CompilerServices.TaskAwaiter.get_IsCompleted");
         public static readonly BoogieMethod ReadArrayElement = new BoogieMethod("$ReadArrayElement");
         public static readonly BoogieMethod WriteArrayElement = new BoogieMethod("$WriteArrayElement");
         public static readonly BoogieMethod HavocArrayElementsNoNull = new BoogieMethod("$HavocArrayElementsNoNull");

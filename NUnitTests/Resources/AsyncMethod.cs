@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -9,14 +10,19 @@ class AsyncClass
 {
     static async Task EmptyAsyncMethod(TimeSpan delay, int i)
     {
-    }
 
+    }
 
     static async Task OneDelayMethod(TimeSpan delay, int i)
     {
+        int p = 0;
         Console.WriteLine("Before first delay");
+        p = 1;
         await Task.Delay(delay);
+        Contract.Assert(p == 1);
+        //p = 1 + p;
         Console.WriteLine("After delay");
+        //Contract.Assert(p == 2);
     }
 
     static async Task TwoDelaysMethod(TimeSpan delay, int i)
@@ -26,12 +32,11 @@ class AsyncClass
 
         Console.WriteLine("Between delays");
         await Task.Delay(delay);
-
         Console.WriteLine("After second delay");
     }
 }
 
-namespace AsyncStubs
+/*namespace AsyncStubs
 {
     class AsyncMethodBuilder
     {
@@ -46,13 +51,6 @@ namespace AsyncStubs
             // sm next's state must be scheduled as a continuation and executed after awaiter finished.
             // here we must create a task that represents the execution of the state machine (sm) and we don't have to block
             // sm keeps a reference to awaiter because when it resumes must consume it
-
-            // debo schedulear la continuacion luego de que el awaiter termino
-            // pre: sm ya esta configurado para que la proxima vez que se invoce move next, entre al siguiente estado.
-            // en este punto debemos crear una task que represente el metodo asincronico de esta maquina de estados
-            // porque no debemos bloquear
-            // la state machine guarda una referencia al ultimo awaiter, porque al resumir la continuacion debe consumir la tarea
-
 
             if (this.Task == null)
             {
@@ -124,7 +122,7 @@ namespace AsyncStubs
         }
 
         public Task Task;
-    }
+    }*/
 
     /*class Task<T>
     {
@@ -149,4 +147,4 @@ namespace AsyncStubs
 
         public Task<T> Task;
     }*/
-}
+//}
