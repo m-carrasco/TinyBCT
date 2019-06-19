@@ -20,7 +20,7 @@ namespace NUnitTests.Utils
             public Nullable<int> TimeLimit { get; set; } = null;
             public string Flags { get; set; } = null;
             public bool PrintBoogieExt { get; set; } = false;
-
+            public Nullable<bool> Cooperative { get; set; } = null;
             public string InputBplFile { get; set; } = null;
 
             // returns cmd line to execute corral
@@ -56,6 +56,9 @@ namespace NUnitTests.Utils
 
                 if (PrintBoogieExt)
                     sb.Append("/printBoogieExt ");
+
+                if (Cooperative != null && Cooperative == true)
+                    sb.Append("/cooperative ");
 
                 return sb.ToString();
             }
