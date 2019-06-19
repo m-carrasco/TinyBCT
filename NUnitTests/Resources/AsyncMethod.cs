@@ -51,13 +51,9 @@ class AsyncClass
             // sm next's state must be scheduled as a continuation and executed after awaiter finished.
             // here we must create a task that represents the execution of the state machine (sm) and we don't have to block
             // sm keeps a reference to awaiter because when it resumes must consume it
-
-            if (this.Task == null)
-            {
-                this.Task = new Task();
-                this.Task.Sm = sm;
-                this.Task.IsCompleted = false;
-            }
+                
+            this.Task.Sm = sm;
+            this.Task.IsCompleted = false;
 
             //call async {
             //    assume awaiter.IsCompleted();
@@ -124,27 +120,27 @@ class AsyncClass
         public Task Task;
     }*/
 
-    /*class Task<T>
+/*class Task<T>
+{
+    public TaskAwaiter<T> GetAwaiter()
     {
-        public TaskAwaiter<T> GetAwaiter()
-        {
-            var awaiter = new TaskAwaiter<T>();
-            awaiter.Task = this;
-            return awaiter; // siempre uno distinto?
-        }
+        var awaiter = new TaskAwaiter<T>();
+        awaiter.Task = this;
+        return awaiter; // siempre uno distinto?
+    }
 
-        public bool IsCompleted;
-        public IAsyncStateMachine Sm;
-        public T Result;
-    }*/
+    public bool IsCompleted;
+    public IAsyncStateMachine Sm;
+    public T Result;
+}*/
 
-    /*class TaskAwaiter<T>
+/*class TaskAwaiter<T>
+{
+    public bool IsCompleted()
     {
-	    public bool IsCompleted()
-        {
-            return Task.IsCompleted;
-        }
+        return Task.IsCompleted;
+    }
 
-        public Task<T> Task;
-    }*/
+    public Task<T> Task;
+}*/
 //}

@@ -32,7 +32,10 @@ procedure  AsyncStubs.AsyncMethodBuilder.#ctor(this : Ref) returns ()
     }
 
     $r1 := this;
-    $r2 := null;
+    call $r2 := Alloc();
+    assume  ($DynamicType($r2) == T$System.Threading.Tasks.Task());
+    assume $TypeConstructor($DynamicType($r2)) == T$System.Threading.Tasks.Task;
+    call AsyncStubs.Task.#ctor($r2);
     F$AsyncStubs.AsyncMethodBuilder.Task[$r1] := $r2;
     return ;
 
@@ -218,26 +221,7 @@ procedure System.Runtime.CompilerServices.AsyncTaskMethodBuilder.AwaitUnsafeOnCo
     $r3 := ($r1 == $r2);
     local_0 := $r3;
     $r4 := local_0;
-    if (($r4 == false))
-    {
-        goto L_0033;
-    }
 
-    $r5 := this;
-    call $r6 := Alloc();
-    assume  ($DynamicType($r6) == T$System.Threading.Tasks.Task());
-    assume $TypeConstructor($DynamicType($r6)) == T$System.Threading.Tasks.Task;
-    //assume  ($DynamicType($r6) == T$AsyncStubs.Task());
-    //assume $TypeConstructor($DynamicType($r6)) == T$AsyncStubs.Task;
-    call AsyncStubs.Task.#ctor($r6);
-
-    if (($Exception != null))
-    {
-        return ;
-    }
-
-    $r7 := $r6;
-    F$AsyncStubs.AsyncMethodBuilder.Task[$r5] := $r7;
     $r8 := this;
     $r9 := F$AsyncStubs.AsyncMethodBuilder.Task[$r8];
     //assume  $Subtype($DynamicType($r9), T$AsyncStubs.Task());
