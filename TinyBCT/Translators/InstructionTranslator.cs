@@ -943,7 +943,8 @@ namespace TinyBCT.Translators
                 // so it could facilitate this regarding structs
 
                 var targetTypeName = instruction.TargetAddress.Type.FullName();
-                if (targetTypeName.Equals("System.Runtime.CompilerServices.TaskAwaiter&"))
+                if (Settings.AsyncSupport &&
+                    targetTypeName.Equals("System.Runtime.CompilerServices.TaskAwaiter&"))
                 {
                     var arguments = new List<Expression>();
                     arguments.Add(BoogieVariable.FromDotNetVariable(instruction.TargetAddress));

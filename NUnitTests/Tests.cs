@@ -3473,6 +3473,7 @@ class TestAsync : TestsBase
     {
         var options = CreateDefaultTinyBctOptions();
         options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.EmptyAsyncMethod$System.TimeSpan$System.Int32"));
         Assert.IsTrue(corralResult.NoBugs());
     }
@@ -3482,6 +3483,7 @@ class TestAsync : TestsBase
     {
         var options = CreateDefaultTinyBctOptions();
         options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, CreateDefaultCorralOptions("AsyncClass.OneDelayMethod$System.TimeSpan$System.Int32"));
         Assert.IsTrue(corralResult.NoBugs());
     }

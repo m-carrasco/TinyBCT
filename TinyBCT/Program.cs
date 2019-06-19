@@ -219,7 +219,6 @@ namespace TinyBCT
                 #region Generate stubs for async methods
                 if (Settings.AsyncSupport)
                 {
-                    streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.AsyncPrelude.bpl"));
                     AsyncStubs asyncStubs = new AsyncStubs(inputAssemblies);
                     streamWriter.WriteLine(asyncStubs.AsyncMethodBuilderStartStub());
                     streamWriter.WriteLine(asyncStubs.AsyncStubsScheduleTask());
