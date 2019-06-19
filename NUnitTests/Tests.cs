@@ -3493,9 +3493,152 @@ class TestAsync : TestsBase
     {
         var options = CreateDefaultTinyBctOptions();
         options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
         var corralOptions = CreateDefaultCorralOptions("AsyncClass.TwoDelaysMethod$System.TimeSpan$System.Int32");
         corralOptions.TrackAllVars = true;
+        corralOptions.Cooperative = true;
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
         Assert.IsTrue(corralResult.NoBugs());
     }
+
+    [Test]
+    public void Test2_Bank_Serial_Reachability_NoBugs()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Reachability_NoBugs$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test2_Bank_Serial_Reachability()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Reachability_Bugs$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test2_Bank_Serial_Withdraw_Reachability()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Withdraw_Reachability$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test2_Bank_Serial_Deposit_Reachability()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Deposit_Reachability$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test2_Bank_Serial_Withdraw_Reachability_2()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Withdraw_Reachability_2$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test2_Bank_Serial_Deposit_Reachability_2()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Deposit_Reachability_2$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+    /*[Test]
+    public void Test2_Bank_Parallel()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Parallel$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
+    [Test]
+    public void Test2_Bank_Serial_Bug()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Serial_Bug$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test2_Bank_Parallel_Bug()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Start_Parallel_Bug$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncMethod.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test3_Bank_Parallel()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("NUnitTests.Resources.AsyncBank.Start_Parallel$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        //corralOptions.ExecutionContextBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.AsyncBank.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }*/
+
 }
