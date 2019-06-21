@@ -130,7 +130,6 @@
     <EmbeddedResource Include="Resources\AvRegressions\Set.cs" />
     <EmbeddedResource Include="Resources\AvRegressions\stringEq.cs" />
     <EmbeddedResource Include="Resources\AvRegressions\stringEqWithEquals.cs" />
-    <EmbeddedResource Include="Resources\AsyncMethod.cs" />
     <Compile Include="Utils\Compiler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\CorralRunner.cs" />
@@ -138,6 +137,23 @@
     <Compile Include="Utils\TinyBctRunner.cs" />
     <Compile Include="Tests.cs" />
     <EmbeddedResource Include="Resources\StringOperations.cs" />
+    <EmbeddedResource Include="Resources\Async\TestAtomicTransaction1.cs" />
+    <EmbeddedResource Include="Resources\Async\TestAtomicTransaction2.cs" />
+    <EmbeddedResource Include="Resources\Async\TestAtomicTransaction3.cs" />
+    <EmbeddedResource Include="Resources\Async\TestAtomicTransactionReachability.cs" />
+    <EmbeddedResource Include="Resources\Async\TestAtomicTransactionWithdraw1.cs" />
+    <EmbeddedResource Include="Resources\Async\TestAtomicTransactionWithdraw2.cs" />
+    <EmbeddedResource Include="Resources\Async\TestDepositReachability.cs" />
+    <EmbeddedResource Include="Resources\Async\TestDepositReachability2.cs" />
+    <EmbeddedResource Include="Resources\Async\TestWithdrawReachability.cs" />
+    <EmbeddedResource Include="Resources\Async\TestWithdrawReachability2.cs" />
+    <EmbeddedResource Include="Resources\Async\AsyncMethod.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction1.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction2.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction3.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction4.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction5.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction6.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -164,6 +180,9 @@
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.2\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.2\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\Async\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
