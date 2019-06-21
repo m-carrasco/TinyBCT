@@ -419,3 +419,21 @@ var F$AsyncStubs.AsyncMethodBuilder.Task : [Ref]Object;
 var F$AsyncStubs.Task.Sm : [Ref]Object;
 var F$AsyncStubs.Task.IsCompleted : [Ref]bool;
 var F$AsyncStubs.TaskAwaiter.Task : [Ref]Object;
+
+procedure System.Threading.Tasks.Task.Delay$System.TimeSpan(param0 : Object) returns ($result : Object)
+{
+    call $result := Alloc();
+    
+    call AsyncStubs.Task.#ctor($result);
+    
+    assume  ($DynamicType($result) == T$System.Threading.Tasks.Task());
+    assume $TypeConstructor($DynamicType($result)) == T$System.Threading.Tasks.Task;
+    
+    async call $AsyncStubs$EventuallyFinish($result);
+}
+
+procedure $AsyncStubs$EventuallyFinish(param0 : Object) returns ()
+{
+    yield;
+    F$AsyncStubs.Task.IsCompleted[param0] := true;
+}

@@ -49,9 +49,10 @@ namespace TinyBCT
 
             var yield = BoogieStatement.FromString("yield;");
 
+            // it is crucial to yield before anything else
+            instructions.Add(yield);
             instructions.Add(callIsCompleted);
             instructions.Add(assume);
-            instructions.Add(yield);
 
             var moveNextMethods = stateMachinesTypes.Select(t => t.Members.Where(m => m.Name.Value.Contains("MoveNext")).First()).Cast<IMethodDefinition>();
             var ifCases = moveNextMethods.Select(m => Invoke(m, param0));
@@ -72,7 +73,7 @@ namespace TinyBCT
                 receiverObject = BoogieGenerator.Instance().ReadAddr(addrExpr);
             }
 
-            Expression subtype = Expression.Subtype(receiverObject, member.ContainingType);
+            Expression subtype = Expression.Subtype(Expression.DynamicType(receiverObject), member.ContainingType);
 
             StatementList body = new StatementList();
             List<Expression> argumentList = new List<Expression>();

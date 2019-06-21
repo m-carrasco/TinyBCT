@@ -231,6 +231,7 @@ namespace TinyBCT
 
                 var externMethods = InstructionTranslator.CalledMethods.Except(inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0)).Except(usedProperties);
                 externMethods = externMethods.Where(m => !StringTranslator.GetBoogieNamesForStubs().Contains(BoogieMethod.From(m).Name));
+                externMethods = externMethods.Where(m => !BoogieMethod.From(m).Name.Contains("System.Threading.Tasks.Task.Delay$System.TimeSpan"));
                 foreach (var methodRef in externMethods)
                 {
                     var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));
