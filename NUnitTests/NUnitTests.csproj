@@ -154,6 +154,15 @@
     <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction4.cs" />
     <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction5.cs" />
     <EmbeddedResource Include="Resources\Async\TestInterleavedTransaction6.cs" />
+    <EmbeddedResource Include="Resources\Async\TestWithdrawReachabilityGenerics.cs" />
+    <EmbeddedResource Include="Resources\Async\TestWithdrawReachabilityGenerics2.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics1.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics2.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics3.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics4.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics5.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics6.cs" />
+    <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics1_B.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

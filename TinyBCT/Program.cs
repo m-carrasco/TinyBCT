@@ -134,8 +134,14 @@ namespace TinyBCT
 
             streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.Prelude.bpl"));
 
+            if (Settings.AsyncSupport || Settings.AsyncSupportGenerics)
+                streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.CommonAsyncPrelude.bpl"));
+
             if (Settings.AsyncSupport)
                 streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.AsyncPrelude.bpl"));
+
+            if (Settings.AsyncSupportGenerics)
+                streamWriter.WriteLine(Resource.GetResourceAsString("TinyBCT.Resources.AsyncPreludeGeneric.bpl"));
 
             using (var host = new PeReader.DefaultHost())
             {
@@ -220,8 +226,15 @@ namespace TinyBCT
                 if (Settings.AsyncSupport)
                 {
                     AsyncStubs asyncStubs = new AsyncStubs(inputAssemblies);
-                    streamWriter.WriteLine(asyncStubs.AsyncMethodBuilderStartStub());
-                    streamWriter.WriteLine(asyncStubs.AsyncStubsScheduleTask());
+                    streamWriter.WriteLine(asyncStubs.AsyncMethodBuilderStartStub(false));
+                    streamWriter.WriteLine(asyncStubs.AsyncStubsScheduleTask(false));
+                }
+
+                if (Settings.AsyncSupportGenerics)
+                {
+                    AsyncStubs asyncStubs = new AsyncStubs(inputAssemblies);
+                    streamWriter.WriteLine(asyncStubs.AsyncMethodBuilderStartStub(true));
+                    streamWriter.WriteLine(asyncStubs.AsyncStubsScheduleTask(true));
                 }
                 #endregion
 

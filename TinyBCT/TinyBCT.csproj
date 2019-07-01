@@ -239,6 +239,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\AsyncPrelude.bpl" />
     <EmbeddedResource Include="Resources\Prelude.bpl" />
+    <EmbeddedResource Include="Resources\AsyncPreludeGeneric.bpl" />
+    <EmbeddedResource Include="Resources\CommonAsyncPrelude.bpl" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

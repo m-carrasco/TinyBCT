@@ -3725,4 +3725,130 @@ class TestAsync : TestsBase
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransaction6.cs", options, corralOptions);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
+    [Test]
+    public void Test_Withdraw_Reachability_Generics()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Withdraw_Reachability$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 3;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestWithdrawReachabilityGenerics.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Withdraw_Reachability_Generics_2()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Withdraw_Reachability_2$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestWithdrawReachabilityGenerics2.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics1()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction1$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics1.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics1_B()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction1$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics1_B.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics2()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction2$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics2.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics3()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction3$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics3.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics4()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction4$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics4.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics5()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction5$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics5.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Interleaved_Transaction_Generics6()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Bank.Test_Interleaved_Transaction6$System.Int32");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics6.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 }

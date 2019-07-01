@@ -952,6 +952,16 @@ namespace TinyBCT.Translators
                     return;
                 }
 
+                if (Settings.AsyncSupportGenerics &&
+                    targetTypeName.StartsWith("System.Runtime.CompilerServices.TaskAwaiter<") &&
+                    instruction.TargetAddress.Type is IManagedPointerType)
+                {
+                    var arguments = new List<Expression>();
+                    arguments.Add(BoogieVariable.FromDotNetVariable(instruction.TargetAddress));
+                    boogieGenerator.ProcedureCall(BoogieMethod.AsyncStubsInitTaskAwaiterGeneric, arguments);
+                    return;
+                }
+
                 //addLabel(instruction);
                 Contract.Assume(instruction.Variables.Count == 1);
                 foreach (var var in instruction.Variables)

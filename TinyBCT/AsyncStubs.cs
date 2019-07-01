@@ -12,7 +12,7 @@ namespace TinyBCT
             this.stateMachinesTypes = inputAssemblies.GetAllDefinedTypes().Where(t => t.Interfaces.Any( i => i.FullName().Contains("System.Runtime.CompilerServices.IAsyncStateMachine")));
         }
 
-        public string AsyncMethodBuilderStartStub()
+        public string AsyncMethodBuilderStartStub(bool genericVersion)
         {
             StatementList localVars = new StatementList();
             StatementList instructions = new StatementList();
@@ -23,11 +23,12 @@ namespace TinyBCT
             foreach (var ifCase in ifCases)
                 instructions.Add(ifCase);
 
-            var procedureTemplate = new BoogieProcedureTemplate("System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start``1$``0$", "", localVars, instructions, "this : Ref,param0: Addr", String.Empty, false);
+            string procedureName = genericVersion ? "System.Runtime.CompilerServices.AsyncTaskMethodBuilder`1.Start``1$``0$" : "System.Runtime.CompilerServices.AsyncTaskMethodBuilder.Start``1$``0$";
+            var procedureTemplate = new BoogieProcedureTemplate(procedureName, "", localVars, instructions, "this : Ref,param0: Addr", String.Empty, false);
             return procedureTemplate.TransformText();
         }
 
-        public string AsyncStubsScheduleTask()
+        public string AsyncStubsScheduleTask(bool genericVersion = false)
         {
             StatementList localVars = new StatementList();
             localVars.Add(BoogieStatement.FromString("var state : bool;"));
@@ -36,7 +37,7 @@ namespace TinyBCT
             var param0 = new BoogieVariable(Helpers.BoogieType.Object, "sm");
 
 
-            var procIsCompleted = BoogieMethod.AsyncStubsTaskAwaiterIsCompleted;
+            var procIsCompleted = genericVersion ? BoogieMethod.AsyncStubsTaskAwaiterIsCompletedGeneric : BoogieMethod.AsyncStubsTaskAwaiterIsCompleted;
             var awaiterVar = new BoogieVariable(Helpers.BoogieType.Object, "awaiter");
             var stateVar = new BoogieVariable(Helpers.BoogieType.Bool, "state");
             var argsList = new List<Expression>();
@@ -60,7 +61,9 @@ namespace TinyBCT
             foreach (var ifCase in ifCases)
                 instructions.Add(ifCase);
 
-            var procedureTemplate = new BoogieProcedureTemplate("$AsyncStubs$ScheduleTask", "", localVars, instructions, "awaiter : Object, sm : Object", String.Empty, false);
+            string procedureName = genericVersion ? "$AsyncStubs`1$ScheduleTask" : "$AsyncStubs$ScheduleTask";
+
+            var procedureTemplate = new BoogieProcedureTemplate(procedureName, "", localVars, instructions, "awaiter : Object, sm : Object", String.Empty, false);
             return procedureTemplate.TransformText();
         }
 
