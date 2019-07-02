@@ -440,3 +440,25 @@ procedure System.Threading.Tasks.Task.FromResult``1$``0(param0 : Object) returns
     // i think this may not be appropiate according to docs
     async call $AsyncStubs$EventuallyFinish($result);
 }
+
+procedure TinyBCT.AsyncStubs.Eventually``1() returns ($result : Object)
+{
+    var r : Union;
+    
+    call $result := Alloc();
+    
+    call AsyncStubs.Task`1.#ctor($result);
+    
+    assume  ($DynamicType($result) == T$System.Threading.Tasks.Task`1(T$T$_0()));
+    assume $TypeConstructor($DynamicType($result)) == T$System.Threading.Tasks.Task`1;
+    
+    async call $AsyncStubs$EventuallyFinishGeneric($result);
+}
+
+procedure $AsyncStubs$EventuallyFinishGeneric(param0 : Object) returns ()
+{
+    var r : Union;
+    yield;
+    F$AsyncStubs.Task.IsCompleted[param0] := true;
+    F$AsyncStubs.Task.Result[param0] := r;
+}

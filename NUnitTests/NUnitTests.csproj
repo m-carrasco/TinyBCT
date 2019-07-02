@@ -135,7 +135,6 @@
     <Compile Include="Utils\CorralRunner.cs" />
     <Compile Include="Utils\Resource.cs" />
     <Compile Include="Utils\TinyBctRunner.cs" />
-    <Compile Include="Tests.cs" />
     <EmbeddedResource Include="Resources\StringOperations.cs" />
     <EmbeddedResource Include="Resources\Async\TestAtomicTransaction1.cs" />
     <EmbeddedResource Include="Resources\Async\TestAtomicTransaction2.cs" />
@@ -163,6 +162,9 @@
     <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics5.cs" />
     <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics6.cs" />
     <EmbeddedResource Include="Resources\Async\TestInterleavedTransactionGenerics1_B.cs" />
+    <EmbeddedResource Include="Resources\Async\Stubs.cs" />
+    <EmbeddedResource Include="Resources\Async\Stubs2.cs" />
+    <Compile Include="Tests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

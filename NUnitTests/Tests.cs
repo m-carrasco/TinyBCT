@@ -3851,4 +3851,32 @@ class TestAsync : TestsBase
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.TestInterleavedTransactionGenerics6.cs", options, corralOptions);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
+    [Test]
+    public void Test_Stub1()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupport = true;
+        var corralOptions = CreateDefaultCorralOptions("Test.EntryPoint");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.Stubs.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Stub2()
+    {
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("Test.EntryPoint");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.Stubs2.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
 }
