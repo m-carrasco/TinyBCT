@@ -3325,13 +3325,13 @@ class TestsAzure : TestsBase
         Assert.IsTrue(corralResult.AssertionFails());
     }
 
-    /*
+
     [Test]
     public void Test_Async_Bugged()
     {
         var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
         ProgramOptions programOptions = new ProgramOptions();
-        programOptions.StubGettersSetters = true;
+        programOptions.StubGettersSettersWhitelist = AzureGettersSetters();
         programOptions.Z3Strings = true;
         programOptions.AsyncSupportGenerics = true;
         programOptions.MemoryModel = MemOpt.Mixed;
@@ -3347,16 +3347,17 @@ class TestsAzure : TestsBase
     {
         var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
         ProgramOptions programOptions = new ProgramOptions();
-        programOptions.StubGettersSetters = true;
+        programOptions.StubGettersSettersWhitelist = AzureGettersSetters();
         programOptions.Z3Strings = true;
         programOptions.AsyncSupportGenerics = true;
         programOptions.MemoryModel = MemOpt.Mixed;
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
         corralOptions.MainProcedure = "HelloWorld.Function1.RunAsync_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         corralOptions.Cooperative = true;
+        corralOptions.TrackAllVars = true;
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);
         Assert.IsTrue(corralResult.NoBugs());
-    }*/
+    }
 
     [Test]
     public void Test_Async_Bugged_1()
@@ -3371,6 +3372,7 @@ class TestsAzure : TestsBase
         CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
         corralOptions.MainProcedure = "HelloWorldAsync.Function1.RunAsync_Bugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         corralOptions.Cooperative = true;
+        corralOptions.TrackAllVars = true;
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);
         Assert.IsTrue(corralResult.AssertionFails());
     }

@@ -7,7 +7,7 @@ using AzureStubs;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
-/*
+
 using System;
 using System.Net.Http;
 using TinyBCT;
@@ -27,7 +27,8 @@ namespace TinyBCT
     //        return await TinyBCT.AsyncStubs.Eventually<T>();
     //    }
     // }
-}*/
+}
+
 
 namespace HelloWorld
 {
@@ -62,7 +63,7 @@ namespace HelloWorld
                 : req.CreateResponse(HttpStatusCode.OK, "Hello " + name);
         }*/
 
-            /*
+        
         [FunctionName("RunAsync_Bugs")]
         public static async Task<HttpResponseMessage> RunAsync_Bugs([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
         {
@@ -123,7 +124,7 @@ namespace HelloWorld
             Contract.Assert(name == null || result == HttpStatusCode.OK);
 
             return result;
-        }*/
+        }
 
         [FunctionName("Function1")]
         public static HttpResponseMessage Run_NoBugs([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
