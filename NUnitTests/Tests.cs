@@ -3264,6 +3264,15 @@ class TestsAzure : TestsBase
         return tmpDll;
     }
 
+    private List<string> AzureGettersSetters()
+    {
+        List<string> whitelist = new List<string>();
+        whitelist.Add("System.Net.Http.HttpRequestMessage.get_Content");
+        whitelist.Add("System.Net.Http.HttpResponseMessage.get_StatusCode");
+        whitelist.Add("System.Net.Http.HttpResponseMessage.get_ReasonPhrase");
+        return whitelist;
+    }
+
     [Test]
     public void Test1_NoBugs()
     {
@@ -3314,6 +3323,72 @@ class TestsAzure : TestsBase
         corralOptions.MainProcedure = "HelloWorld.Function1.Run2_Bugged$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
         var corralResult = TestDll(dllLocation, programOptions, corralOptions);
         Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    /*
+    [Test]
+    public void Test_Async_Bugged()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
+        programOptions.AsyncSupportGenerics = true;
+        programOptions.MemoryModel = MemOpt.Mixed;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorld.Function1.RunAsync_Bugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        corralOptions.Cooperative = true;
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Async_NoBugs()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorld.ReferenceToHelloWorldDll).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSetters = true;
+        programOptions.Z3Strings = true;
+        programOptions.AsyncSupportGenerics = true;
+        programOptions.MemoryModel = MemOpt.Mixed;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorld.Function1.RunAsync_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        corralOptions.Cooperative = true;
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }*/
+
+    [Test]
+    public void Test_Async_Bugged_1()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorldAsync.ReferenceToHelloWorldDll).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+
+        programOptions.StubGettersSettersWhitelist = AzureGettersSetters();
+        programOptions.Z3Strings = true;
+        programOptions.AsyncSupportGenerics = true;
+        programOptions.MemoryModel = MemOpt.Mixed;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorldAsync.Function1.RunAsync_Bugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        corralOptions.Cooperative = true;
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.AssertionFails());
+    }
+
+    [Test]
+    public void Test_Async_NoBugs_1()
+    {
+        var dllLocation = CopyToSystemTempDir(typeof(HelloWorldAsync.ReferenceToHelloWorldDll).Assembly.Location);
+        ProgramOptions programOptions = new ProgramOptions();
+        programOptions.StubGettersSettersWhitelist = AzureGettersSetters();
+        programOptions.Z3Strings = true;
+        programOptions.AsyncSupportGenerics = true;
+        programOptions.MemoryModel = MemOpt.Mixed;
+        CorralRunner.CorralOptions corralOptions = new CorralRunner.CorralOptions();
+        corralOptions.MainProcedure = "HelloWorldAsync.Function1.RunAsync_NoBugs$System.Net.Http.HttpRequestMessage$Microsoft.Azure.WebJobs.Host.TraceWriter";
+        corralOptions.Cooperative = true;
+        var corralResult = TestDll(dllLocation, programOptions, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
     }
 
     [Test]

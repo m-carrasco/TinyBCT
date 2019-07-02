@@ -212,13 +212,10 @@ namespace TinyBCT
                 // CreateAllAsyncMethods(streamWriter);
                 #region Heuristic to catch getters & setters. If they are in our input assemblies we generate a body using a field associated to that property
                 IEnumerable<IMethodReference> usedProperties = new List<IMethodReference>();
-                if (Settings.StubGettersSetters)
+                if (Settings.StubGettersSetters || Settings.StubGettersSettersWhitelist.Count > 0)
                 {
-                    if (Settings.StubGettersSetters)
-                    {
-                        GetterSetterStub getterSetterStub = new GetterSetterStub();
-                        usedProperties = getterSetterStub.Stub(inputAssemblies, streamWriter);
-                    }
+                    GetterSetterStub getterSetterStub = new GetterSetterStub();
+                    usedProperties = getterSetterStub.Stub(inputAssemblies, streamWriter);
                 }
                 #endregion
 
@@ -244,7 +241,6 @@ namespace TinyBCT
 
                 var externMethods = InstructionTranslator.CalledMethods.Except(inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0)).Except(usedProperties);
                 externMethods = externMethods.Where(m => !StringTranslator.GetBoogieNamesForStubs().Contains(BoogieMethod.From(m).Name));
-                externMethods = externMethods.Where(m => !BoogieMethod.From(m).Name.Contains("System.Threading.Tasks.Task.Delay$System.TimeSpan"));
                 foreach (var methodRef in externMethods)
                 {
                     var head = Helpers.GetExternalMethodDefinition(Helpers.GetUnspecializedVersion(methodRef));

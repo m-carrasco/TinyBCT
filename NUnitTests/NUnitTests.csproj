@@ -187,6 +187,10 @@
       <Project>{9613186D-41B8-4C27-9142-79067A29D54C}</Project>
       <Name>NotifyInvoiceFunc</Name>
     </ProjectReference>
+    <ProjectReference Include="AzureProjects\HelloWorldAzureAsync\HelloWorldAzure\HelloWorldAzureAsync.csproj">
+      <Project>{50B7C2AB-A235-4435-A06C-E1C5F296A907}</Project>
+      <Name>HelloWorldAzureAsync</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.2.6.2\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />

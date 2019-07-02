@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureStubs", "AzureStubs\AzureStubs.csproj", "{5A2A6F0C-3DA6-4450-84EE-7B498BCB7F71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorldAzureAsync", "HelloWorldAzure\HelloWorldAzureAsync.csproj", "{CD94C9BE-4543-40FD-99F5-4031AB37825E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A2A6F0C-3DA6-4450-84EE-7B498BCB7F71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A2A6F0C-3DA6-4450-84EE-7B498BCB7F71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A2A6F0C-3DA6-4450-84EE-7B498BCB7F71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A2A6F0C-3DA6-4450-84EE-7B498BCB7F71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD94C9BE-4543-40FD-99F5-4031AB37825E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD94C9BE-4543-40FD-99F5-4031AB37825E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD94C9BE-4543-40FD-99F5-4031AB37825E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD94C9BE-4543-40FD-99F5-4031AB37825E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {84441B90-DB7E-4963-B410-79ACC57CD821}
+	EndGlobalSection
+EndGlobal

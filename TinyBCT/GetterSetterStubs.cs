@@ -15,13 +15,26 @@ namespace TinyBCT
             PropertiesFinder propertiesFinder = new PropertiesFinder();
             var nonExternMethods = inputAssemblies.GetAllDefinedMethods().Where(m => m.Body.Size > 0);
             var usedProperties = propertiesFinder.FindPropertiesCalls(inputAssemblies).Except(nonExternMethods);
+
+            if (Settings.StubGettersSettersWhitelist.Count > 0)
+                usedProperties = usedProperties.Where(p => Settings.StubGettersSettersWhitelist.Contains(BoogieMethod.From(p).Name));
+
             foreach (var property in usedProperties)
             {
-                streamWriter.WriteLine(GetFieldDef(property));
-                var proc = property.Name.Value.StartsWith("get_") ? GetProcedureStub(property) : SetProcedureStub(property);
-                streamWriter.WriteLine(proc);
-            }
+                //if (property.Name.Value.Equals("get_Content") ||
+                //    property.Name.Value.Equals("get_StatusCode") || 
+                //    property.Name.Value.Equals("get_ReasonPhrase"))
+                //{
+                    streamWriter.WriteLine(GetFieldDef(property));
+                    var proc = property.Name.Value.StartsWith("get_") ? GetProcedureStub(property) : SetProcedureStub(property);
+                    streamWriter.WriteLine(proc);
+                //}
 
+            }
+            // hack
+            //return usedProperties.Where(property => property.Name.Value.Equals("get_Content") ||
+            //        property.Name.Value.Equals("get_StatusCode") ||
+            //        property.Name.Value.Equals("get_ReasonPhrase"));
             return usedProperties;
         }
 
