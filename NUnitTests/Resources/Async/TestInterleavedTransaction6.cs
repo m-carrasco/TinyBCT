@@ -6,6 +6,14 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
+namespace TinyBCT
+{
+    class AsyncStubs
+    {
+        public static extern Task Eventually();
+    }
+}
+
 class Bank
 {
     public class State
@@ -27,7 +35,7 @@ class Bank
         int temp;
         temp = state.balance;
         temp = temp - i;
-        await Task.Delay(new TimeSpan(1));
+        await TinyBCT.AsyncStubs.Eventually();
         state.balance = temp;
         state.withdraw = true;
         Contract.Assert(!state.deposit);

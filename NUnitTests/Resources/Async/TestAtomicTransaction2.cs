@@ -6,6 +6,14 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
+namespace TinyBCT
+{
+    class AsyncStubs
+    {
+        public static extern Task Eventually();
+    }
+}
+
 class Bank
 {
     static int balance;
@@ -14,7 +22,7 @@ class Bank
 
     public static async Task Withdraw(int i)
     {
-        await Task.Delay(new TimeSpan(1));
+        await TinyBCT.AsyncStubs.Eventually();
         int temp;
         temp = balance;
         temp = temp - i;
@@ -24,7 +32,7 @@ class Bank
 
     public static async Task Deposit(int i)
     {
-        await Task.Delay(new TimeSpan(1));
+        await TinyBCT.AsyncStubs.Eventually();
         int temp;
         temp = balance;
         temp = temp + i;

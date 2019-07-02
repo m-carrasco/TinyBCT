@@ -6,6 +6,14 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
+namespace TinyBCT
+{
+    class AsyncStubs
+    {
+        public static extern Task<T> Eventually<T>();
+    }
+}
+
 class Bank
 {
     static int balance;
@@ -13,7 +21,7 @@ class Bank
 
     public static async Task<int> Withdraw_Reachability(int i)
     {
-        await Task.FromResult(i);
+        await TinyBCT.AsyncStubs.Eventually<int>();
         int temp;
         temp = balance;
         temp = temp - i;

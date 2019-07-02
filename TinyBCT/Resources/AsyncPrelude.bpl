@@ -415,18 +415,6 @@ procedure $AsyncStubs$InitTaskAwaiter(target : Addr) returns ()
     $memoryObject := WriteObject($memoryObject, target, $r0);
 }
 
-procedure System.Threading.Tasks.Task.Delay$System.TimeSpan(param0 : Object) returns ($result : Object)
-{
-    call $result := Alloc();
-    
-    call AsyncStubs.Task.#ctor($result);
-    
-    assume  ($DynamicType($result) == T$System.Threading.Tasks.Task());
-    assume $TypeConstructor($DynamicType($result)) == T$System.Threading.Tasks.Task;
-    
-    async call $AsyncStubs$EventuallyFinish($result);
-}
-
 procedure TinyBCT.AsyncStubs.Eventually() returns ($result : Object)
 {
     call $result := Alloc();

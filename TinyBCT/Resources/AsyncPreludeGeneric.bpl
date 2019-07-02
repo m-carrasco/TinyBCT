@@ -426,21 +426,6 @@ procedure $AsyncStubs$InitTaskAwaiterGeneric(target : Addr) returns ()
     $memoryObject := WriteObject($memoryObject, target, $r0);
 }
 
-procedure System.Threading.Tasks.Task.FromResult``1$``0(param0 : Object) returns ($result : Object)
-{
-    call $result := Alloc();
-    
-    call AsyncStubs.Task`1.#ctor($result);
-    
-    assume  ($DynamicType($result) == T$System.Threading.Tasks.Task`1(T$T$_0()));
-    assume $TypeConstructor($DynamicType($result)) == T$System.Threading.Tasks.Task`1;
-    
-    F$AsyncStubs.Task.Result[$result] := param0;
-    
-    // i think this may not be appropiate according to docs
-    async call $AsyncStubs$EventuallyFinish($result);
-}
-
 procedure TinyBCT.AsyncStubs.Eventually``1() returns ($result : Object)
 {
     var r : Union;

@@ -6,6 +6,14 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
+namespace TinyBCT
+{
+    class AsyncStubs
+    {
+        public static extern Task Eventually();
+    }
+}
+
 class AsyncClass
 {
     static async Task EmptyAsyncMethod(TimeSpan delay, int i)
@@ -18,7 +26,7 @@ class AsyncClass
         int p = 0;
         Console.WriteLine("Before first delay");
         p = 1;
-        await Task.Delay(delay);
+        await TinyBCT.AsyncStubs.Eventually();
         Contract.Assert(p == 1);
         //p = 1 + p;
         Console.WriteLine("After delay");
@@ -28,10 +36,10 @@ class AsyncClass
     static async Task TwoDelaysMethod(TimeSpan delay, int i)
     {
         Console.WriteLine("Before first delay");
-        await Task.Delay(delay);
+        await TinyBCT.AsyncStubs.Eventually();
 
         Console.WriteLine("Between delays");
-        await Task.Delay(delay);
+        await TinyBCT.AsyncStubs.Eventually();
         Console.WriteLine("After second delay");
     }
 }
