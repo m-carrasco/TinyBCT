@@ -190,6 +190,7 @@
     <Compile Include="Translators\StringTranslator.cs" />
     <Compile Include="AsyncStubs.cs" />
     <Compile Include="Resource.cs" />
+    <Compile Include="Comparers\IFieldReferenceComparer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -241,6 +242,9 @@
     <EmbeddedResource Include="Resources\Prelude.bpl" />
     <EmbeddedResource Include="Resources\AsyncPreludeGeneric.bpl" />
     <EmbeddedResource Include="Resources\CommonAsyncPrelude.bpl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Comparers\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

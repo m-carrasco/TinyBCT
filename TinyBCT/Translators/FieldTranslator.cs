@@ -2,17 +2,20 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using TinyBCT.Comparers;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT.Translators
 {
     class FieldTranslator
     {
-        internal static IDictionary<IFieldReference, String> fieldNames = new Dictionary<IFieldReference, String>();
+        internal static IDictionary<IFieldReference, String> fieldNames = FieldTranslator.NewFieldReferenceMap();
+
+        public static IDictionary<IFieldReference, String> NewFieldReferenceMap()
+        {
+            return new Dictionary<IFieldReference, String>(new IFieldReferenceComparer());
+        }
 
         public static IEnumerable<IFieldReference> GetFieldReferences()
         {
@@ -23,6 +26,8 @@ namespace TinyBCT.Translators
         public static ISet<String> GetFieldDefinitions()
         {
             ISet<String> values = new HashSet<String>();
+
+            var r = fieldNames.Where(kv => kv.Value.Contains("F$TinyBCT.Extensions.$ReadAsAsyncStub$d__0`1.__u__1"));
 
             foreach (var item in fieldNames)
             {

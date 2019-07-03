@@ -8,6 +8,7 @@ using Backend.Transformations;
 using Backend;
 using Backend.Analyses;
 using System.Diagnostics.Contracts;
+using TinyBCT.Comparers;
 
 namespace TinyBCT
 {
@@ -15,7 +16,12 @@ namespace TinyBCT
     {
         // this set has the result of the last analysis
         static ISet<IReferenceable> ReferencedSet = new HashSet<IReferenceable>();
-        static ISet<IFieldReference> FieldReferencedSet = new HashSet<IFieldReference>();
+        static ISet<IFieldReference> FieldReferencedSet = NewFieldReferenceSet();
+
+        public static ISet<IFieldReference> NewFieldReferenceSet()
+        {
+            return new HashSet<IFieldReference>(new IFieldReferenceComparer());
+        }
 
         public static void AddReference(IReferenceable referenceable)
         {
