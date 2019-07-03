@@ -66,9 +66,25 @@ namespace TinyBCT
             }
 
 
-            var fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
             if (methodBody.MethodDefinition.IsConstructor)
             {
+                IEnumerable<IFieldDefinition> fields = null;
+                if (methodBody.MethodDefinition.ContainingTypeDefinition.IsGeneric)
+                {
+                    /*
+                        This solves the issue of having a generic class (ie. class A<T>) and mismatches between field names.
+                        If we just use ContaingTypeDefinition.Fields we have have a different IFieldDefinition than the ones found in the method bodies
+                        Here, I want to be sure that we use A<T>.field as a field definition and not A.field
+                        However, this could not be the ultimate solution and there could be a better way to tackle it.
+                     */
+                    var instanceOrSpecialized = TypeHelper.GetInstanceOrSpecializedNestedType(methodBody.MethodDefinition.ContainingTypeDefinition);
+                    fields = instanceOrSpecialized.Fields;
+                }
+                else
+                {
+                    fields = methodBody.MethodDefinition.ContainingTypeDefinition.Fields;
+                }
+
                 var thisVariable = methodBody.Parameters[0];
 
                 foreach (IFieldDefinition field in fields.Where(f => !f.IsStatic))

@@ -27,8 +27,6 @@ namespace TinyBCT.Translators
         {
             ISet<String> values = new HashSet<String>();
 
-            var r = fieldNames.Where(kv => kv.Value.Contains("F$TinyBCT.Extensions.$ReadAsAsyncStub$d__0`1.__u__1"));
-
             foreach (var item in fieldNames)
             {
                 var def = BoogieGenerator.Instance().GetFieldDefinition(item.Key, item.Value);
