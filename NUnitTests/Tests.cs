@@ -3956,4 +3956,21 @@ class TestAsync : TestsBase
         var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.Stubs2.cs", options, corralOptions);
         Assert.IsTrue(corralResult.AssertionFails());
     }
+
+    [Test]
+    public void Test_Stub3()
+    {
+        // the intent of this test case is to reproduce a bug regarding fields of generic types.
+        // there is no assertion verified, actually we only care that is correctly parsed
+
+        var options = CreateDefaultTinyBctOptions();
+        options.MemoryModel = MemOpt.Mixed;
+        options.AsyncSupportGenerics = true;
+        var corralOptions = CreateDefaultCorralOptions("NUnitTests.Resources.Async.Stubs3.Stubs$HttpContent");
+        corralOptions.TrackAllVars = true;
+        corralOptions.RecursionBound = 10;
+        corralOptions.Cooperative = true;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Async.Stubs3.cs", options, corralOptions);
+        Assert.IsTrue(corralResult.NoBugs());
+    }
 }

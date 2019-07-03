@@ -95,7 +95,7 @@ namespace HelloWorld
         }
 
         [FunctionName("RunAsync_NoBugs")]
-        public static async Task<HttpStatusCode> RunAsync_NoBugs([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        public static async Task<HttpResponseMessage> RunAsync_NoBugs([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
         {
             log.Info("C# HTTP trigger function processed a request.");
 
@@ -120,8 +120,11 @@ namespace HelloWorld
             //    : CreateHttpResponseMessage(req, HttpStatusCode.OK, "Hello " + name);
             //Contract.Assert(name == null || result.StatusCode == HttpStatusCode.OK);
 
-            HttpStatusCode result = name == null ? HttpStatusCode.BadRequest : HttpStatusCode.OK;
-            Contract.Assert(name == null || result == HttpStatusCode.OK);
+            HttpResponseMessage result = name == null
+                ? CreateHttpResponseMessage(req, HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
+                : CreateHttpResponseMessage(req, HttpStatusCode.OK, "Hello " + name);
+
+            Contract.Assert(name == null || result.StatusCode == HttpStatusCode.OK);
 
             return result;
         }

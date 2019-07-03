@@ -165,6 +165,7 @@
     <EmbeddedResource Include="Resources\Async\Stubs.cs" />
     <EmbeddedResource Include="Resources\Async\Stubs2.cs" />
     <Compile Include="Tests.cs" />
+    <EmbeddedResource Include="Resources\Async\Stubs3.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
