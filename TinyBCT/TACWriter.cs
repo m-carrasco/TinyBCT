@@ -25,11 +25,10 @@ namespace TinyBCT
                 {
                     if (methodDefinition.Body.Size > 0)
                     {
-                        var disassembler = new Disassembler(a.Host, methodDefinition, a.PdbReader);
-                        MethodBody mB = disassembler.Execute();
-                        MethodTranslator.transformBody(mB);
+                        var disassembler = new TinyBCT.Translators.Disassembler(a.Host, methodDefinition, a.PdbReader);
+                        disassembler.Execute();
 
-                        TACWriter.AddMethod(mB);
+                        TACWriter.AddMethod(disassembler.MethodBody);
                         TACWriter.Write();
                     }
                 }

@@ -76,23 +76,11 @@ namespace TinyBCT
             {
                 foreach (IMethodDefinition methodDefinition in assembly.GetAllDefinedMethods())
                 {
-                    var disassembler = new Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
-                    MethodBody methodBody = disassembler.Execute();
-
-                    var cfAnalysis = new ControlFlowAnalysis(methodBody);
-                    var cfg = cfAnalysis.GenerateExceptionalControlFlow();
-
-                    var splitter = new WebAnalysis(cfg, methodBody.MethodDefinition);
-                    splitter.Analyze();
-                    splitter.Transform();
-
-                    methodBody.UpdateVariables();
-
-                    var typeAnalysis = new TypeInferenceAnalysis(cfg, methodBody.MethodDefinition.Type);
-                    typeAnalysis.Analyze();
+                    var disassembler = new TinyBCT.Translators.Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
+                    disassembler.Execute();
 
                     ReferenceFinder reference = new ReferenceFinder();
-                    reference.CollectFields(methodBody);
+                    reference.CollectFields(disassembler.MethodBody);
                 }
             }
         }

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TinyBCT.Translators;
+using Disassembler = TinyBCT.Translators.Disassembler;
 
 namespace TinyBCT
 {
@@ -21,59 +22,6 @@ namespace TinyBCT
         MethodBody methodBody;
         ClassHierarchyAnalysis CHA;
         private ControlFlowGraph CFG;
-
-        public static ControlFlowGraph transformBody(MethodBody methodBody)
-        {
-            var cfAnalysis = new ControlFlowAnalysis(methodBody);
-            //var cfg = cfAnalysis.GenerateNormalControlFlow();
-            ControlFlowGraph cfg = cfAnalysis.GenerateExceptionalControlFlow();
-
-            var splitter = new WebAnalysis(cfg, methodBody.MethodDefinition);
-            splitter.Analyze();
-            splitter.Transform();
-
-            methodBody.UpdateVariables();
-
-            var typeAnalysis = new TypeInferenceAnalysis(cfg, methodBody.MethodDefinition.Type);
-            typeAnalysis.Analyze();
-
-            //var forwardCopyAnalysis = new ForwardCopyPropagationAnalysis(Traverser.CFG);
-            //forwardCopyAnalysis.Analyze();
-            //forwardCopyAnalysis.Transform(methodBody);
-
-            //var backwardCopyAnalysis = new BackwardCopyPropagationAnalysis(Traverser.CFG);
-            //backwardCopyAnalysis.Analyze();
-            //backwardCopyAnalysis.Transform(methodBody);
-
-            // TinyBCT transformations
-
-            var fieldInitialization = new FieldInitialization(methodBody);
-            fieldInitialization.Transform();
-
-            if (!Settings.AddressesEnabled())
-            {
-                var refAlias = new RefAlias(methodBody);
-                refAlias.Transform();
-            }
-
-
-            // execute this after RefAlias! 
-            var immutableArguments = new ImmutableArguments(methodBody);
-            immutableArguments.Transform();
-
-            // it would be faster to do this while we do 
-            // the global search for field references
-            if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
-            {
-                ReferenceFinder reference = new ReferenceFinder();
-                reference.CollectLocalVariables(methodBody);
-            }
-
-            methodBody.RemoveUnusedLabels();
-
-            return cfg;
-        }
-
 
         static bool whitelistContains(string name)
         {
@@ -114,9 +62,16 @@ namespace TinyBCT
                             if (whitelistContains(methodDefinition.ContainingType.FullName()))
                             {
                                 var disassembler = new Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
-                                MethodBody mB = disassembler.Execute();
-                                ControlFlowGraph cfg = transformBody(mB);
-                                
+                                disassembler.Execute();
+                                MethodBody mB = disassembler.MethodBody;
+                                ControlFlowGraph cfg = disassembler.ControlFlowGraph;
+                                // it would be faster to do this while we do 
+                                // the global search for field references
+                                if (Settings.MemoryModel == ProgramOptions.MemoryModelOption.Mixed)
+                                {
+                                    ReferenceFinder reference = new ReferenceFinder();
+                                    reference.CollectLocalVariables(mB);
+                                }
                                 MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, mB, CHA, cfg);
                                 // todo: improve this piece of code
                                 StreamWriter streamWriter = Program.streamWriter;

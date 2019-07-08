@@ -26,27 +26,14 @@ namespace TinyBCT
 
             Function<IMethodDefinition, MethodBody> disassemble = (method) =>
             {
-                var disassembler = new Disassembler(assemblies.First().Host, method, assemblies.First().PdbReader);
-                return disassembler.Execute();
+                var disassembler = new TinyBCT.Translators.Disassembler(assemblies.First().Host, method, assemblies.First().PdbReader);
+                disassembler.Execute();
+                return disassembler.MethodBody;
             };
 
-            var methodBodies = definedMethodsWithBody.Select(m => TransformBody(disassemble(m)).Instructions);
+            var methodBodies = definedMethodsWithBody.Select(m => disassemble(m).Instructions);
 
             return methodBodies.SelectMany(body => FindPropertiesCalls(body));
-        }
-
-        private MethodBody TransformBody(MethodBody methodBody)
-        {
-            var cfAnalysis = new ControlFlowAnalysis(methodBody);
-            ControlFlowGraph cfg = cfAnalysis.GenerateExceptionalControlFlow();
-
-            var splitter = new WebAnalysis(cfg, methodBody.MethodDefinition);
-            splitter.Analyze();
-            splitter.Transform();
-
-            methodBody.UpdateVariables();
-
-            return methodBody;
         }
     }
 }

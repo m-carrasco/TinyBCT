@@ -73,9 +73,9 @@ namespace TinyBCT.Translators
 
             if (methodDefinition.IsAbstract || methodDefinition.IsExternal) return;
 
-            var disassembler = new Disassembler(host, methodDefinition, sourceLocationProvider);
-            var methodBody = disassembler.Execute();
-            foreach(var instruction in methodBody.Instructions)
+            var disassembler = new TinyBCT.Translators.Disassembler(host, methodDefinition, sourceLocationProvider);
+            disassembler.Execute();
+            foreach(var instruction in disassembler.MethodBody.Instructions)
             {
                 var visitor = new AllocAndDelegateFinderVisitor(this);
                 instruction.Accept(visitor);

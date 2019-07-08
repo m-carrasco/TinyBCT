@@ -191,6 +191,7 @@
     <Compile Include="AsyncStubs.cs" />
     <Compile Include="Resource.cs" />
     <Compile Include="Comparers\IFieldReferenceComparer.cs" />
+    <Compile Include="Translators\Disassembler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
