@@ -1097,7 +1097,12 @@ namespace TinyBCT.Memory
 
         public override StatementList CallReadArrayElement(IVariable resultVariable, Expression array, Expression index, InstructionTranslator instructionTranslator)
         {
-            throw new NotImplementedException();
+            if (RequiresAllocation(resultVariable))
+            {
+                return memAddr.CallReadArrayElement(resultVariable, array, index, instructionTranslator);
+            }
+            else
+                return memBCT.CallReadArrayElement(resultVariable, array, index, instructionTranslator);
         }
 
         public override StatementList AllocStaticVariable(IFieldReference field)
