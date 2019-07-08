@@ -640,11 +640,12 @@ namespace TinyBCT
 
         public static String GetParametersWithBoogieType(IMethodReference methodRef)
         {
+
             var parameters = String.Empty;
             IMethodDefinition methodDef = methodRef as IMethodDefinition;
             // hack for handling type as variable
             if (methodDef != null)
-                parameters =  String.Join(",", methodDef.Parameters.Select(v => v.Name + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
+                parameters =  String.Join(",", methodDef.Parameters.Select(v => BoogieVariable.AdaptNameToBoogie(v.Name.Value) + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
             else
                 parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
 
