@@ -1983,8 +1983,20 @@ class Test {
         Assert.IsTrue(corralResult.AssertionFails());
     }
 }
+
+
 class TestsManu : TestsBase
 {
+    [Test]
+    public void Enums()
+    {
+        // we just want to check that we have a valid boogie program
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.MemoryModel = MemOpt.Mixed;
+        var corralResult = TestSingleCSharpResourceFile("NUnitTests.Resources.Enums.cs", tinyBCTOptions, CreateDefaultCorralOptions("NUnitTests.Resources.Enums.M3$NUnitTests.Resources.Day$"));
+        Assert.IsTrue(corralResult.NoBugs());
+    }
+
     [Ignore(""), Test, Timeout(10000), Category("NotImplemented")]
     public void Subtype()
     {

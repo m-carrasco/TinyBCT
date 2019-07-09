@@ -234,9 +234,17 @@ namespace TinyBCT.Translators
                 var calless = Helpers.PotentialCalleesUsingCHA(method, receiver, operation, instTranslator.CHA);
 
                 var getTypeBoogieVar = instTranslator.GetFreshVariable(Helpers.ObjectType(), "DynamicDispatch_Type_");
-
                 var args = new List<Expression>();
-                args.Add(boogieGenerator.ReadAddr(receiver));
+                Expression receiverExpr = boogieGenerator.ReadAddr(receiver);
+                if (!Helpers.IsBoogieRefType(receiverExpr.Type))
+                {
+                    var stmtList = new StatementList();
+                    var toRef = Expression.PrimitiveType2Union(receiverExpr, stmtList);
+                    AddBoogie(stmtList);
+                    args.Add(toRef);
+                } else
+                    args.Add(receiverExpr);
+
                 AddBoogie(boogieGenerator.ProcedureCall(BoogieMethod.GetTypeMethod, args, getTypeBoogieVar));
 
                 if (operation == MethodCallOperation.Virtual)
