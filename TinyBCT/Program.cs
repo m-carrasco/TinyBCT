@@ -34,7 +34,7 @@ namespace TinyBCT
             TinyBCT.Translators.TypeDefinitionTranslator.parents = new HashSet<ITypeDefinition>();
             TinyBCT.Translators.TypeDefinitionTranslator.normalizedTypeStrings = new HashSet<string>();
 
-            TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<IMethodDefinition>();
+            TinyBCT.Translators.StaticInitializer.mainMethods = new HashSet<ValueTuple<IMethodDefinition, Assembly>>();
             TinyBCT.Translators.StaticInitializer.staticConstructors = new HashSet<IMethodDefinition>();
 
             TinyBCT.ImmutableArguments.MethodToMapping = new Dictionary<MethodBody, IDictionary<IVariable, IVariable>>();

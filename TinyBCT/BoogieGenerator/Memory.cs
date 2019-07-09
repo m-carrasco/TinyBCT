@@ -901,7 +901,8 @@ namespace TinyBCT.Memory
             {
                 var boogieParamVariable = BoogieParameter.FromDotNetVariable(paramVariable);
 
-                if (!RequiresAllocation(paramVariable))
+                //if (!RequiresAllocation(paramVariable))
+                if (paramVariable.Type is IManagedPointerType)
                 {
                     //BoogieVariable target = RequiresAllocation(paramVariable) || (paramVariable.Type is IManagedPointerType) ? 
                     //    BoogieVariable.AddressVar(paramVariable) : BoogieVariable.FromDotNetVariable(paramVariable);

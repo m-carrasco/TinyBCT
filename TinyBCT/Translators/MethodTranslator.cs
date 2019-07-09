@@ -22,6 +22,7 @@ namespace TinyBCT
         MethodBody methodBody;
         ClassHierarchyAnalysis CHA;
         private ControlFlowGraph CFG;
+        Assembly assembly;
 
         static bool whitelistContains(string name)
         {
@@ -72,7 +73,7 @@ namespace TinyBCT
                                     ReferenceFinder reference = new ReferenceFinder();
                                     reference.CollectLocalVariables(mB);
                                 }
-                                MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, mB, CHA, cfg);
+                                MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, mB, CHA, cfg, assembly);
                                 // todo: improve this piece of code
                                 StreamWriter streamWriter = Program.streamWriter;
                                 streamWriter.WriteLine(methodTranslator.Translate());
@@ -92,12 +93,13 @@ namespace TinyBCT
             }
         }
 
-        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA, ControlFlowGraph cfg)
+        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA, ControlFlowGraph cfg, Assembly assembly)
         {
             this.methodDefinition = methodDefinition;
             this.methodBody = methodBody;
             this.CHA = CHA;
             this.CFG = cfg;
+            this.assembly = assembly;
         }
 
         StatementList TranslateInstructions(out Dictionary<string, BoogieVariable> temporalVariables)
@@ -171,7 +173,9 @@ namespace TinyBCT
             var localVariables = TranslateLocalVariables(temporalVariables);
             var methodName = BoogieMethod.From(methodDefinition).Name;
             var attr = TranslateAttr();
-            var parametersWithTypes = Helpers.GetParametersWithBoogieType(methodDefinition);
+            Disassembler disassembler = new Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
+            disassembler.Execute();
+            var parametersWithTypes = Helpers.GetParametersWithBoogieType(disassembler.MethodBody.Parameters);
             var returnTypeIfAny = TranslateReturnTypeIfAny();
 
             var boogieProcedureTemplate = new BoogieProcedureTemplate(methodName, attr, localVariables, ins, parametersWithTypes, returnTypeIfAny, Helpers.IsExternal(methodDefinition));

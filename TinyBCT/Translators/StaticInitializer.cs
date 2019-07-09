@@ -12,23 +12,30 @@ namespace TinyBCT.Translators
 {
     class StaticInitializer
     {
-        internal static IEnumerable<IMethodDefinition> mainMethods;
+        internal static IEnumerable<ValueTuple<IMethodDefinition, Assembly>> mainMethods;
         internal static IEnumerable<IMethodDefinition> staticConstructors;
 
         public static void SearchStaticConstructorsAndMain(ISet<Assembly> assemblies)
         {
             staticConstructors = assemblies.GetAllDefinedMethods().Where(m => m.IsStaticConstructor);
-            mainMethods = assemblies.GetAllDefinedMethods().Where(m => Helpers.IsMain(m));
+            mainMethods = from assembly in assemblies
+                          from methodDef in assembly.GetAllDefinedMethods()
+                          where Helpers.IsMain(methodDef)
+                          select ValueTuple.Create(methodDef, assembly);
         }
 
         public static string CreateMainWrappers()
         {
             StringBuilder sb
             = new StringBuilder();
-            foreach (var mainMethod in mainMethods)
+            foreach (var mainMethodTuple in mainMethods)
             {
+                var mainMethod = mainMethodTuple.Item1;
+                var assembly = mainMethodTuple.Item2;
+                var disassembler = new Disassembler(assembly.Host, mainMethod, assembly.PdbReader);
+                disassembler.Execute();
                 var methodName = BoogieMethod.From(mainMethod).Name;
-                var parameters = Helpers.GetParametersWithBoogieType(mainMethod);
+                var parameters = Helpers.GetParametersWithBoogieType(disassembler.MethodBody.Parameters);
                 var returnType = Helpers.GetMethodBoogieReturnType(mainMethod).Equals(Helpers.BoogieType.Void) ? String.Empty : ("returns ($result :" + Helpers.GetMethodBoogieReturnType(mainMethod) + ")");
                 sb.AppendLine(String.Format("procedure {{:entrypoint}} $Main_Wrapper_{0}({1}) {2}", methodName, parameters, returnType));
                 sb.AppendLine("{");

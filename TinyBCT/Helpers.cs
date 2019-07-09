@@ -11,6 +11,8 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using TinyBCT.Translators;
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Test")]
 namespace TinyBCT
 {
@@ -638,16 +640,18 @@ namespace TinyBCT
             return String.Join("", GetUnspecializedVersion(methodRef).Parameters.Select(v => "$" + TypeHelper.UninstantiateAndUnspecialize(v.Type)));
         }
 
+        public static String GetParametersWithBoogieType(IList<IVariable> parameters)
+        {
+            var res = String.Empty;
+            res = String.Join(",", parameters.Select(v => BoogieVariable.AdaptNameToBoogie(v.Name) + " : " + Helpers.GetBoogieType(v)));
+            res = Strings.NormalizeStringForCorral(res);
+            return res;
+        }
+
         public static String GetParametersWithBoogieType(IMethodReference methodRef)
         {
-
             var parameters = String.Empty;
-            IMethodDefinition methodDef = methodRef as IMethodDefinition;
-            // hack for handling type as variable
-            if (methodDef != null)
-                parameters =  String.Join(",", methodDef.Parameters.Select(v => BoogieVariable.AdaptNameToBoogie(v.Name.Value) + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
-            else
-                parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
+            parameters = String.Join(",", methodRef.Parameters.Select(v => String.Format("param{0}", v.Index) + " : " + (Settings.AddressesEnabled() && v.IsByReference ? Helpers.BoogieType.Addr : GetBoogieType(v))));
 
             if (methodRef.CallingConvention.HasFlag(Microsoft.Cci.CallingConvention.HasThis))
                 parameters = String.Format("this : Ref{0}{1}", methodRef.ParameterCount > 0 ? "," : String.Empty, parameters);
