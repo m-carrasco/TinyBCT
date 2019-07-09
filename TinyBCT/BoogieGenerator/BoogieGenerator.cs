@@ -453,7 +453,7 @@ namespace TinyBCT
         }
         public static BoogieLiteral FromDotNetConstant(Constant cons)
         {
-            if (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type))
+            if (cons.Value is Single || cons.Value is Double || cons.Value is Decimal || TypeHelper.IsPrimitiveInteger(cons.Type) || Helpers.GetBoogieType(cons).Equals(Helpers.BoogieType.Int))
             {
                 return BoogieLiteral.Numeric(cons);
             }
