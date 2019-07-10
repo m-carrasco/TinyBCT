@@ -192,6 +192,7 @@
     <Compile Include="Resource.cs" />
     <Compile Include="Comparers\IFieldReferenceComparer.cs" />
     <Compile Include="Translators\Disassembler.cs" />
+    <Compile Include="Utils\Timeout.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -246,6 +247,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Comparers\" />
+    <Folder Include="Utils\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
