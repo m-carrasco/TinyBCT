@@ -183,7 +183,7 @@ namespace TinyBCT
             {
                 public override BoogieType GetBoogieType(IVariable var)
                 {
-                    if (ReferenceFinder.IsReferenced(var))
+                    if (ReferenceFinder.IsReferenced(var) && !var.IsParameter)
                         return BoogieType.Addr;
 
                     return GetBoogieType(var.Type);
