@@ -12,6 +12,7 @@ namespace TinyBCT.Utils
         public static void InitiateTimeoutCheck()
         {
             Thread t = new Thread(() => CheckTimeout(Settings.TimeoutMinutes));
+            t.IsBackground = true;
             t.Start();
         }
         private static void CheckTimeout(int timeInMinutes)
