@@ -22,6 +22,7 @@ namespace TinyBCT.Translators
         private ControlFlowGraph CFG;
         private ClassHierarchyAnalysis CHA;
         private MethodBody methodBody; // currently used to get ExceptionsInformation
+        private ISet<Assembly> inputAssemblies;
         // Diego: No longer required
         // public Dictionary<string, int> labels = new Dictionary<string, int>();
 
@@ -49,13 +50,14 @@ namespace TinyBCT.Translators
         protected IMethodDefinition method;
         public Dictionary<string, BoogieVariable> temporalVariables;
 
-        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody, ControlFlowGraph cfg)
+        public InstructionTranslator(ClassHierarchyAnalysis CHA, MethodBody methodBody, ControlFlowGraph cfg, ISet<Assembly> inputAssemblies)
         {
             this.CFG = cfg;
             this.CHA = CHA;
             this.method = methodBody.MethodDefinition;
             this.methodBody = methodBody;
             temporalVariables = new Dictionary<string, BoogieVariable>();
+            this.inputAssemblies = inputAssemblies;
         }
 
         public static void AddToCalledMethods(IMethodReference method)
@@ -107,7 +109,7 @@ namespace TinyBCT.Translators
                 AddBoogie(BoogieStatement.Assume(this_var_not_null));
 
                 var this_var_type = this_var.Type;
-                if(this_var_type is IManagedPointerType)
+                if(this_var_type is IManagedPointerType && !Settings.AddressesEnabled())
                 {
                     this_var_type = (this_var_type as IManagedPointerType).TargetType;
                 }
@@ -784,7 +786,26 @@ namespace TinyBCT.Translators
                     var SDVDefectAttr = $"{{:print \"Return\"}}";
                     stmts.Add(LineNumbersStatement(location, SDVDefectAttr));
                 }
-                
+
+                if (Settings.AddressesEnabled())
+                {
+                    // it can break our stubs
+                    if ((Settings.AsyncSupport || Settings.AsyncSupportGenerics) && 
+                        instruction.Method.ContainingType.GetName().Contains("Async"))
+                        return stmts;
+
+                    var refParameters = instruction.Arguments.Where(p => p.Type is IManagedPointerType);
+                    if (refParameters.Count() > 0 && !instTranslator.inputAssemblies.GetAllDefinedMethods().Contains(instruction.Method))
+                    {
+                        foreach (var referencedParam in refParameters)
+                        {
+                            var refResult = instTranslator.GetFreshVariable(Helpers.GetBoogieType((referencedParam.Type as IManagedPointerType).TargetType));
+                            stmts.Add(BoogieStatement.FromString("havoc " + refResult.Expr + ";"));
+                            stmts.Add(boogieGenerator.WriteAddr(boogieGenerator.AddressOf(referencedParam), refResult));
+                        }
+                    }
+                }
+
                 return stmts;
             }
 

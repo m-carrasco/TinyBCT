@@ -23,6 +23,7 @@ namespace TinyBCT
         ClassHierarchyAnalysis CHA;
         private ControlFlowGraph CFG;
         Assembly assembly;
+        private ISet<Assembly> inputAssemblies;
 
         static bool whitelistContains(string name)
         {
@@ -73,7 +74,7 @@ namespace TinyBCT
                                     ReferenceFinder reference = new ReferenceFinder();
                                     reference.CollectLocalVariables(mB);
                                 }
-                                MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, mB, CHA, cfg, assembly);
+                                MethodTranslator methodTranslator = new MethodTranslator(methodDefinition, mB, CHA, cfg, assembly, assemblies);
                                 // todo: improve this piece of code
                                 StreamWriter streamWriter = Program.streamWriter;
                                 streamWriter.WriteLine(methodTranslator.Translate());
@@ -93,18 +94,19 @@ namespace TinyBCT
             }
         }
 
-        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA, ControlFlowGraph cfg, Assembly assembly)
+        public MethodTranslator(IMethodDefinition methodDefinition, MethodBody methodBody, ClassHierarchyAnalysis CHA, ControlFlowGraph cfg, Assembly assembly,ISet<Assembly> inputAssemblies)
         {
             this.methodDefinition = methodDefinition;
             this.methodBody = methodBody;
             this.CHA = CHA;
             this.CFG = cfg;
             this.assembly = assembly;
+            this.inputAssemblies = inputAssemblies;
         }
 
         StatementList TranslateInstructions(out Dictionary<string, BoogieVariable> temporalVariables)
         {
-            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody, CFG);
+            InstructionTranslator instTranslator = new InstructionTranslator(this.CHA, methodBody, CFG, inputAssemblies);
             instTranslator.Translate();
 
             foreach (var v in instTranslator.RemovedVariables)
