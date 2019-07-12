@@ -26,7 +26,6 @@ namespace TinyBCT
             Exceptions = true;
             AtomicInitArray = false;
             CheckNullDereferences = false;
-            DebugLargeDLL = false;
             SilentExceptionsForMethods = false;
             DebugLines = false;
             Verbose = false;
@@ -56,7 +55,6 @@ namespace TinyBCT
             sb.AppendLine("Exceptions " + Exceptions);
             sb.AppendLine("AtomicinitArray " + AtomicInitArray);
             sb.AppendLine("CheckNullDereferences " + CheckNullDereferences);
-            sb.AppendLine("DebugLargeDLL " + DebugLargeDLL);
             sb.AppendLine("SilentExceptionsForMethods " + SilentExceptionsForMethods);
             sb.AppendLine("DebugLines " + DebugLines);
             sb.AppendLine("Verbose " + Verbose);
@@ -105,7 +103,6 @@ namespace TinyBCT
         public bool Exceptions;
         public bool AtomicInitArray;
         public bool CheckNullDereferences;
-        public bool DebugLargeDLL;
         public bool SilentExceptionsForMethods;
         public bool DebugLines;
         public bool Verbose;
@@ -164,10 +161,6 @@ namespace TinyBCT
         public static bool CheckNullDereferences
         {
             get { return programOptions.CheckNullDereferences; }
-        }
-        public static bool DebugLargeDLL
-        {
-            get { return programOptions.DebugLargeDLL; }
         }
         public static bool SilentExceptionsForMethods
         {
@@ -242,10 +235,7 @@ namespace TinyBCT
             .Callback(b => options.CheckNullDereferences = b)
             .WithDescription("Add assertions at every dereference checking that the reference is not null.");
 
-            p.Setup<bool>('d', "DebugLargeDLL")
-            .Callback(b => options.DebugLargeDLL = b)
-            .WithDescription("Do not use this option.");
-
+            // dangerous option because the exception can leave the translator in a inconsistent state
             p.Setup<bool>("SilentExceptionsForMethods")
             .Callback(b => options.SilentExceptionsForMethods = b)
             .WithDescription(

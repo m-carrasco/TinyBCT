@@ -25,30 +25,6 @@ namespace TinyBCT
         Assembly assembly;
         private ISet<Assembly> inputAssemblies;
 
-        static bool whitelistContains(string name)
-        {
-            if (!Settings.DebugLargeDLL)
-            {
-                return true;
-            }
-            if (name.Contains("Analyzer1"))
-                return true;
-            if (name.Contains("Project"))
-                return true;
-            if (name.Contains("Diagnostic"))
-                return true;
-
-            if (name.Contains("MetadataReference"))
-                return true;
-            if (name.Contains("Location"))
-                return true;
-            if (name.Contains("Compilation"))
-                return true;
-            if (name.Contains("Document"))
-                return true;
-
-            return false;
-        }
         // called from Traverser
         // set in Main
         public static void TranslateAssemblies(ISet<Assembly> assemblies, ClassHierarchyAnalysis CHA)
@@ -61,8 +37,6 @@ namespace TinyBCT
                     {
                         try
                         {
-                            if (whitelistContains(methodDefinition.ContainingType.FullName()))
-                            {
                                 var disassembler = new Disassembler(assembly.Host, methodDefinition, assembly.PdbReader);
                                 disassembler.Execute();
                                 MethodBody mB = disassembler.MethodBody;
@@ -79,7 +53,6 @@ namespace TinyBCT
                                 StreamWriter streamWriter = Program.streamWriter;
                                 streamWriter.WriteLine(methodTranslator.Translate());
                                 Helpers.addTranslatedMethod(methodDefinition);
-                            }
                         }
                         catch (InvalidOperationException ex)
                         {
