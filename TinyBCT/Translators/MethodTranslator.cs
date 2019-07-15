@@ -107,9 +107,10 @@ namespace TinyBCT
 
         String TranslateAttr()
         {
+            var attrs = methodDefinition.Attributes.Select(a => String.Format("{{:assemblyAttribute.{0}}}", a.Type));
             // commented entrypoint tag - this is only added to the wrappers
             // check StaticInitializer
-            return /*Helpers.IsMain(methodDefinition) ? " {:entrypoint}" :*/ String.Empty;
+            return String.Join(" ", attrs.ToArray());
 
         }
 
