@@ -141,11 +141,14 @@ namespace NUnitTests.Utils
             pProcess.StartInfo.RedirectStandardOutput = true;
             pProcess.StartInfo.RedirectStandardError = true;
             var cmd = corralPath + " " + pProcess.StartInfo.Arguments;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             pProcess.Start();
             string output = pProcess.StandardOutput.ReadToEnd();
             string err = pProcess.StandardError.ReadToEnd();
             pProcess.WaitForExit();
             pProcess.Dispose();
+            watch.Stop();
+            Console.WriteLine("Corral executed in (seconds): " + watch.ElapsedMilliseconds/1000 );
             return new CorralResult(output, err, cmd);
         }
     }
