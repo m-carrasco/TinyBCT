@@ -401,7 +401,15 @@ namespace TinyBCT
                 #endregion
             }
 
-            var t = new BoogieProcedureTemplate(methodName, " {:extern} ", StatementList.Empty, StatementList.Empty, parameters, returnType, true);
+            string task_attr = String.Empty;
+
+            string typeName = methodRef.Type.FullName();
+            if (typeName.Equals("System.Threading.Tasks.Task"))
+                task_attr = " {:task} ";
+            else if (typeName.StartsWith("System.Threading.Tasks.Task<"))
+                task_attr = " {:generic_task} ";
+
+            var t = new BoogieProcedureTemplate(methodName, " {:extern} " + task_attr , StatementList.Empty, StatementList.Empty, parameters, returnType, true);
 
             return t.TransformText();
         }

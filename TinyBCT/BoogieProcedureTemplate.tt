@@ -6,7 +6,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 
 <# if (isExtern){#>
-procedure {:extern} <#=ProcedureName()#>(<#=ParametersWithType()#>) <#=ReturnTypeIfAny()#>;
+procedure <#=Attributes()#> <#=ProcedureName()#>(<#=ParametersWithType()#>) <#=ReturnTypeIfAny()#>;
 <# }else{ #>
 procedure <#=Attributes()#> <#=ProcedureName()#>(<#=ParametersWithType()#>) <#=ReturnTypeIfAny()#>
 {
