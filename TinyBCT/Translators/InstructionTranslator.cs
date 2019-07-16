@@ -400,6 +400,16 @@ namespace TinyBCT.Translators
                 throw new NotImplementedException();
             }
 
+            private bool IsNonNullableType(ITypeReference typeReference)
+            {
+                if (typeReference.IsValueType)
+                    return true;
+                if (typeReference is IManagedPointerType pointer && pointer.TargetType.IsValueType)
+                    return true;
+
+                return false;
+            }
+
             public override void Visit(MethodCallInstruction instruction)
             {
                 if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.None)
@@ -407,28 +417,27 @@ namespace TinyBCT.Translators
 
                 if (!instruction.Method.IsStatic)
                 {
-                    //var thisVar = instruction.Arguments.Where(v => v.Name.Equals("this")).SingleOrDefault();
                     Contract.Assert(instruction.Arguments.Count > 0);
                     var thisVar = instruction.Arguments[0];
+
+                    if (IsNonNullableType(thisVar.Type))
+                        return;
+
                     if (thisVar != null && instruction.Arguments.IndexOf(thisVar) == 0)
                     {
                         var objectThis = boogieGenerator.ReadAddr(thisVar);
                         AddBoogie(AssertOrAssumeNotNull(objectThis));
                     }
                 }
-
-                //base.Visit(instruction);
             }
 
             public override void Visit(LoadInstruction instruction)
             {
                 if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.None)
                     return;
-
+                    
                 if (instruction.Operand is Reference reference)
                 {
-                    var referencedObject = boogieGenerator.ReadAddr(boogieGenerator.AddressOf(reference.Value));
-                    AddBoogie(AssertOrAssumeNotNull(referencedObject));
                 } else if (instruction.Operand is ArrayElementAccess arrayElementAccess)
                 {
                     var objectThis = boogieGenerator.ReadAddr(arrayElementAccess.Array);
@@ -439,20 +448,24 @@ namespace TinyBCT.Translators
                     AddBoogie(AssertOrAssumeNotNull(objectThis));
                 } else if (instruction.Operand is InstanceFieldAccess instanceFieldAccess)
                 {
+                    if (IsNonNullableType(instanceFieldAccess.Instance.Type))
+                        return;
+
                     var objectThis = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
                     AddBoogie(AssertOrAssumeNotNull(objectThis));
                 }
-
-                //base.Visit(instruction);
             }
 
             public override void Visit(StoreInstruction instruction)
             {
                 if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.None)
                     return;
-
+                    
                 if (instruction.Result is InstanceFieldAccess instanceFieldAccess)
                 {
+                    if (IsNonNullableType(instanceFieldAccess.Instance.Type))
+                        return;
+
                     var objectThis = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
                     AddBoogie(AssertOrAssumeNotNull(objectThis));
                 } else if (instruction.Result is ArrayElementAccess arrayElementAccess)
@@ -461,14 +474,9 @@ namespace TinyBCT.Translators
                     AddBoogie(AssertOrAssumeNotNull(objectThis));
                 } else if (instruction.Result is Dereference dereference)
                 {
-                    var objectThis = boogieGenerator.ReadAddr(dereference.Reference);
-                    AddBoogie(AssertOrAssumeNotNull(objectThis));
                 }
-
-                //base.Visit(instruction);
             }
         }
-
 
         // translates each instruction independently 
         class SimpleTranslation : NullDereferenceInstrumenter
