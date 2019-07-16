@@ -12,24 +12,6 @@ using System;
 using System.Net.Http;
 using TinyBCT;
 
-
-namespace TinyBCT
-{
-    public class AsyncStubs
-    {
-        public extern static Task<T> Eventually<T>();
-    }
-
-    //public static class Extensions
-    //{
-    //    public static async Task<T> ReadAsAsyncStub<T>(this HttpContent content)
-    //    {
-    //        return await TinyBCT.AsyncStubs.Eventually<T>();
-    //    }
-    // }
-}
-
-
 namespace HelloWorld
 {
     // only used to get the assembly containing this classs from the nunitests
