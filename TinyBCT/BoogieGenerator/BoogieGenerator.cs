@@ -1625,10 +1625,22 @@ namespace TinyBCT
             return BoogieStatement.AssumeTypeConstructor(Mem().ReadAddr(arg), type.ToString());
         }
 
+        public StatementList Assert(Expression cond)
+        {
+            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
+            return BoogieStatement.Assert(cond);
+        }
+
         public StatementList Assert(IVariable cond)
         {
             Contract.Assume(Helpers.GetBoogieType(cond).Equals(Helpers.BoogieType.Bool));
             return BoogieStatement.Assert(Mem().ReadAddr(cond));
+        }
+
+        public BoogieStatement Assume(Expression cond)
+        {
+            Contract.Assume(cond.Type.Equals(Helpers.BoogieType.Bool));
+            return BoogieStatement.Assume(cond);
         }
 
         public BoogieStatement Assume(IVariable cond)

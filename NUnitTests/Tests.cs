@@ -1024,7 +1024,9 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assume;
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1048,7 +1050,9 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assume;
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1070,7 +1074,9 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.None;
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1093,9 +1099,9 @@ class Test {
     }
 }
         ";
-        TinyBCT.ProgramOptions options = new ProgramOptions();
-        options.CheckNullDereferences = true;
-        var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assert;
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("Test.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1117,7 +1123,7 @@ class Test {
 }
         ";
         TinyBCT.ProgramOptions options = new ProgramOptions();
-        options.CheckNullDereferences = true;
+        options.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assert;
         var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
@@ -1140,7 +1146,7 @@ class Test {
 }
         ";
         TinyBCT.ProgramOptions options = new ProgramOptions();
-        options.CheckNullDereferences = true;
+        options.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assert;
         var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
@@ -1159,7 +1165,10 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assume;
+
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1177,7 +1186,10 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assume;
+
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1195,7 +1207,10 @@ class Test {
     }
 }
         ";
-        var corralResult = TestSingleCSharpFile(source, CreateDefaultTinyBctOptions(), CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
+        var tinyBCTOptions = CreateDefaultTinyBctOptions();
+        tinyBCTOptions.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assume;
+
+        var corralResult = TestSingleCSharpFile(source, tinyBCTOptions, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.NoBugs());
     }
     [Test, Category("NullPtrInstrumentation")]
@@ -1213,7 +1228,7 @@ class Test {
 }
         ";
         TinyBCT.ProgramOptions options = new ProgramOptions();
-        options.CheckNullDereferences = true;
+        options.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assert;
         var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
@@ -1232,7 +1247,7 @@ class Test {
 }
         ";
         TinyBCT.ProgramOptions options = new ProgramOptions();
-        options.CheckNullDereferences = true;
+        options.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assert;
         var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }
@@ -1251,7 +1266,7 @@ class Test {
 }
         ";
         TinyBCT.ProgramOptions options = new ProgramOptions();
-        options.CheckNullDereferences = true;
+        options.CheckNullDereferences = ProgramOptions.CheckNullDereferencesLevel.Assert;
         var corralResult = TestSingleCSharpFile(source, options, CreateDefaultCorralOptions("$Main_Wrapper_Test.Main"));
         Assert.IsTrue(corralResult.AssertionFails());
     }

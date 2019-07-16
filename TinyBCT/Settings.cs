@@ -19,13 +19,21 @@ namespace TinyBCT
             Mixed = 3
         }
 
+        [Flags]
+        public enum CheckNullDereferencesLevel
+        {
+            None = 1,
+            Assert = 2,
+            Assume = 3
+        }
+
         public ProgramOptions(){
             bplInputFiles = new List<string>();
             inputFiles = new List<string>();
             EmitLineNumbers = false;
             Exceptions = true;
             AtomicInitArray = false;
-            CheckNullDereferences = false;
+            CheckNullDereferences = CheckNullDereferencesLevel.None;
             SilentExceptionsForMethods = false;
             DebugLines = false;
             Verbose = false;
@@ -102,7 +110,7 @@ namespace TinyBCT
         public bool EmitLineNumbers;
         public bool Exceptions;
         public bool AtomicInitArray;
-        public bool CheckNullDereferences;
+        public CheckNullDereferencesLevel CheckNullDereferences;
         public bool SilentExceptionsForMethods;
         public bool DebugLines;
         public bool Verbose;
@@ -158,7 +166,7 @@ namespace TinyBCT
         {
             get { return programOptions.AtomicInitArray; }
         }
-        public static bool CheckNullDereferences
+        public static ProgramOptions.CheckNullDereferencesLevel CheckNullDereferences
         {
             get { return programOptions.CheckNullDereferences; }
         }
@@ -231,9 +239,9 @@ namespace TinyBCT
             .Callback(b => options.AtomicInitArray = b)
             .WithDescription("Handles atomic initialization of arrays.");
 
-            p.Setup<bool>("checkNullDereferences")
+            p.Setup<ProgramOptions.CheckNullDereferencesLevel>("checkNullDereferences")
             .Callback(b => options.CheckNullDereferences = b)
-            .WithDescription("Add assertions at every dereference checking that the reference is not null.");
+            .WithDescription("Assert or assume that an object cannot be null before a dereference. By default there is no assertion or assumption added.");
 
             // dangerous option because the exception can leave the translator in a inconsistent state
             p.Setup<bool>("SilentExceptionsForMethods")

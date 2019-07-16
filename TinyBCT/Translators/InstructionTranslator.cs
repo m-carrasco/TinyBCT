@@ -164,13 +164,7 @@ namespace TinyBCT.Translators
             else if (ArrayTranslation.IsArrayTranslation(instructions, idx))
                 translation = new ArrayTranslation(this);
             else
-            {
-                if (Settings.AddressesEnabled())
-                    translation = new SimpleTranslation(this);
-                else
-                    // for now this is disable for new memory modeling
-                    translation = new NullDereferenceInstrumenter(this);
-            }
+               translation = new SimpleTranslation(this);
         }
 
         protected abstract class Translation : InstructionVisitor
@@ -304,7 +298,7 @@ namespace TinyBCT.Translators
         }
 
         // http://community.bartdesmet.net/blogs/bart/archive/2008/08/21/how-c-array-initializers-work.aspx
-        class AtomicArrayInitializationTranslation : Translation
+        class AtomicArrayInitializationTranslation : NullDereferenceInstrumenter
         {
             public AtomicArrayInitializationTranslation(InstructionTranslator p) : base(p)
             {
@@ -347,6 +341,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(MethodCallInstruction instruction)
             {
+                base.Visit(instruction);
                 // this atomic initialization is expected to set all elements of the array in one operation
                 // we are not setting the specific elements because we should read the .data of the PE
                 // we want to havoc every element of the array, and they cannot be null (the elements)
@@ -389,85 +384,94 @@ namespace TinyBCT.Translators
             }
         }
 
-        class NullDereferenceInstrumenter : SimpleTranslation
+        class NullDereferenceInstrumenter : Translation
         {
-            public NullDereferenceInstrumenter(InstructionTranslator p) : base(p)
+            public NullDereferenceInstrumenter(InstructionTranslator p) : base(p) { }
+
+            private StatementList AssertOrAssumeNotNull(Expression objectExpr)
             {
+                var property = Expression.NotEquals(objectExpr, boogieGenerator.NullObject());
+
+                if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.Assert)
+                    return boogieGenerator.Assert(property);
+                else if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.Assume)
+                    return boogieGenerator.Assume(property);
+
+                throw new NotImplementedException();
             }
 
             public override void Visit(MethodCallInstruction instruction)
             {
-                var unspecializedMethod = Helpers.GetUnspecializedVersion(instruction.Method);
-                // Instance methods, passing 'this'
-                if (unspecializedMethod.Parameters.Count() != instruction.Arguments.Count())
+                if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.None)
+                    return;
+
+                if (!instruction.Method.IsStatic)
                 {
-                    var arg_ref = boogieGenerator.ReadAddr(instruction.Arguments.ElementAt(0));
-                    if (arg_ref.Type == Helpers.BoogieType.Ref)
+                    //var thisVar = instruction.Arguments.Where(v => v.Name.Equals("this")).SingleOrDefault();
+                    Contract.Assert(instruction.Arguments.Count > 0);
+                    var thisVar = instruction.Arguments[0];
+                    if (thisVar != null && instruction.Arguments.IndexOf(thisVar) == 0)
                     {
-                        var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
-                        if (Settings.CheckNullDereferences)
-                        {
-                            AddBoogie(BoogieStatement.Assert(refNotNull, annotation: "nonnull"));
-                        }
-                        else
-                        {
-                            AddBoogie(BoogieStatement.Assume(refNotNull, annotation: "nonnull"));
-                        }
+                        var objectThis = boogieGenerator.ReadAddr(thisVar);
+                        AddBoogie(AssertOrAssumeNotNull(objectThis));
                     }
                 }
 
-                base.Visit(instruction);
+                //base.Visit(instruction);
             }
+
             public override void Visit(LoadInstruction instruction)
             {
-                if (instruction.Operand is InstanceFieldAccess) // memory access handling
+                if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.None)
+                    return;
+
+                if (instruction.Operand is Reference reference)
                 {
-                    var instanceFieldAccess = instruction.Operand as InstanceFieldAccess;
-                    var arg_ref = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
-                    if (arg_ref.Type == Helpers.BoogieType.Ref)
-                    {
-                        var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
-                        if (Settings.CheckNullDereferences)
-                        {
-                            AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                        }
-                        else
-                        {
-                            AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
-                        }
-                    }
+                    var referencedObject = boogieGenerator.ReadAddr(boogieGenerator.AddressOf(reference.Value));
+                    AddBoogie(AssertOrAssumeNotNull(referencedObject));
+                } else if (instruction.Operand is ArrayElementAccess arrayElementAccess)
+                {
+                    var objectThis = boogieGenerator.ReadAddr(arrayElementAccess.Array);
+                    AddBoogie(AssertOrAssumeNotNull(objectThis));
+                } else if (instruction.Operand is ArrayLengthAccess arrayLengthAccess)
+                {
+                    var objectThis = boogieGenerator.ReadAddr(arrayLengthAccess.Instance);
+                    AddBoogie(AssertOrAssumeNotNull(objectThis));
+                } else if (instruction.Operand is InstanceFieldAccess instanceFieldAccess)
+                {
+                    var objectThis = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
+                    AddBoogie(AssertOrAssumeNotNull(objectThis));
                 }
 
-                base.Visit(instruction);
+                //base.Visit(instruction);
             }
+
             public override void Visit(StoreInstruction instruction)
             {
-                if (instruction.Result is InstanceFieldAccess) // memory access handling
-                {
-                    var instanceFieldAccess = instruction.Result as InstanceFieldAccess;
-                    var arg_ref = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
-                    if (arg_ref.Type == Helpers.BoogieType.Ref)
-                    {
-                        var refNotNull = Expression.NotEquals(arg_ref, boogieGenerator.NullObject());
-                        if (Settings.CheckNullDereferences)
-                        {
-                            AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                        }
-                        else
-                        {
-                            AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
-                        }
+                if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.None)
+                    return;
 
-                    }
+                if (instruction.Result is InstanceFieldAccess instanceFieldAccess)
+                {
+                    var objectThis = boogieGenerator.ReadAddr(instanceFieldAccess.Instance);
+                    AddBoogie(AssertOrAssumeNotNull(objectThis));
+                } else if (instruction.Result is ArrayElementAccess arrayElementAccess)
+                {
+                    var objectThis = boogieGenerator.ReadAddr(arrayElementAccess.Array);
+                    AddBoogie(AssertOrAssumeNotNull(objectThis));
+                } else if (instruction.Result is Dereference dereference)
+                {
+                    var objectThis = boogieGenerator.ReadAddr(dereference.Reference);
+                    AddBoogie(AssertOrAssumeNotNull(objectThis));
                 }
 
-                base.Visit(instruction);
+                //base.Visit(instruction);
             }
         }
 
 
         // translates each instruction independently 
-        class SimpleTranslation : Translation
+        class SimpleTranslation : NullDereferenceInstrumenter
         {
             public SimpleTranslation(InstructionTranslator p) : base(p)
             {
@@ -647,6 +651,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadInstruction instruction)
             {
+                base.Visit(instruction);
                 var instructionOperand = instruction.Operand;
 
                 // We are assuming you can only have operands of type pointer when: they are a IVariable or a Reference
@@ -811,6 +816,8 @@ namespace TinyBCT.Translators
 
             public override void Visit(MethodCallInstruction instruction)
             {
+                base.Visit(instruction);
+
                 StatementList toAppend = new StatementList();
 
                 var methodName = instruction.Method.ContainingType.FullName() + "." + instruction.Method.Name.Value;
@@ -879,6 +886,8 @@ namespace TinyBCT.Translators
 
             public override void Visit(StoreInstruction instruction)
             {
+                base.Visit(instruction);
+
                 var instanceFieldAccess = instruction.Result as InstanceFieldAccess; // where it is stored
                 var staticFieldAccess = instruction.Result as StaticFieldAccess;
                 var dereference = instruction.Result as Dereference;
@@ -941,17 +950,6 @@ namespace TinyBCT.Translators
                     AddBoogie(boogieGenerator.BoxFrom(instruction.Operand, instruction, instTranslator));
                 } else if (instruction.Operation == ConvertOperation.Unbox)
                 {
-                    // Diego: to check
-                    var operandExpr = boogieGenerator.ReadAddr(instruction.Operand);
-                    var refNotNull = Expression.NotEquals(operandExpr, boogieGenerator.NullObject());
-                    if (Settings.CheckNullDereferences)
-                    {
-                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                    }
-                    else
-                    {
-                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
-                    }
                     if (!Helpers.IsBoogieRefType(instruction.ConversionType))
                         AddBoogie(boogieGenerator.VariableAssignment(instruction.Result, Expression.Union2PrimitiveType(Helpers.GetBoogieType(instruction.ConversionType), boogieGenerator.ReadAddr(instruction.Operand))));
                     else
@@ -1045,7 +1043,7 @@ namespace TinyBCT.Translators
             }
         }
 
-        protected class ArrayTranslation : Translation
+        class ArrayTranslation : NullDereferenceInstrumenter
         {
             public ArrayTranslation(InstructionTranslator p) : base(p)
             {
@@ -1136,6 +1134,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadInstruction instruction)
             {
+                base.Visit(instruction);
                 var instructionOperand = instruction.Operand;
                 // hack of old memory modelling
                 if (!Settings.AddressesEnabled() && instructionOperand is Reference)
@@ -1149,20 +1148,6 @@ namespace TinyBCT.Translators
 
                 ArrayElementAccess elementAccess = instructionOperand as ArrayElementAccess;
                 ArrayLengthAccess lengthAccess = instructionOperand as ArrayLengthAccess;
-
-                if (elementAccess != null || lengthAccess != null)
-                {
-                    var receiverObjectExpr = boogieGenerator.ReadAddr(lengthAccess != null ? lengthAccess.Instance : elementAccess.Array);
-                    var refNotNull = Expression.NotEquals(receiverObjectExpr, boogieGenerator.NullObject());
-                    if (Settings.CheckNullDereferences)
-                    {
-                        AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                    }
-                    else
-                    {
-                        AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
-                    }
-                }
 
                 if (lengthAccess != null)
                 {
@@ -1226,22 +1211,13 @@ namespace TinyBCT.Translators
 
             public override void Visit(StoreInstruction instruction)
             {
+                base.Visit(instruction);
                 // multi-dimensional arrays are not supported yet - analysis-net is not working correctly
                 ArrayElementAccess res = instruction.Result as ArrayElementAccess;
 
                 Contract.Assert(res != null);
 
                 var receiverObjectExpr = boogieGenerator.ReadAddr(res.Array);
-                var refNotNull = Expression.NotEquals(receiverObjectExpr, boogieGenerator.NullObject());
-
-                if (Settings.CheckNullDereferences)
-                {
-                    AddBoogie(BoogieStatement.Assert(refNotNull, "nonnull"));
-                }
-                else
-                {
-                    AddBoogie(BoogieStatement.Assume(refNotNull, "nonnull"));
-                }
                 var arrayExpr = boogieGenerator.ReadAddr(res.Array);
                 var firstIndexExpr = boogieGenerator.ReadAddr(res.Indices[0]);
                 if (!Helpers.IsBoogieRefType(res.Type)) // Ref and Union are alias
@@ -1482,7 +1458,7 @@ namespace TinyBCT.Translators
 
         // it is triggered when Load, CreateObject and MethodCall instructions are seen in this order.
         // Load must be of a static or virtual method (currently only static is supported)
-        class DelegateCreationTranslation : Translation
+        class DelegateCreationTranslation : NullDereferenceInstrumenter
         {
             private static bool IsMethodReference(Instruction ins)
             {
@@ -1541,6 +1517,7 @@ namespace TinyBCT.Translators
 
             public override void Visit(LoadInstruction instruction)
             {
+                //base.Visit(instruction);
                 Contract.Assert(instruction.Operand is StaticMethodReference || instruction.Operand is VirtualMethodReference);
                 loadIns = instruction;
 
@@ -1840,11 +1817,11 @@ namespace TinyBCT.Translators
                     var receiverObject = DelegateExpression.RefToDelegateReceiver(id);
                     args.Add(receiverObject);
                     var refNotNull = Expression.NotEquals(receiverObject, BoogieGenerator.Instance().NullObject());
-                    if (Settings.CheckNullDereferences)
+                    if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.Assert)
                     {
                         ifStmts.Add(BoogieStatement.Assert(refNotNull, "nonnull"));
                     }
-                    else
+                    else if (Settings.CheckNullDereferences == ProgramOptions.CheckNullDereferencesLevel.Assume)
                     {
                         ifStmts.Add(BoogieStatement.Assume(refNotNull, "nonnull"));
                     }
