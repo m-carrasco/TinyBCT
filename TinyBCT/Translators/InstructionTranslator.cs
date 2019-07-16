@@ -1586,12 +1586,13 @@ namespace TinyBCT.Translators
             }
         }
 
-        class DelegateInvokeTranslation : Translation
+        class DelegateInvokeTranslation : NullDereferenceInstrumenter
         {
             public DelegateInvokeTranslation(InstructionTranslator p) : base(p) {}
 
             public override void Visit(MethodCallInstruction instruction)
             {
+                //base.Visit(instruction);
                 //addLabel(instruction);
 
                 // this local variable will hold the InvokeDelegate result 
