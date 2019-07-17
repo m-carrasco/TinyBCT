@@ -1,6 +1,7 @@
 language: csharp
 dist: xenial
 sudo: true
+mono: 5.20.1.19
 dotnet: 2.2.100
 solution: "TinyBCT.sln"
 install:
