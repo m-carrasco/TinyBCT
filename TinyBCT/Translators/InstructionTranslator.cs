@@ -528,8 +528,8 @@ namespace TinyBCT.Translators
                 IVariable right = instruction.RightOperand;
 
 
-                if (left.Type.TypeCode.Equals(PrimitiveTypeCode.String) ||
-                    right.Type.TypeCode.Equals(PrimitiveTypeCode.String))
+                if (Settings.Z3Strings && (left.Type.TypeCode.Equals(PrimitiveTypeCode.String) ||
+                    right.Type.TypeCode.Equals(PrimitiveTypeCode.String)))
                 {
                     BoogieMethod methodName = Helpers.Strings.GetBinaryMethod(instruction.Operation);
                     

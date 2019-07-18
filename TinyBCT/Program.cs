@@ -233,6 +233,20 @@ namespace TinyBCT
                     streamWriter.WriteLine(asyncStubs.AsyncMethodBuilderStartStub(true));
                     streamWriter.WriteLine(asyncStubs.AsyncStubsScheduleTask(true));
                 }
+
+                if (!Settings.AsyncSupport && Settings.AsyncSupportGenerics)
+                {   
+                    // this is only in AsyncSupport prelude
+                    // we can't add it to AsyncSupportGenerics because we are not always sure there will be all defined types and functions
+
+                    bool hasEventually = inputAssemblies.GetAllDefinedMethods().Any(m => m.Name.Value.Equals("Eventually"));
+                    if (hasEventually)
+                    {
+                        AsyncStubs asyncStubs = new AsyncStubs(inputAssemblies);
+                        streamWriter.WriteLine(asyncStubs.EventuallyStub());
+                    }
+                }
+
                 #endregion
 
                 streamWriter.WriteLine(StringTranslator.Stubs());

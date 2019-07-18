@@ -28,6 +28,20 @@ namespace TinyBCT
             return procedureTemplate.TransformText();
         }
 
+        public string EventuallyStub()
+        {
+            string procedure =
+                    @"procedure TinyBCT.AsyncStubs.Eventually() returns ($result : Object) {
+                        call $result := Alloc();
+                        F$AsyncStubs.Task.IsCompleted[$result] := false;
+                        F$AsyncStubs.Task.Sm[$result] := null_object;
+                        assume  ($DynamicType($result) == T$System.Threading.Tasks.Task());
+                        assume $TypeConstructor($DynamicType($result)) == T$System.Threading.Tasks.Task;
+                        async call $AsyncStubs$EventuallyFinish($result);
+                    }";
+
+            return procedure;
+        }
         public string AsyncStubsScheduleTask(bool genericVersion = false)
         {
             StatementList localVars = new StatementList();
