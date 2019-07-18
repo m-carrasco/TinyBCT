@@ -804,7 +804,7 @@ namespace TinyBCT.Translators
                 {
                     // it can break our stubs
                     if ((Settings.AsyncSupport || Settings.AsyncSupportGenerics) && 
-                        (instruction.Method.ContainingType.GetName().Contains("Async") || instruction.Method.ContainingType.GetName().Equals("TaskAwaiter")))
+                        (instruction.Method.ContainingType.GetName().Contains("Async") || instruction.Method.ContainingType.GetName().Equals("TaskAwaiter") || instruction.Method.ContainingType.GetName().StartsWith("TaskAwaiter<")))
                         return stmts;
 
                     var refParameters = instruction.Arguments.Where(p => p.Type is IManagedPointerType);
