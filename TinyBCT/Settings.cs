@@ -239,7 +239,7 @@ namespace TinyBCT
             .Callback(b => options.AtomicInitArray = b)
             .WithDescription("Handles atomic initialization of arrays.");
 
-            p.Setup<ProgramOptions.CheckNullDereferencesLevel>("checkNullDereferences")
+            p.Setup<ProgramOptions.CheckNullDereferencesLevel>("CheckNullDereferences")
             .Callback(b => options.CheckNullDereferences = b)
             .WithDescription("Assert or assume that an object cannot be null before a dereference. By default there is no assertion or assumption added.");
 
