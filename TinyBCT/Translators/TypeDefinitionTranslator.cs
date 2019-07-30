@@ -302,7 +302,7 @@ namespace TinyBCT.Translators
             return String.Format("function T${0}({1}) : Ref;", typeName, argsString);
         }
 
-        private static string TypeConstant(ITypeReference typeReference)
+        public static string TypeConstant(ITypeReference typeReference)
         {
             string typeName = Helpers.GetNormalizedType(typeReference);
             return String.Format("const unique T${0} : int;", typeName);

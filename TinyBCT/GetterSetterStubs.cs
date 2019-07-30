@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Cci;
 using TinyBCT.Translators;
+using System.Linq;
 
 namespace TinyBCT
 {
@@ -19,37 +20,53 @@ namespace TinyBCT
             if (Settings.StubGettersSettersWhitelist.Count > 0)
                 usedProperties = usedProperties.Where(p => Settings.StubGettersSettersWhitelist.Contains(BoogieMethod.From(p).Name));
 
+            var propertyFields = usedProperties.Select(propertyMethod => GetFieldDef(propertyMethod)).ToList().Distinct();
+            foreach (var propertyDefinition in propertyFields)
+                streamWriter.WriteLine(propertyDefinition);
+
             foreach (var property in usedProperties)
             {
-                //if (property.Name.Value.Equals("get_Content") ||
-                //    property.Name.Value.Equals("get_StatusCode") || 
-                //    property.Name.Value.Equals("get_ReasonPhrase"))
-                //{
-                    streamWriter.WriteLine(GetFieldDef(property));
-                    var proc = property.Name.Value.StartsWith("get_") ? GetProcedureStub(property) : SetProcedureStub(property);
-                    streamWriter.WriteLine(proc);
-                //}
+                //streamWriter.WriteLine(GetFieldDef(property));
+                var proc = property.Name.Value.StartsWith("get_") ? GetProcedureStub(property) : SetProcedureStub(property);
+                streamWriter.WriteLine(proc);
 
             }
-            // hack
-            //return usedProperties.Where(property => property.Name.Value.Equals("get_Content") ||
-            //        property.Name.Value.Equals("get_StatusCode") ||
-            //        property.Name.Value.Equals("get_ReasonPhrase"));
             return usedProperties;
+        }
+
+        public string GetFieldName(IMethodReference method)
+        {
+            FieldTranslator field = new FieldTranslator();
+            var fName = method.Name.Value.StartsWith("get_") ?
+                        method.Name.Value.Replace("get_", "property_") :
+                        method.Name.Value.Replace("set_", "property_");
+
+            var boogieName = field.BoogieNameForField(method.ContainingType, fName);
+
+            return boogieName;
         }
 
         public string GetFieldDef(IMethodReference method)
         {
             FieldTranslator field = new FieldTranslator();
-            var boogieName = field.BoogieNameForField(method.ContainingType, method.Name.Value);
-            var boogieType = Helpers.GetBoogieType(method.Type);
+            var boogieName = field.BoogieNameForField(method.ContainingType, GetFieldName(method));
+
+            Helpers.BoogieType boogieType = Helpers.BoogieType.Object;
+            if (method.Name.Value.StartsWith("get_"))
+            {
+                boogieType = Helpers.GetBoogieType(method.Type);
+            } else
+            {
+                boogieType = Helpers.GetBoogieType(method.Parameters.ElementAt(0));
+            }
+            //var boogieType = Helpers.GetBoogieType(method.Type);
             return String.Format("var {0} : [Ref]{1};", boogieName, boogieType);
         }
 
         public string GetProcedureStub(IMethodReference method)
         {
             FieldTranslator field = new FieldTranslator();
-            var boogieName = field.BoogieNameForField(method.ContainingType, method.Name.Value);
+            var boogieName = field.BoogieNameForField(method.ContainingType, GetFieldName(method));
             var boogieType = Helpers.GetBoogieType(method.Type);
 
             var get = new StatementList();
@@ -62,11 +79,11 @@ namespace TinyBCT
         public string SetProcedureStub(IMethodReference method)
         {
             FieldTranslator field = new FieldTranslator();
-            var boogieName = field.BoogieNameForField(method.ContainingType, method.Name.Value);
-            var paramType = Helpers.GetBoogieType(method.Parameters.ElementAt(1));
+            var boogieName = field.BoogieNameForField(method.ContainingType, GetFieldName(method));
+            var paramType = Helpers.GetBoogieType(method.Parameters.ElementAt(0));
 
             var get = new StatementList();
-            get.Add(BoogieStatement.FromString(boogieName + "[obj] := " + "val"));
+            get.Add(BoogieStatement.FromString(boogieName + "[obj] := " + "val;"));
 
             var t = new BoogieProcedureTemplate(BoogieMethod.From(method).Name, "", StatementList.Empty, get, "obj : Ref, val : " + paramType, String.Empty, false);
 

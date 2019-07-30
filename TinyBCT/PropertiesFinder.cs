@@ -11,12 +11,19 @@ namespace TinyBCT
 {
     public class PropertiesFinder
     {
+        private bool IsGetOrSetProp(MethodCallInstruction m)
+        { 
+            if (!m.Method.Type.Equals(Types.Instance.PlatformType.SystemVoid) && m.Method.Name.Value.StartsWith("get_"))
+                return true;
+
+            if (m.Method.Type.Equals(Types.Instance.PlatformType.SystemVoid) && m.Method.Name.Value.StartsWith("set_"))
+                return true;
+
+            return false;
+        }
         public IEnumerable<IMethodReference> FindPropertiesCalls(IEnumerable<Instruction> methodBody)
         {
-            return methodBody.Where(i => i is MethodCallInstruction m &&
-                                        !m.Method.Type.Equals(Types.Instance.PlatformType.SystemVoid) &&
-                                        (m.Method.Name.Value.StartsWith("get_"))
-                                        ).Cast<MethodCallInstruction>().Select(i => i.Method);
+            return methodBody.Where(i => i is MethodCallInstruction m && IsGetOrSetProp(m)).Cast<MethodCallInstruction>().Select(i => i.Method);
         }
 
         public IEnumerable<IMethodReference> FindPropertiesCalls(ISet<Assembly> assemblies)
