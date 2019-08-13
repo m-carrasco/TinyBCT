@@ -2,6 +2,8 @@
 
 TiniBCT is a MSIL translator to Boogie PL. It relies on a [.NET analysis Framework](https://github.com/garbervetsky/analysis-net)  to parse and analyze the MSIL.
 
+For latest changes use the develop branch.
+
 ## Build Status
 
 | Master                        | Develop                         |
