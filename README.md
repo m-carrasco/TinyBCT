@@ -41,5 +41,18 @@ In the repository folder, you must execute:
 3. nuget restore
 4. msbuild TinyBCT/TinyBCT.csproj
 
+# Build for Windows
+
+1. git checkout develop
+2. git submodule update --init --recursive
+3. Use Visual Studio IDE or the msbuild command.
+
+# Running test cases
+In order to run the test suite you must have corral. 
+
+1. git clone https://github.com/m7nu3l/corral (at the same level as the TinyBCT repository)
+2. git checkout strings
+2. Follow corral instructions for building. Remember to place Z3 binaries in the bin directory of corral.
+3. In Windows, you should run them from Visual Studio. Otherwise, you should do mono nunit3-console.exe ./NUnitTests/bin/Debug/NUnitTests.dll
 
 # Page in construction #
